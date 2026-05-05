@@ -1,0 +1,39 @@
+name: Moon Sniper Scan
+on:
+  schedule:
+    # 每 4 小時執行一次
+    - cron: '0 */4 * * *'
+  workflow_dispatch:  # 手動觸發
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install binance-cli
+        run: npm install -g @binance/binance-cli
+      
+      - name: Run scanner
+        run: python scanner.py
+        env:
+          BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
+          BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
+      
+      - name: Run paper trader
+        run: python paper_trader.py
+        env:
+          BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
+          BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
+      
+      - name: Commit results
+        run: |
+          git config user.name "moon-sniper-bot"
+          git config user.email "bot@moon-sniper"
+          git add signals.json paper_trades.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "auto: scan update $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push

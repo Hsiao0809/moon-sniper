@@ -1,0 +1,26 @@
+{
+  "scan": {
+    "interval_hours": 4,
+    "max_signals": 20,
+    "min_24h_volume_usdt": 100000,
+    "exclude_stablecoins": true,
+    "quote_asset": "USDT"
+  },
+  "scoring": {
+    "volume_weight": 0.30,
+    "momentum_weight": 0.25,
+    "smart_money_weight": 0.20,
+    "breakout_weight": 0.15,
+    "liquidity_weight": 0.10
+  },
+  "paper_trade": {
+    "max_risk_usdt": 10,
+    "take_profit_1": 0.10,
+    "take_profit_1_exit_ratio": 0.5,
+    "take_profit_2": 0.20,
+    "stop_loss": -0.05,
+    "max_hold_days": 7,
+    "min_score_to_trade": 70,
+    "max_open_trades": 5
+  }
+}

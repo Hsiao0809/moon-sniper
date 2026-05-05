@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moon Sniper — 暴漲潛力幣種偵測 + 紙交易</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --card: #131a2b;
+    --card-hover: #1a2440;
+    --border: #1e2d4a;
+    --text: #e0e6f0;
+    --text-dim: #6b7fa0;
+    --green: #22c55e;
+    --green-bg: rgba(34,197,94,0.1);
+    --red: #ef4444;
+    --red-bg: rgba(239,68,68,0.1);
+    --blue: #3b82f6;
+    --yellow: #f59e0b;
+    --purple: #8b5cf6;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header h1 {
+    font-size: 28px;
+    background: linear-gradient(135deg, var(--green), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .scan-time {
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  .btn:hover {
+    background: var(--card-hover);
+    border-color: var(--blue);
+  }
+  .btn-primary {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: white;
+  }
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-card .value {
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .stat-card .label {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.red { color: var(--red); }
+  .stat-card .value.blue { color: var(--blue); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    background: var(--card);
+    border-radius: 10px;
+    padding: 4px;
+    border: 1px solid var(--border);
+  }
+  .tab {
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-dim);
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+  }
+  .tab.active {
+    background: var(--blue);
+    color: white;
+  }
+  .tab:hover:not(.active) {
+    color: var(--text);
+    background: var(--card-hover);
+  }
+
+  /* Signal table */
+  .table-wrap {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  th {
+    background: var(--card-hover);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--card-hover); }
+  
+  .symbol-name {
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .price {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .change.positive { color: var(--green); }
+  .change.negative { color: var(--red); }
+  
+  .score-bar {
+    display: inline-block;
+    height: 6px;
+    border-radius: 3px;
+    width: 60px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .score-text {
+    font-weight: 600;
+  }
+  .score-high { color: var(--green); }
+  .score-mid { color: var(--yellow); }
+  .score-low { color: var(--red); }
+  
+  .tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .tag-breakout { background: rgba(59,130,246,0.2); color: var(--blue); }
+  .tag-strong { background: rgba(239,68,68,0.2); color: var(--red); }
+  .tag-rising { background: rgba(34,197,94,0.2); color: var(--green); }
+  .tag-volume { background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .tag-reversal { background: rgba(139,92,246,0.2); color: var(--purple); }
+  .tag-default { background: rgba(107,127,160,0.2); color: var(--text-dim); }
+
+  /* Trade list */
+  .trade-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .trade-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .trade-item .trade-symbol {
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .trade-item .trade-pnl.positive { color: var(--green); }
+  .trade-item .trade-pnl.negative { color: var(--red); }
+  .trade-item .trade-info {
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+  .trade-status {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .trade-status.open { background: rgba(59,130,246,0.2); color: var(--blue); }
+  .trade-status.closed { background: rgba(107,127,160,0.2); color: var(--text-dim); }
+  .trade-status.tp2 { background: rgba(34,197,94,0.2); color: var(--green); }
+  .trade-status.sl { background: rgba(239,68,68,0.2); color: var(--red); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+  }
+  .empty-state .emoji {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    .header h1 { font-size: 22px; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    td, th { padding: 8px 10px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🌙 Moon Sniper</h1>
+    <div class="subtitle">暴漲潛力幣種偵測 · 紙交易追蹤</div>
+  </div>
+  <div class="header-right">
+    <span class="scan-time" id="scanTime">—</span>
+    <button class="btn btn-primary" onclick="refreshData()">🔄 重新整理</button>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar" id="statsBar">
+  <div class="stat-card"><div class="value blue" id="statTotal">—</div><div class="label">潛力幣種</div></div>
+  <div class="stat-card"><div class="value" id="statOpenTrades">—</div><div class="label">進行中紙交易</div></div>
+  <div class="stat-card"><div class="value green" id="statWinRate">—</div><div class="label">勝率</div></div>
+  <div class="stat-card"><div class="value" id="statTotalPnl">—</div><div class="label">總損益 (USDT)</div></div>
+  <div class="stat-card"><div class="value red" id="statMaxDD">—</div><div class="label">最大回撤 (USDT)</div></div>
+  <div class="stat-card"><div class="value" id="statTotalTrades">—</div><div class="label">總交易次數</div></div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" data-tab="signals" onclick="switchTab('signals')">📡 潛力幣種</button>
+  <button class="tab" data-tab="trades" onclick="switchTab('trades')">📊 紙交易紀錄</button>
+</div>
+
+<!-- Signals Tab -->
+<div id="tab-signals" class="tab-content">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>幣種</th>
+          <th>價格</th>
+          <th>24h 漲跌</th>
+          <th>24h 成交量</th>
+          <th>評分</th>
+          <th>量能</th>
+          <th>動能</th>
+          <th>突破</th>
+          <th>流動性</th>
+          <th>訊號</th>
+        </tr>
+      </thead>
+      <tbody id="signalsBody">
+      </tbody>
+    </table>
+  </div>
+  <div id="signalsEmpty" class="empty-state" style="display:none">
+    <div class="emoji">🔭</div>
+    <div>正在等待第一次掃描...<br>請等待 GitHub Actions 執行或手動執行 scanner.py</div>
+  </div>
+</div>
+
+<!-- Trades Tab -->
+<div id="tab-trades" class="tab-content" style="display:none">
+  <div class="trade-list" id="tradesBody">
+  </div>
+  <div id="tradesEmpty" class="empty-state" style="display:none">
+    <div class="emoji">📭</div>
+    <div>還沒有紙交易紀錄<br>當潛力幣種評分超過門檻時會自動進場</div>
+  </div>
+</div>
+
+<script>
+let dataCache = null;
+
+async function refreshData() {
+  try {
+    const resp = await fetch('./signals.json?_=' + Date.now());
+    const data = await resp.json();
+    dataCache = data;
+    
+    // Try to load trades
+    let tradesData = null;
+    try {
+      const tresp = await fetch('./paper_trades.json?_=' + Date.now());
+      tradesData = await tresp.json();
+    } catch(e) {}
+    
+    render(data, tradesData);
+  } catch(e) {
+    document.getElementById('signalsBody').innerHTML = 
+      `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-dim)">
+        ⚠️ 無法載入資料：${e.message}<br>
+        <small>請確認 signals.json 已產生且 GitHub Pages 已部署</small>
+      </td></tr>`;
+  }
+}
+
+function render(data, tradesData) {
+  // Scan time
+  document.getElementById('scanTime').textContent = data.scanned_at 
+    ? '更新時間：' + new Date(data.scanned_at).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})
+    : '—';
+  
+  const signals = data.signals || [];
+  const trades = tradesData?.trades || [];
+  const stats = tradesData?.stats || {};
+  
+  // Stats
+  document.getElementById('statTotal').textContent = signals.length;
+  document.getElementById('statOpenTrades').textContent = stats.open_count || 0;
+  document.getElementById('statWinRate').textContent = (stats.win_rate || 0) + '%';
+  document.getElementById('statTotalPnl').textContent = (stats.total_pnl_usdt || 0).toFixed(2);
+  document.getElementById('statTotalPnl').className = 'value ' + ((stats.total_pnl_usdt || 0) >= 0 ? 'green' : 'red');
+  document.getElementById('statMaxDD').textContent = (stats.max_drawdown_usdt || 0).toFixed(2);
+  document.getElementById('statTotalTrades').textContent = stats.total_trades || 0;
+  
+  // Signals table
+  const tbody = document.getElementById('signalsBody');
+  const empty = document.getElementById('signalsEmpty');
+  
+  if (signals.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = signals.map((s, i) => {
+      const scores = s.scores;
+      const chg = parseFloat(s.price_change_24h);
+      const chgCls = chg >= 0 ? 'positive' : 'negative';
+      const chgSign = chg >= 0 ? '+' : '';
+      const vol = formatVolume(s.volume_24h_usdt);
+      const scoreCls = scores.total >= 70 ? 'score-high' : scores.total >= 50 ? 'score-mid' : 'score-low';
+      const tags = (s.tags || []).map(t => {
+        const cls = t.includes('突破') ? 'tag-breakout' 
+          : t.includes('強勢') ? 'tag-strong'
+          : t.includes('上漲') ? 'tag-rising'
+          : t.includes('量') ? 'tag-volume'
+          : t.includes('反轉') ? 'tag-reversal'
+          : 'tag-default';
+        return `<span class="tag ${cls}">${t}</span>`;
+      }).join('');
+      
+      return `<tr>
+        <td>${i+1}</td>
+        <td><span class="symbol-name">${s.base}</span></td>
+        <td class="price">$${parseFloat(s.price).toFixed(s.price < 1 ? 6 : s.price < 100 ? 4 : 2)}</td>
+        <td class="change ${chgCls}">${chgSign}${chg.toFixed(2)}%</td>
+        <td>${vol}</td>
+        <td><span class="score-text ${scoreCls}">${scores.total}</span></td>
+        <td>${scores.volume}</td>
+        <td>${scores.momentum}</td>
+        <td>${scores.breakout}</td>
+        <td>${scores.liquidity}</td>
+        <td><div class="tags">${tags || '<span class="tag tag-default">觀察中</span>'}</div></td>
+      </tr>`;
+    }).join('');
+  }
+  
+  // Trades list
+  const tradesBody = document.getElementById('tradesBody');
+  const tradesEmpty = document.getElementById('tradesEmpty');
+  
+  if (trades.length === 0) {
+    tradesBody.innerHTML = '';
+    tradesEmpty.style.display = 'block';
+  } else {
+    tradesEmpty.style.display = 'none';
+    // Show newest first
+    const sorted = [...trades].reverse();
+    tradesBody.innerHTML = sorted.map(t => {
+      const pnl = t.pnl_usdt || 0;
+      const pnlCls = pnl >= 0 ? 'positive' : 'negative';
+      const pnlSign = pnl >= 0 ? '+' : '';
+      const status = t.status === 'open' ? '進行中'
+        : t.exit_reason === 'tp2' ? '✅ 停利'
+        : t.exit_reason === 'stop_loss' ? '❌ 停損'
+        : t.exit_reason === 'timeout' ? '⏰ 時間到'
+        : '已結束';
+      const statusCls = t.status === 'open' ? 'open'
+        : t.exit_reason === 'tp2' ? 'tp2'
+        : t.exit_reason === 'stop_loss' ? 'sl'
+        : 'closed';
+      
+      return `<div class="trade-item">
+        <div>
+          <span class="trade-symbol">${t.base}</span>
+          <span class="trade-status ${statusCls}">${status}</span>
+        </div>
+        <div>
+          <div>入場：$${t.entry_price.toFixed(t.entry_price < 1 ? 6 : t.entry_price < 100 ? 4 : 2)}</div>
+          ${t.exit_price ? `<div>出場：$${t.exit_price.toFixed(t.exit_price < 1 ? 6 : t.exit_price < 100 ? 4 : 2)}</div>` : ''}
+          <div class="trade-info">${new Date(t.entry_time).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="trade-pnl ${pnlCls}" style="font-size:18px;font-weight:700">${pnlSign}${pnl.toFixed(2)} USDT</div>
+          <div class="trade-pnl ${pnlCls}">${pnlSign}${(t.pnl_pct || 0).toFixed(2)}%</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function formatVolume(v) {
+  if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
+  if (v >= 1000) return (v / 1000).toFixed(1) + 'K';
+  return v?.toFixed(0) || '0';
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById(`tab-${tab}`).style.display = 'block';
+}
+
+// Auto refresh on load
+refreshData();
+// Auto refresh every 5 minutes
+setInterval(refreshData, 300000);
+</script>
+
+</body>
+</html>

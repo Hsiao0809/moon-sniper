@@ -1,0 +1,224 @@
+#!/usr/bin/env python3
+"""
+moon-sniper paper_trader.py
+根據 signals.json 的評分結果，管理紙交易。
+- 新訊號評分 >= min_score_to_trade → 進場
+- 定期檢查持倉：停利、停損、時間停損
+- 輸出 paper_trades.json
+"""
+
+import json
+import os
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from copy import deepcopy
+
+BASE_DIR = Path(__file__).parent
+CONFIG_PATH = BASE_DIR / "config.json"
+SIGNALS_PATH = BASE_DIR / "signals.json"
+TRADES_PATH = BASE_DIR / "paper_trades.json"
+
+def load_config():
+    with open(CONFIG_PATH) as f:
+        return json.load(f)
+
+def load_signals():
+    if not SIGNALS_PATH.exists():
+        return {"signals": []}
+    with open(SIGNALS_PATH) as f:
+        return json.load(f)
+
+def load_trades():
+    if not TRADES_PATH.exists():
+        return {"trades": [], "stats": {}}
+    with open(TRADES_PATH) as f:
+        return json.load(f)
+
+def save_trades(data):
+    with open(TRADES_PATH, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def check_new_trades(signals, trades, config):
+    """檢查新訊號是否有符合進場條件的"""
+    trade_config = config["paper_trade"]
+    min_score = trade_config["min_score_to_trade"]
+    max_open = trade_config["max_open_trades"]
+    
+    existing_symbols = {t["symbol"] for t in trades["trades"] if t["status"] == "open"}
+    
+    new_trades = []
+    for s in signals:
+        symbol = s["symbol"]
+        total_score = s["scores"]["total"]
+        
+        if symbol in existing_symbols:
+            continue
+        if total_score < min_score:
+            continue
+        if len(existing_symbols) + len(new_trades) >= max_open:
+            break
+        
+        now = datetime.now(timezone.utc)
+        trade = {
+            "id": f"PT-{now.strftime('%Y%m%d-%H%M%S')}-{symbol}",
+            "symbol": symbol,
+            "base": s["base"],
+            "entry_price": float(s["price"]),
+            "entry_time": now.isoformat(),
+            "status": "open",
+            "score": total_score,
+            "tags": s["tags"],
+            "take_profit_1_hit": False,
+            "take_profit_1_exit_price": None,
+            "take_profit_2_hit": False,
+            "exit_price": None,
+            "exit_time": None,
+            "pnl_usdt": 0,
+            "pnl_pct": 0,
+            "max_hold_until": (now + timedelta(days=trade_config["max_hold_days"])).isoformat(),
+            "stop_loss_price": round(float(s["price"]) * (1 + trade_config["stop_loss"]), 8),
+            "tp1_price": round(float(s["price"]) * (1 + trade_config["take_profit_1"]), 8),
+            "tp2_price": round(float(s["price"]) * (1 + trade_config["take_profit_2"]), 8),
+        }
+        new_trades.append(trade)
+    
+    return new_trades
+
+def update_open_trades(trades, signals, config):
+    """更新進行中的紙交易：檢查停利、停損、時間停損"""
+    trade_config = config["paper_trade"]
+    signal_map = {s["symbol"]: s for s in signals}
+    now = datetime.now(timezone.utc)
+    updated = 0
+    
+    for trade in trades["trades"]:
+        if trade["status"] != "open":
+            continue
+        
+        symbol = trade["symbol"]
+        entry = trade["entry_price"]
+        
+        # 從 signals 取得最新價格
+        current_price = None
+        if symbol in signal_map:
+            current_price = float(signal_map[symbol]["price"])
+        
+        # 如果不在最新 signals 中，用最後價格
+        if current_price is None:
+            continue
+        
+        pnl_pct = (current_price - entry) / entry
+        
+        # 檢查 TP2（+20% 全出）
+        if not trade["take_profit_2_hit"] and current_price >= trade["tp2_price"]:
+            trade["status"] = "closed"
+            trade["exit_price"] = current_price
+            trade["exit_time"] = now.isoformat()
+            trade["take_profit_2_hit"] = True
+            trade["pnl_pct"] = round(pnl_pct * 100, 2)
+            trade["pnl_usdt"] = round(trade_config["max_risk_usdt"] * (pnl_pct / abs(trade_config["stop_loss"])), 2)
+            trade["exit_reason"] = "tp2"
+            updated += 1
+            continue
+        
+        # 檢查 TP1（+10% 出一半）
+        if not trade["take_profit_1_hit"] and current_price >= trade["tp1_price"]:
+            trade["take_profit_1_hit"] = True
+            trade["take_profit_1_exit_price"] = current_price
+            updated += 1
+        
+        # 檢查停損
+        if current_price <= trade["stop_loss_price"]:
+            trade["status"] = "closed"
+            trade["exit_price"] = current_price
+            trade["exit_time"] = now.isoformat()
+            trade["pnl_pct"] = round(pnl_pct * 100, 2)
+            trade["pnl_usdt"] = round(trade_config["max_risk_usdt"] * (pnl_pct / abs(trade_config["stop_loss"])), 2)
+            trade["exit_reason"] = "stop_loss"
+            updated += 1
+            continue
+        
+        # 檢查時間停損
+        max_hold = datetime.fromisoformat(trade["max_hold_until"])
+        if now >= max_hold:
+            trade["status"] = "closed"
+            trade["exit_price"] = current_price
+            trade["exit_time"] = now.isoformat()
+            trade["pnl_pct"] = round(pnl_pct * 100, 2)
+            trade["pnl_usdt"] = round(trade_config["max_risk_usdt"] * (pnl_pct / abs(trade_config["stop_loss"])), 2)
+            trade["exit_reason"] = "timeout"
+            updated += 1
+    
+    return updated
+
+def calculate_stats(trades):
+    """計算績效統計"""
+    config = load_config()
+    trade_config = config["paper_trade"]
+    max_risk = trade_config["max_risk_usdt"]
+    
+    closed = [t for t in trades["trades"] if t["status"] == "closed"]
+    open_trades = [t for t in trades["trades"] if t["status"] == "open"]
+    
+    total_trades = len(trades["trades"])
+    wins = [t for t in closed if t["pnl_usdt"] > 0]
+    losses = [t for t in closed if t["pnl_usdt"] <= 0]
+    
+    total_pnl = sum(t["pnl_usdt"] for t in closed)
+    win_rate = len(wins) / len(closed) * 100 if closed else 0
+    avg_win = sum(t["pnl_usdt"] for t in wins) / len(wins) if wins else 0
+    avg_loss = sum(t["pnl_usdt"] for t in losses) / len(losses) if losses else 0
+    
+    max_drawdown = 0
+    cumulative = 0
+    peak = 0
+    for t in sorted(closed, key=lambda x: x.get("entry_time", "")):
+        cumulative += t["pnl_usdt"]
+        if cumulative > peak:
+            peak = cumulative
+        drawdown = peak - cumulative
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
+    
+    trades["stats"] = {
+        "total_trades": total_trades,
+        "open_count": len(open_trades),
+        "closed_count": len(closed),
+        "wins": len(wins),
+        "losses": len(losses),
+        "win_rate": round(win_rate, 1),
+        "total_pnl_usdt": round(total_pnl, 2),
+        "avg_win_usdt": round(avg_win, 2),
+        "avg_loss_usdt": round(avg_loss, 2),
+        "max_drawdown_usdt": round(max_drawdown, 2),
+        "max_risk_per_trade": max_risk,
+        "last_updated": datetime.now(timezone.utc).isoformat(),
+    }
+
+def run():
+    config = load_config()
+    signals_data = load_signals()
+    trades = load_trades()
+    
+    signals = signals_data.get("signals", [])
+    
+    # 更新既有持倉
+    updated = update_open_trades(trades, signals, config)
+    if updated:
+        print(f"更新了 {updated} 筆紙交易")
+    
+    # 檢查新訊號
+    new_trades = check_new_trades(signals, trades, config)
+    if new_trades:
+        trades["trades"].extend(new_trades)
+        print(f"新增 {len(new_trades)} 筆紙交易")
+    
+    # 計算統計
+    calculate_stats(trades)
+    save_trades(trades)
+    
+    print(f"紙交易狀態：{trades['stats']['total_trades']} 筆總計，{trades['stats']['open_count']} 筆進行中")
+    print(f"總損益：{trades['stats']['total_pnl_usdt']} USDT")
+
+if __name__ == "__main__":
+    run()
