@@ -171,6 +171,15 @@
     font-weight: 600;
     font-size: 15px;
   }
+  .symbol-link {
+    color: var(--text);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .symbol-link:hover {
+    color: var(--blue);
+    text-decoration: underline;
+  }
   .price {
     font-family: 'SF Mono', 'Fira Code', monospace;
   }
@@ -409,7 +418,7 @@ function render(data, tradesData) {
       
       return `<tr>
         <td>${i+1}</td>
-        <td><span class="symbol-name">${s.base}</span></td>
+        <td><a class="symbol-link" href="https://www.tradingview.com/symbols/${s.base}USDT/" target="_blank" rel="noopener"><span class="symbol-name">${s.base}</span> 🔗</a></td>
         <td class="price">$${parseFloat(s.price).toFixed(s.price < 1 ? 6 : s.price < 100 ? 4 : 2)}</td>
         <td class="change ${chgCls}">${chgSign}${chg.toFixed(2)}%</td>
         <td>${vol}</td>
@@ -450,7 +459,7 @@ function render(data, tradesData) {
       
       return `<div class="trade-item">
         <div>
-          <span class="trade-symbol">${t.base}</span>
+          <a class="symbol-link" href="https://www.tradingview.com/symbols/${t.base}USDT/" target="_blank" rel="noopener"><span class="trade-symbol">${t.base}</span> 🔗</a>
           <span class="trade-status ${statusCls}">${status}</span>
         </div>
         <div>
