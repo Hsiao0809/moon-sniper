@@ -37,3 +37,9 @@ jobs:
           git add signals.json paper_trades.json
           git diff --quiet && git diff --staged --quiet || git commit -m "auto: scan update $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
+      
+      - name: Send Telegram notification
+        run: python notify.py
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
