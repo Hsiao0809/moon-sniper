@@ -153,6 +153,60 @@ def calculate_orderbook_score(bids, asks, last_price):
     
     return final_score, summary, {"bids": bids[:5], "asks": asks[:5]}
 
+def get_smart_money_signals():
+    """從 Binance Web3 API 取得聰明錢買入訊號"""
+    import urllib.request, json
+    
+    try:
+        # 同時查 Solana 和 BSC 的聰明錢訊號
+        chains = {"CT_501": "solana", "56": "bsc"}
+        all_signals = {}
+        
+        for chain_id, chain_name in chains.items():
+            data = json.dumps({
+                "smartSignalType": "",
+                "page": 1,
+                "pageSize": 50,
+                "chainId": chain_id
+            }).encode()
+            
+            req = urllib.request.Request(
+                "https://web3.binance.com/bapi/defi/v1/public/wallet-direct/buw/wallet/web/signal/smart-money/ai",
+                data=data,
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept-Encoding": "identity",
+                    "User-Agent": "binance-web3/1.1 (Skill)",
+                }
+            )
+            
+            resp = urllib.request.urlopen(req, timeout=15)
+            result = json.loads(resp.read())
+            
+            if result.get("code") == "000000" and result.get("data"):
+                for signal in result["data"]:
+                    ticker = signal.get("ticker", "").upper()
+                    direction = signal.get("direction", "")
+                    smart_money_count = signal.get("smartMoneyCount", 0)
+                    max_gain = signal.get("maxGain", "0")
+                    status = signal.get("status", "")
+                    
+                    if direction == "buy" and status == "active" and smart_money_count >= 1:
+                        # 用 ticker 做 key，如果多個訊號取最高的
+                        if ticker not in all_signals or int(smart_money_count) > all_signals[ticker]["count"]:
+                            all_signals[ticker] = {
+                                "count": smart_money_count,
+                                "max_gain": max_gain,
+                                "chain": chain_name,
+                                "direction": direction,
+                            }
+        
+        print(f"Smart Money 訊號：{len(all_signals)} 個幣種有買入訊號")
+        return all_signals
+    except Exception as e:
+        print(f"Smart Money API 錯誤：{e}", file=sys.stderr)
+        return {}
+
 def calculate_volume_score(ticker, config):
     """成交量評分：24h 量 vs 7日均量"""
     quote_vol = float(ticker.get("quoteVolume", 0))
@@ -273,6 +327,7 @@ def scan(config):
     symbols_to_scan = [t["symbol"] for t in candidate_tickers]
     klines_data = get_klines_batch(symbols_to_scan)
     orderbook_data = get_orderbook_batch(symbols_to_scan)
+    smart_money_signals = get_smart_money_signals()
     
     for ticker in candidate_tickers:
         symbol = ticker["symbol"]
@@ -297,18 +352,34 @@ def scan(config):
         last_price = float(ticker.get("lastPrice", 0))
         ob_score, ob_summary, ob_detail = calculate_orderbook_score(bids, asks, last_price)
         
-        # 加權總分（含訂單簿）
+        # Smart Money 評分
+        base = symbol.replace("USDT", "")
+        sm = smart_money_signals.get(base, smart_money_signals.get(symbol, {}))
+        if sm and sm.get("direction") == "buy":
+            count = sm.get("count", 0)
+            max_gain = float(sm.get("max_gain", 0))
+            if count >= 5:
+                smart_money_score = 90 + min(int(count) * 2, 10)
+            elif count >= 3:
+                smart_money_score = 70 + int(count) * 5
+            elif count >= 1:
+                smart_money_score = 50 + int(count) * 10
+            else:
+                smart_money_score = 0
+            if max_gain > 20:
+                smart_money_score = min(smart_money_score + 10, 100)
+        else:
+            smart_money_score = 0
+        
+        # 加權總分
         total_score = (
             vol_score * config_score["volume_weight"] +
             momentum_score * config_score["momentum_weight"] +
             breakout_score * config_score["breakout_weight"] +
             liquidity_score * config_score["liquidity_weight"] +
-            ob_score * config_score["orderbook_weight"]
+            ob_score * config_score["orderbook_weight"] +
+            smart_money_score * config_score["smart_money_weight"]
         )
-        
-        # Smart Money 分數（暫時為 0）
-        smart_money_score = 0
-        total_score += smart_money_score * config_score["smart_money_weight"]
         
         signals.append({
             "symbol": symbol,
@@ -328,6 +399,7 @@ def scan(config):
                 "total": round(total_score, 1),
             },
             "orderbook": ob_summary,
+            "smart_money": sm if sm else {},
             "tags": [],
             "scanned_at": datetime.now(timezone.utc).isoformat(),
         })
@@ -359,6 +431,12 @@ def scan(config):
             tags.append("🛡️ 有支撐")
         if ob.get("bid_ask_ratio", 1) <= 0.6:
             tags.append("📕 賣壓沉重")
+        # Smart Money 標籤
+        sm = s.get("smart_money", {})
+        if sm and sm.get("direction") == "buy":
+            count = sm.get("count", 0)
+            chain = sm.get("chain", "")
+            tags.append(f"🐋 聰明買入({chain},{count}地址)")
         s["tags"] = tags
     
     print(f"掃描完成：{len(signals)} 個潛力幣種")

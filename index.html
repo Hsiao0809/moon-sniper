@@ -426,6 +426,7 @@ function render(data, tradesData) {
           : t.includes('反轉') ? 'tag-reversal'
           : t.includes('買盤') || t.includes('支撐') ? 'tag-breakout'
           : t.includes('賣壓') ? 'tag-strong'
+          : t.includes('聰明') ? 'tag-volume'
           : 'tag-default';
         return `<span class="tag ${cls}">${t}</span>`;
       }).join('');
