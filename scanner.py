@@ -337,13 +337,20 @@ def scan(config):
             if exchange_info[symbol].get("status") != "TRADING":
                 continue
         
+        # 加入流動性過濾（直接排除流動性太差的幣）
+        ask_price = float(ticker.get("askPrice", 0))
+        bid_price = float(ticker.get("bidPrice", 0))
+        last_price = float(ticker.get("lastPrice", 1))
+        spread_pct = (ask_price - bid_price) / last_price * 100 if ask_price > 0 and bid_price > 0 else 0
+        if spread_pct > 0.5:  # 價差大於 0.5% 直接排除
+            continue
+        
         # 計算各項分數
         vol_score, _ = calculate_volume_score(ticker, config)
         momentum_score = calculate_momentum_score(ticker)
         
         klines = klines_data.get(symbol, [])
         breakout_score = calculate_breakout_score(ticker, klines)
-        liquidity_score = calculate_liquidity_score(ticker)
         
         # 訂單簿評分
         ob = orderbook_data.get(symbol, {})
@@ -376,7 +383,6 @@ def scan(config):
             vol_score * config_score["volume_weight"] +
             momentum_score * config_score["momentum_weight"] +
             breakout_score * config_score["breakout_weight"] +
-            liquidity_score * config_score["liquidity_weight"] +
             ob_score * config_score["orderbook_weight"] +
             smart_money_score * config_score["smart_money_weight"]
         )
@@ -393,7 +399,6 @@ def scan(config):
                 "volume": round(vol_score, 1),
                 "momentum": round(momentum_score, 1),
                 "breakout": round(breakout_score, 1),
-                "liquidity": round(liquidity_score, 1),
                 "smart_money": round(smart_money_score, 1),
                 "orderbook": round(ob_score, 1),
                 "total": round(total_score, 1),

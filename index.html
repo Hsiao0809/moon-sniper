@@ -320,9 +320,9 @@
           <th>評分</th>
           <th>量能</th>
           <th>動能</th>
-          <th>突破</th>
           <th>訂單簿</th>
-          <th>流動性</th>
+          <th>聰明錢</th>
+          <th>突破</th>
           <th>訊號</th>
         </tr>
       </thead>
@@ -440,9 +440,9 @@ function render(data, tradesData) {
         <td><span class="score-text ${scoreCls}">${scores.total}</span></td>
         <td>${scores.volume}</td>
         <td>${scores.momentum}</td>
-        <td>${scores.breakout}</td>
         <td>${scores.orderbook || 50}</td>
-        <td>${scores.liquidity}</td>
+        <td>${scores.smart_money || 0}</td>
+        <td>${scores.breakout}</td>
         <td><div class="tags">${tags || '<span class="tag tag-default">觀察中</span>'}</div></td>
       </tr>`;
     }).join('');
