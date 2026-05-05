@@ -372,14 +372,18 @@ async function refreshData() {
 }
 
 function render(data, tradesData) {
-  // Scan time
-  document.getElementById('scanTime').textContent = data.scanned_at 
-    ? '更新時間：' + new Date(data.scanned_at).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})
+  // 更新時間
+  const scanTime = data.scanned_at 
+    ? '評分更新：' + new Date(data.scanned_at).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})
     : '—';
+  document.getElementById('scanTime').textContent = scanTime + ' | 即時價格每 30 秒刷新';
   
   const signals = data.signals || [];
   const trades = tradesData?.trades || [];
   const stats = tradesData?.stats || {};
+  
+  // 載入即時價格
+  fetchLivePrices(signals, trades);
   
   // Stats
   document.getElementById('statTotal').textContent = signals.length;
@@ -488,6 +492,78 @@ function formatVolume(v) {
   return v?.toFixed(0) || '0';
 }
 
+// 即時價格
+let livePrices = {};
+let liveInterval = null;
+
+async function fetchLivePrices(signals, trades) {
+  if (!signals || signals.length === 0) return;
+  
+  try {
+    // 從 Binance public API 批次抓即時價格（不用 API key）
+    const symbols = signals.map(s => `"${s.symbol}"`).join(',');
+    const resp = await fetch(`https://api.binance.com/api/v3/ticker/price?symbols=[${symbols}]`);
+    const data = await resp.json();
+    
+    livePrices = {};
+    if (Array.isArray(data)) {
+      data.forEach(d => { livePrices[d.symbol] = parseFloat(d.price); });
+    }
+    
+    updateLiveDisplay(signals, trades);
+  } catch(e) {
+    console.log('即時價格取得失敗，使用訊號價格');
+  }
+}
+
+function updateLiveDisplay(signals, trades) {
+  const tbody = document.getElementById('signalsBody');
+  if (!tbody) return;
+  
+  // 更新信號表價格
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach((row, i) => {
+    if (i >= signals.length) return;
+    const s = signals[i];
+    const live = livePrices[s.symbol];
+    if (live) {
+      const priceCell = row.querySelector('.price');
+      if (priceCell) {
+        const chg = ((live - parseFloat(s.price)) / parseFloat(s.price)) * 100;
+        const chgSign = chg >= 0 ? '+' : '';
+        priceCell.innerHTML = `$${live.toFixed(live < 1 ? 6 : live < 100 ? 4 : 2)} <span style="font-size:11px;color:${chg >= 0 ? 'var(--green)' : 'var(--red)'}">(${chgSign}${chg.toFixed(2)}%)</span>`;
+      }
+    }
+  });
+  
+  // 更新紙交易列表價格
+  const tradesBody = document.getElementById('tradesBody');
+  if (!tradesBody || !trades) return;
+  const items = tradesBody.querySelectorAll('.trade-item');
+  items.forEach((item, i) => {
+    if (i >= trades.length) return;
+    const t = trades[i];
+    if (t.status !== 'open') return;
+    const live = livePrices[t.symbol];
+    if (live) {
+      const pnlUsdt = ((live - t.entry_price) / t.entry_price) * 10; // 10U 風險
+      const pnlPct = ((live - t.entry_price) / t.entry_price) * 100;
+      const pnlDiv = item.querySelector('.trade-pnl');
+      if (pnlDiv) {
+        const sign = pnlUsdt >= 0 ? '+' : '';
+        pnlDiv.innerHTML = `${sign}${pnlUsdt.toFixed(2)} USDT <span style="font-size:14px;font-weight:400">(${sign}${pnlPct.toFixed(2)}%)</span>`;
+        pnlDiv.className = 'trade-pnl ' + (pnlUsdt >= 0 ? 'positive' : 'negative');
+      }
+    }
+  });
+}
+
+// 每 30 秒刷新即時價格
+function startLiveUpdates(signals, trades) {
+  if (liveInterval) clearInterval(liveInterval);
+  liveInterval = setInterval(() => fetchLivePrices(signals, trades), 30000);
+}
+
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
@@ -496,9 +572,26 @@ function switchTab(tab) {
 }
 
 // Auto refresh on load
-refreshData();
-// Auto refresh every 5 minutes
-setInterval(refreshData, 300000);
+let cachedSignals = [];
+let cachedTrades = [];
+
+async function refreshAll() {
+  await refreshData();
+  // 如果有資料，啟動即時更新
+  if (cachedSignals.length > 0) {
+    startLiveUpdates(cachedSignals, cachedTrades);
+  }
+}
+
+// 覆蓋原來的 refreshData 來 cache 資料
+const originalRender = render;
+render = function(data, tradesData) {
+  cachedSignals = data?.signals || [];
+  cachedTrades = tradesData?.trades || [];
+  originalRender(data, tradesData);
+};
+
+refreshAll();
 </script>
 
 </body>
