@@ -76,6 +76,83 @@ def get_klines_batch(symbols, interval="1h", limit=12):
                 result[symbol] = data
     return result
 
+def get_orderbook_batch(symbols, limit=20):
+    """平行取得多個幣種的訂單簿深度資料"""
+    import concurrent.futures
+    result = {}
+    
+    def fetch(symbol):
+        data = run_binance_cli(["spot", "depth", "--symbol", symbol, "--limit", str(limit)])
+        return symbol, data
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(fetch, s) for s in symbols]
+        for future in concurrent.futures.as_completed(futures):
+            symbol, data = future.result()
+            if data:
+                result[symbol] = data
+    return result
+
+def calculate_orderbook_score(bids, asks, last_price):
+    """訂單簿評分：買賣力道不平衡程度"""
+    if not bids or not asks or last_price <= 0:
+        return 50, {}, {}
+    
+    total_bid_vol = sum(float(b[1]) * float(b[0]) for b in bids)  # 買單總額 USDT
+    total_ask_vol = sum(float(a[1]) * float(a[0]) for a in asks)  # 賣單總額 USDT
+    total_vol = total_bid_vol + total_ask_vol
+    
+    if total_vol == 0:
+        return 50, {}, {}
+    
+    bid_ask_ratio = total_bid_vol / total_ask_vol if total_ask_vol > 0 else 2.0
+    
+    # 買單遠大於賣單 => 暴漲潛力高
+    if bid_ask_ratio >= 1.5:
+        score = 80 + min((bid_ask_ratio - 1.5) * 20, 20)  # 1.5x = 80, 4x = 100
+    elif bid_ask_ratio >= 1.2:
+        score = 60 + (bid_ask_ratio - 1.2) * 50  # 1.2x = 60, 1.5x = 75
+    elif bid_ask_ratio >= 0.8:
+        score = 50  # 均衡
+    elif bid_ask_ratio >= 0.5:
+        score = 30  # 賣壓稍大
+    else:
+        score = 20  # 賣壓很大
+    
+    # 爬梯分析：累積買單集中在附近價格
+    # 如果有大單在 current price 附近支撐，加分
+    support_score = 0
+    for b in bids[:5]:  # 前 5 檔買單
+        bid_price = float(b[0])
+        bid_qty = float(b[1])
+        bid_value = bid_price * bid_qty
+        distance = (last_price - bid_price) / last_price * 100  # 離當前價格 % 距離
+        if distance < 0.5 and bid_value > total_vol * 0.1:  # 0.5% 內有大單
+            support_score += 20
+        elif distance < 1.0 and bid_value > total_vol * 0.15:
+            support_score += 10
+    
+    resistance_score = 0
+    for a in asks[:5]:  # 前 5 檔賣單
+        ask_price = float(a[0])
+        ask_qty = float(a[1])
+        ask_value = ask_price * ask_qty
+        distance = (ask_price - last_price) / last_price * 100
+        if distance < 0.5 and ask_value > total_vol * 0.1:  # 0.5% 內有大賣單
+            resistance_score -= 10
+    
+    final_score = min(max(score + support_score + resistance_score, 0), 100)
+    
+    summary = {
+        "bid_vol_usdt": round(total_bid_vol, 0),
+        "ask_vol_usdt": round(total_ask_vol, 0),
+        "bid_ask_ratio": round(bid_ask_ratio, 2),
+        "support_score": support_score,
+        "resistance_score": resistance_score,
+    }
+    
+    return final_score, summary, {"bids": bids[:5], "asks": asks[:5]}
+
 def calculate_volume_score(ticker, config):
     """成交量評分：24h 量 vs 7日均量"""
     quote_vol = float(ticker.get("quoteVolume", 0))
@@ -192,9 +269,10 @@ def scan(config):
         candidate_tickers.append(ticker)
     
     # 對每個候選幣種進行完整評分
-    # 先批次取得所有 klines
+    # 先批次取得所有 klines 和訂單簿
     symbols_to_scan = [t["symbol"] for t in candidate_tickers]
     klines_data = get_klines_batch(symbols_to_scan)
+    orderbook_data = get_orderbook_batch(symbols_to_scan)
     
     for ticker in candidate_tickers:
         symbol = ticker["symbol"]
@@ -212,7 +290,14 @@ def scan(config):
         breakout_score = calculate_breakout_score(ticker, klines)
         liquidity_score = calculate_liquidity_score(ticker)
         
-        # 加權總分
+        # 訂單簿評分
+        ob = orderbook_data.get(symbol, {})
+        bids = ob.get("bids", [])
+        asks = ob.get("asks", [])
+        last_price = float(ticker.get("lastPrice", 0))
+        ob_score, ob_summary, ob_detail = calculate_orderbook_score(bids, asks, last_price)
+        
+        # 加權總分（含訂單簿）
         total_score = (
             vol_score * config_score["volume_weight"] +
             momentum_score * config_score["momentum_weight"] +
@@ -220,9 +305,13 @@ def scan(config):
             liquidity_score * config_score["liquidity_weight"]
         )
         
-        # Smart Money 分數（暫時為 0，之後整合 trading-signal）
+        # Smart Money 分數（暫時為 0）
         smart_money_score = 0
         total_score += smart_money_score * config_score["smart_money_weight"]
+        
+        # 訂單簿分數額外加成（獨立計算，不稀釋其他權重）
+        ob_weight = 0.10
+        total_score = total_score * (1 - ob_weight) + ob_score * ob_weight
         
         signals.append({
             "symbol": symbol,
@@ -238,8 +327,10 @@ def scan(config):
                 "breakout": round(breakout_score, 1),
                 "liquidity": round(liquidity_score, 1),
                 "smart_money": round(smart_money_score, 1),
+                "orderbook": round(ob_score, 1),
                 "total": round(total_score, 1),
             },
+            "orderbook": ob_summary,
             "tags": [],
             "scanned_at": datetime.now(timezone.utc).isoformat(),
         })
@@ -263,6 +354,14 @@ def scan(config):
             tags.append("📊 量爆增")
         if float(s["price_change_24h"]) < 0 and abs(float(s["price_change_24h"])) < 5:
             tags.append("🔄 可能反轉")
+        # 訂單簿標籤
+        ob = s.get("orderbook", {})
+        if ob.get("bid_ask_ratio", 1) >= 1.5:
+            tags.append("📗 買盤強勁")
+        if ob.get("support_score", 0) >= 20:
+            tags.append("🛡️ 有支撐")
+        if ob.get("bid_ask_ratio", 1) <= 0.6:
+            tags.append("📕 賣壓沉重")
         s["tags"] = tags
     
     print(f"掃描完成：{len(signals)} 個潛力幣種")

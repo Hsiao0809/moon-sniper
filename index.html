@@ -321,6 +321,7 @@
           <th>量能</th>
           <th>動能</th>
           <th>突破</th>
+          <th>訂單簿</th>
           <th>流動性</th>
           <th>訊號</th>
         </tr>
@@ -423,6 +424,8 @@ function render(data, tradesData) {
           : t.includes('上漲') ? 'tag-rising'
           : t.includes('量') ? 'tag-volume'
           : t.includes('反轉') ? 'tag-reversal'
+          : t.includes('買盤') || t.includes('支撐') ? 'tag-breakout'
+          : t.includes('賣壓') ? 'tag-strong'
           : 'tag-default';
         return `<span class="tag ${cls}">${t}</span>`;
       }).join('');
@@ -437,6 +440,7 @@ function render(data, tradesData) {
         <td>${scores.volume}</td>
         <td>${scores.momentum}</td>
         <td>${scores.breakout}</td>
+        <td>${scores.orderbook || 50}</td>
         <td>${scores.liquidity}</td>
         <td><div class="tags">${tags || '<span class="tag tag-default">觀察中</span>'}</div></td>
       </tr>`;
