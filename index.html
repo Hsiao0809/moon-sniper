@@ -385,9 +385,16 @@ function render(data, tradesData) {
   document.getElementById('statTotal').textContent = signals.length;
   document.getElementById('statOpenTrades').textContent = stats.open_count || 0;
   document.getElementById('statWinRate').textContent = (stats.win_rate || 0) + '%';
-  document.getElementById('statTotalPnl').textContent = (stats.total_pnl_usdt || 0).toFixed(2);
-  document.getElementById('statTotalPnl').className = 'value ' + ((stats.total_pnl_usdt || 0) >= 0 ? 'green' : 'red');
-  document.getElementById('statMaxDD').textContent = (stats.max_drawdown_usdt || 0).toFixed(2);
+  document.getElementById('statWinRate').className = 'value ' + ((stats.win_rate || 0) >= 50 ? 'green' : 'red');
+  const totalPnl = stats.total_pnl_usdt || 0;
+  document.getElementById('statTotalPnl').textContent = (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(2);
+  document.getElementById('statTotalPnl').className = 'value ' + (totalPnl >= 0 ? 'green' : 'red');
+  // 勝率顯示盈/虧
+  const wins = stats.wins || 0;
+  const losses = stats.losses || 0;
+  const closed = stats.closed_count || 0;
+  document.getElementById('statWinRate').textContent = closed > 0 ? `✅ ${wins} / ❌ ${losses}（${(stats.win_rate || 0)}%）` : '—';
+  document.getElementById('statWinRate').className = 'value ' + ((stats.win_rate || 0) >= 50 ? 'green' : 'red');
   document.getElementById('statTotalTrades').textContent = stats.total_trades || 0;
   
   // Signals table
@@ -468,8 +475,7 @@ function render(data, tradesData) {
           <div class="trade-info">${new Date(t.entry_time).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})}</div>
         </div>
         <div style="text-align:right">
-          <div class="trade-pnl ${pnlCls}" style="font-size:18px;font-weight:700">${pnlSign}${pnl.toFixed(2)} USDT</div>
-          <div class="trade-pnl ${pnlCls}">${pnlSign}${(t.pnl_pct || 0).toFixed(2)}%</div>
+          <div class="trade-pnl ${pnlCls}" style="font-size:18px;font-weight:700">${pnlSign}${pnl.toFixed(2)} USDT <span style="font-size:14px;font-weight:400">(${pnlSign}${(t.pnl_pct || 0).toFixed(2)}%)</span></div>
         </div>
       </div>`;
     }).join('');
