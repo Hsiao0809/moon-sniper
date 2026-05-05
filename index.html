@@ -303,7 +303,7 @@
 <!-- Tabs -->
 <div class="tabs">
   <button class="tab active" data-tab="signals" onclick="switchTab('signals')">📡 潛力幣種</button>
-  <button class="tab" data-tab="trades" onclick="switchTab('trades')">📊 紙交易紀錄</button>
+  <button class="tab" data-tab="trades" onclick="switchTab('trades')">📊 紙交易</button>
 </div>
 
 <!-- Signals Tab -->
@@ -338,11 +338,23 @@
 
 <!-- Trades Tab -->
 <div id="tab-trades" class="tab-content" style="display:none">
-  <div class="trade-list" id="tradesBody">
+  <div class="tabs" style="margin-bottom:16px;background:transparent;padding:0;border:none">
+    <button class="tab active" data-subtab="open" onclick="switchSubTab('open')">📌 持倉中</button>
+    <button class="tab" data-subtab="closed" onclick="switchSubTab('closed')">📋 已平倉</button>
   </div>
-  <div id="tradesEmpty" class="empty-state" style="display:none">
-    <div class="emoji">📭</div>
-    <div>還沒有紙交易紀錄<br>當潛力幣種評分超過門檻時會自動進場</div>
+  <div id="tab-open" class="subtab-content">
+    <div class="trade-list" id="openTradesBody"></div>
+    <div id="openTradesEmpty" class="empty-state" style="display:none">
+      <div class="emoji">📭</div>
+      <div>沒有進行中的交易</div>
+    </div>
+  </div>
+  <div id="tab-closed" class="subtab-content" style="display:none">
+    <div class="trade-list" id="closedTradesBody"></div>
+    <div id="closedTradesEmpty" class="empty-state" style="display:none">
+      <div class="emoji">📋</div>
+      <div>還沒有已平倉的交易</div>
+    </div>
   </div>
 </div>
 
@@ -514,39 +526,34 @@ function updateLiveDisplay(signals, trades) {
 
 // 獨立渲染紙交易，讓即時更新可以重複呼叫
 function renderTrades(trades) {
-  const tradesBody = document.getElementById('tradesBody');
-  const tradesEmpty = document.getElementById('tradesEmpty');
-  if (!tradesBody || !trades) return;
+  if (!trades) return;
   
-  if (trades.length === 0) {
-    tradesBody.innerHTML = '';
-    tradesEmpty.style.display = 'block';
-    return;
-  }
-  
-  tradesEmpty.style.display = 'none';
-  
-  // 分持倉中和已平倉
   const openTrades = trades.filter(t => t.status === 'open');
   const closedTrades = trades.filter(t => t.status === 'closed');
   
-  let html = '';
-  
   // 持倉中
-  if (openTrades.length > 0) {
-    html += `<div style="margin-bottom:12px;font-size:14px;color:var(--blue);font-weight:600">📌 持倉中（${openTrades.length}）</div>`;
+  const openBody = document.getElementById('openTradesBody');
+  const openEmpty = document.getElementById('openTradesEmpty');
+  if (openTrades.length === 0) {
+    openBody.innerHTML = '';
+    openEmpty.style.display = 'block';
+  } else {
+    openEmpty.style.display = 'none';
     const sorted = [...openTrades].reverse();
-    html += sorted.map(t => renderTradeItem(t)).join('');
+    openBody.innerHTML = sorted.map(t => renderTradeItem(t)).join('');
   }
   
   // 已平倉
-  if (closedTrades.length > 0) {
-    html += `<div style="margin:16px 0 12px;font-size:14px;color:var(--text-dim);font-weight:600">📋 已平倉（${closedTrades.length}）</div>`;
+  const closedBody = document.getElementById('closedTradesBody');
+  const closedEmpty = document.getElementById('closedTradesEmpty');
+  if (closedTrades.length === 0) {
+    closedBody.innerHTML = '';
+    closedEmpty.style.display = 'block';
+  } else {
+    closedEmpty.style.display = 'none';
     const sorted = [...closedTrades].reverse();
-    html += sorted.map(t => renderTradeItem(t)).join('');
+    closedBody.innerHTML = sorted.map(t => renderTradeItem(t)).join('');
   }
-  
-  tradesBody.innerHTML = html;
 }
 
 function renderTradeItem(t) {
@@ -600,10 +607,17 @@ function startLiveUpdates(signals, trades) {
 }
 
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tabs > .tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+  document.querySelector(`.tabs > .tab[data-tab="${tab}"]`).classList.add('active');
   document.getElementById(`tab-${tab}`).style.display = 'block';
+}
+
+function switchSubTab(subtab) {
+  document.querySelectorAll('.tab-content .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.subtab-content').forEach(t => t.style.display = 'none');
+  document.querySelector(`.tab-content .tab[data-subtab="${subtab}"]`).classList.add('active');
+  document.getElementById(`tab-${subtab}`).style.display = 'block';
 }
 
 // Auto refresh on load
