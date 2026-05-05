@@ -425,7 +425,7 @@ function render(data, tradesData) {
       
       return `<tr>
         <td>${i+1}</td>
-        <td><a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.base}USDT/" target="_blank" rel="noopener"><span class="symbol-name">${s.base}</span> 🔗</a></td>
+        <td><a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.base}USDT" target="_blank" rel="noopener"><span class="symbol-name">${s.base}</span> 🔗</a></td>
         <td class="price">$${parseFloat(s.price).toFixed(s.price < 1 ? 6 : s.price < 100 ? 4 : 2)}</td>
         <td class="change ${chgCls}">${chgSign}${chg.toFixed(2)}%</td>
         <td>${vol}</td>
@@ -466,7 +466,7 @@ function render(data, tradesData) {
       
       return `<div class="trade-item">
         <div>
-          <a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${t.base}USDT/" target="_blank" rel="noopener"><span class="trade-symbol">${t.base}</span> 🔗</a>
+          <a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${t.base}USDT" target="_blank" rel="noopener"><span class="trade-symbol">${t.base}</span> 🔗</a>
           <span class="trade-status ${statusCls}">${status}</span>
         </div>
         <div>
