@@ -449,46 +449,7 @@ function render(data, tradesData) {
   }
   
   // Trades list
-  const tradesBody = document.getElementById('tradesBody');
-  const tradesEmpty = document.getElementById('tradesEmpty');
-  
-  if (trades.length === 0) {
-    tradesBody.innerHTML = '';
-    tradesEmpty.style.display = 'block';
-  } else {
-    tradesEmpty.style.display = 'none';
-    // Show newest first
-    const sorted = [...trades].reverse();
-    tradesBody.innerHTML = sorted.map(t => {
-      const pnl = t.pnl_usdt || 0;
-      const pnlCls = pnl >= 0 ? 'positive' : 'negative';
-      const pnlSign = pnl >= 0 ? '+' : '';
-      const status = t.status === 'open' ? '進行中'
-        : t.exit_reason === 'tp2' ? '✅ 停利'
-        : t.exit_reason === 'stop_loss' ? '❌ 停損'
-        : t.exit_reason === 'timeout' ? '⏰ 時間到'
-        : '已結束';
-      const statusCls = t.status === 'open' ? 'open'
-        : t.exit_reason === 'tp2' ? 'tp2'
-        : t.exit_reason === 'stop_loss' ? 'sl'
-        : 'closed';
-      
-      return `<div class="trade-item">
-        <div>
-          <a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${t.base}USDT" target="_blank" rel="noopener"><span class="trade-symbol">${t.base}</span> 🔗</a>
-          <span class="trade-status ${statusCls}">${status}</span>
-        </div>
-        <div>
-          <div>入場：$${t.entry_price.toFixed(t.entry_price < 1 ? 6 : t.entry_price < 100 ? 4 : 2)}</div>
-          ${t.exit_price ? `<div>出場：$${t.exit_price.toFixed(t.exit_price < 1 ? 6 : t.exit_price < 100 ? 4 : 2)}</div>` : ''}
-          <div class="trade-info">${new Date(t.entry_time).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="trade-pnl ${pnlCls}" style="font-size:18px;font-weight:700">${pnlSign}${pnl.toFixed(2)} USDT <span style="font-size:14px;font-weight:400">(${pnlSign}${(t.pnl_pct || 0).toFixed(2)}%)</span></div>
-        </div>
-      </div>`;
-    }).join('');
-  }
+  renderTrades(trades);
 }
 
 function formatVolume(v) {
@@ -504,9 +465,16 @@ let liveInterval = null;
 async function fetchLivePrices(signals, trades) {
   if (!signals || signals.length === 0) return;
   
+  // 從 signals 和 open trades 收集所有需要即時價格的幣種
+  const allSymbols = new Set();
+  signals.forEach(s => allSymbols.add(s.symbol));
+  (trades || []).forEach(t => { if (t.status === 'open') allSymbols.add(t.symbol); });
+  
+  if (allSymbols.size === 0) return;
+  
   try {
-    // 從 Binance public API 批次抓即時價格（不用 API key）
-    const symbols = signals.map(s => `"${s.symbol}"`).join(',');
+    const symbolsArr = Array.from(allSymbols);
+    const symbols = symbolsArr.map(s => `"${s}"`).join(',');
     const resp = await fetch(`https://api.binance.com/api/v3/ticker/price?symbols=[${symbols}]`);
     const data = await resp.json();
     
@@ -534,33 +502,74 @@ function updateLiveDisplay(signals, trades) {
     if (live) {
       const priceCell = row.querySelector('.price');
       if (priceCell) {
-        const chg = ((live - parseFloat(s.price)) / parseFloat(s.price)) * 100;
-        const chgSign = chg >= 0 ? '+' : '';
-        priceCell.innerHTML = `$${live.toFixed(live < 1 ? 6 : live < 100 ? 4 : 2)} <span style="font-size:11px;color:${chg >= 0 ? 'var(--green)' : 'var(--red)'}">(${chgSign}${chg.toFixed(2)}%)</span>`;
+        const chgFromScan = ((live - parseFloat(s.price)) / parseFloat(s.price)) * 100;
+        priceCell.innerHTML = `$${live.toFixed(live < 1 ? 6 : live < 100 ? 4 : 2)}`;
       }
     }
   });
   
-  // 更新紙交易列表價格
+  // 更新紙交易列表
+  renderTrades(trades);
+}
+
+// 獨立渲染紙交易，讓即時更新可以重複呼叫
+function renderTrades(trades) {
   const tradesBody = document.getElementById('tradesBody');
+  const tradesEmpty = document.getElementById('tradesEmpty');
   if (!tradesBody || !trades) return;
-  const items = tradesBody.querySelectorAll('.trade-item');
-  items.forEach((item, i) => {
-    if (i >= trades.length) return;
-    const t = trades[i];
-    if (t.status !== 'open') return;
-    const live = livePrices[t.symbol];
-    if (live) {
-      const pnlUsdt = ((live - t.entry_price) / t.entry_price) * 10; // 10U 風險
-      const pnlPct = ((live - t.entry_price) / t.entry_price) * 100;
-      const pnlDiv = item.querySelector('.trade-pnl');
-      if (pnlDiv) {
-        const sign = pnlUsdt >= 0 ? '+' : '';
-        pnlDiv.innerHTML = `${sign}${pnlUsdt.toFixed(2)} USDT <span style="font-size:14px;font-weight:400">(${sign}${pnlPct.toFixed(2)}%)</span>`;
-        pnlDiv.className = 'trade-pnl ' + (pnlUsdt >= 0 ? 'positive' : 'negative');
+  
+  if (trades.length === 0) {
+    tradesBody.innerHTML = '';
+    tradesEmpty.style.display = 'block';
+    return;
+  }
+  
+  tradesEmpty.style.display = 'none';
+  const sorted = [...trades].reverse();
+  
+  tradesBody.innerHTML = sorted.map(t => {
+    const pnl = t.pnl_usdt || 0;
+    const pnlPct = t.pnl_pct || 0;
+    
+    // 如果是 open trade，用即時價格計算浮動損益
+    let displayPnl = pnl;
+    let displayPnlPct = pnlPct;
+    if (t.status === 'open') {
+      const live = livePrices[t.symbol];
+      if (live) {
+        displayPnlPct = ((live - t.entry_price) / t.entry_price) * 100;
+        displayPnl = (displayPnlPct / 100) * 10; // 10U risk
       }
     }
-  });
+    
+    const pnlCls = displayPnl >= 0 ? 'positive' : 'negative';
+    const pnlSign = displayPnl >= 0 ? '+' : '';
+    
+    const statusText = t.status === 'open' ? '進行中'
+      : t.exit_reason === 'tp2' ? '✅ 停利'
+      : t.exit_reason === 'stop_loss' ? '❌ 停損'
+      : t.exit_reason === 'timeout' ? '⏰ 時間到'
+      : '已結束';
+    const statusCls = t.status === 'open' ? 'open'
+      : t.exit_reason === 'tp2' ? 'tp2'
+      : t.exit_reason === 'stop_loss' ? 'sl'
+      : 'closed';
+    
+    return `<div class="trade-item">
+      <div>
+        <a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${t.base}USDT" target="_blank" rel="noopener"><span class="trade-symbol">${t.base}</span> 🔗</a>
+        <span class="trade-status ${statusCls}">${statusText}</span>
+      </div>
+      <div>
+        <div>入場：$${t.entry_price.toFixed(t.entry_price < 1 ? 6 : t.entry_price < 100 ? 4 : 2)}</div>
+        ${t.exit_price ? `<div>出場：$${t.exit_price.toFixed(t.exit_price < 1 ? 6 : t.exit_price < 100 ? 4 : 2)}</div>` : ''}
+        <div class="trade-info">${new Date(t.entry_time).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="trade-pnl ${pnlCls}" style="font-size:18px;font-weight:700">${pnlSign}${displayPnl.toFixed(2)} USDT <span style="font-size:14px;font-weight:400">(${pnlSign}${displayPnlPct.toFixed(2)}%)</span></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // 每 30 秒刷新即時價格
