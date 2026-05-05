@@ -302,16 +302,13 @@ def scan(config):
             vol_score * config_score["volume_weight"] +
             momentum_score * config_score["momentum_weight"] +
             breakout_score * config_score["breakout_weight"] +
-            liquidity_score * config_score["liquidity_weight"]
+            liquidity_score * config_score["liquidity_weight"] +
+            ob_score * config_score["orderbook_weight"]
         )
         
         # Smart Money 分數（暫時為 0）
         smart_money_score = 0
         total_score += smart_money_score * config_score["smart_money_weight"]
-        
-        # 訂單簿分數額外加成（獨立計算，不稀釋其他權重）
-        ob_weight = 0.10
-        total_score = total_score * (1 - ob_weight) + ob_score * ob_weight
         
         signals.append({
             "symbol": symbol,
