@@ -640,7 +640,6 @@ function renderTradeItem(t) {
       ${t.status === 'open' ? `<div style="font-size:11px;color:var(--text-dim);margin-top:4px">
         最高 ${maxPnlPct > 0 ? '+' : ''}${maxPnlPct.toFixed(1)}% / 最低 ${minPnlPct > 0 ? '+' : ''}${minPnlPct.toFixed(1)}%
       </div>` : ''}
-      ${t.status === 'closed' ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px">已實現</div>` : `<div style="font-size:11px;color:var(--text-dim);margin-top:2px">未實現</div>`}
     </div>
   </div>`;
 }
