@@ -302,6 +302,10 @@
     font-size: 48px;
     margin-bottom: 12px;
   }
+  #tab-signals > .emoji,
+  #tab-signals > .emoji + div {
+    display: none !important;
+  }
 
   /* Responsive */
   @media (max-width: 768px) {
@@ -407,8 +411,7 @@
           <th class="sortable" data-sort="tags" onclick="sortSignals('tags')">訊號<span class="sort-indicator" data-sort-indicator="tags"></span></th>
         </tr>
       </thead>
-    </table>
-    <tbody id="signalsBody">
+      <tbody id="signalsBody">
       </tbody>
     </table>
     <div id="signalsEmpty" style="display:none; padding:16px; color:var(--text-dim); text-align:center;">還沒有掃描訊號，等待自動掃描或<button class="btn" onclick="fetchData()">手動刷新</button></div>
@@ -589,6 +592,7 @@ function render(data, tradesData) {
   
   if (sortedSignals.length === 0) {
     tbody.innerHTML = '';
+    empty.textContent = 'No current signals.';
     empty.style.display = 'block';
   } else {
     empty.style.display = 'none';
