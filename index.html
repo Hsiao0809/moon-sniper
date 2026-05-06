@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Moon Sniper</title>
   <style>
     :root {
@@ -17,6 +17,18 @@
       --green: #22c55e;
       --red: #f87171;
       --amber: #f59e0b;
+      --shell-pad-x: clamp(8px, 1.2vw, 14px);
+      --shell-pad-y: clamp(8px, 1vw, 10px);
+      --gap: clamp(6px, .8vw, 10px);
+      --radius: clamp(8px, 1vw, 12px);
+      --touch-size: clamp(32px, 5.5vw, 44px);
+      --stat-min: clamp(118px, 12vw, 160px);
+      --table-min-width: 1060px;
+      --trade-table-min-width: 1120px;
+      --sticky-symbol-width: clamp(96px, 10vw, 120px);
+      --sticky-symbol-max: clamp(112px, 12vw, 140px);
+      --cell-pad-y: clamp(8px, .85vw, 12px);
+      --cell-pad-x: clamp(8px, .85vw, 12px);
     }
 
     * { box-sizing: border-box; }
@@ -33,10 +45,10 @@
       height: 100dvh;
       width: min(1440px, 100%);
       margin: 0 auto;
-      padding: 10px 14px;
+      padding: var(--shell-pad-y) var(--shell-pad-x);
       display: grid;
       grid-template-rows: auto auto minmax(0, 1fr);
-      gap: 8px;
+      gap: var(--gap);
       overflow: hidden;
     }
 
@@ -52,7 +64,7 @@
 
     h1 {
       margin: 0;
-      font-size: 22px;
+      font-size: clamp(22px, 2.8vw, 34px);
       line-height: 1;
       letter-spacing: 0;
     }
@@ -60,7 +72,7 @@
     .subtitle {
       margin-top: 3px;
       color: var(--muted);
-      font-size: 12px;
+      font-size: clamp(12px, 1.4vw, 14px);
     }
 
     .actions {
@@ -76,11 +88,11 @@
     button, select {
       appearance: none;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: var(--radius);
       background: var(--panel-2);
       color: var(--text);
-      min-height: 32px;
-      padding: 0 10px;
+      min-height: var(--touch-size);
+      padding: 0 clamp(10px, 1vw, 14px);
       font: inherit;
     }
 
@@ -103,29 +115,29 @@
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(6, minmax(96px, 1fr));
-      gap: 6px;
+      grid-template-columns: repeat(auto-fit, minmax(min(var(--stat-min), 100%), 1fr));
+      gap: var(--gap);
       min-width: 0;
     }
 
     .stat {
       border: 1px solid var(--border);
       background: var(--panel);
-      border-radius: 8px;
-      padding: 7px 9px;
+      border-radius: var(--radius);
+      padding: clamp(7px, .9vw, 11px) clamp(9px, 1vw, 12px);
       min-width: 0;
       min-height: 40px;
     }
 
     .stat .label {
       color: var(--muted);
-      font-size: 11px;
+      font-size: clamp(11px, 1.2vw, 13px);
       line-height: 1.1;
     }
 
     .stat .value {
       margin-top: 3px;
-      font-size: 15px;
+      font-size: clamp(15px, 1.8vw, 20px);
       font-weight: 800;
       line-height: 1.1;
       white-space: nowrap;
@@ -149,13 +161,15 @@
       grid-template-rows: auto 1fr;
     }
 
+    #tradesTab.panel { grid-template-rows: auto auto minmax(0, 1fr); }
+
     .toolbar {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 8px;
       align-items: center;
-      min-height: 42px;
-      padding: 7px 10px;
+      min-height: clamp(42px, 6vw, 52px);
+      padding: clamp(7px, .9vw, 10px) clamp(10px, 1vw, 14px);
       border-bottom: 1px solid var(--border);
       color: var(--muted);
       font-size: 12px;
@@ -179,8 +193,8 @@
     }
 
     .tag-filter {
-      min-height: 28px;
-      padding: 0 8px;
+      min-height: clamp(28px, 5vw, 36px);
+      padding: 0 clamp(8px, 1vw, 12px);
       white-space: nowrap;
       font-size: 12px;
     }
@@ -195,11 +209,11 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 1060px;
+      min-width: max(100%, var(--table-min-width));
     }
 
     th, td {
-      padding: 8px 10px;
+      padding: var(--cell-pad-y) var(--cell-pad-x);
       border-bottom: 1px solid var(--border);
       text-align: left;
       vertical-align: top;
@@ -215,6 +229,22 @@
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: .04em;
+      background: var(--panel-3);
+    }
+
+    .sticky-symbol {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      min-width: var(--sticky-symbol-width);
+      max-width: var(--sticky-symbol-max);
+      background: var(--panel);
+      box-shadow: 1px 0 0 var(--border), 10px 0 14px rgba(8, 11, 18, .26);
+      white-space: nowrap;
+    }
+
+    th.sticky-symbol {
+      z-index: 3;
       background: var(--panel-3);
     }
 
@@ -259,7 +289,7 @@
 
     .score i {
       display: block;
-      width: 44px;
+      width: clamp(34px, 4vw, 44px);
       height: 6px;
       border-radius: 999px;
       background: var(--score-color, var(--muted));
@@ -277,18 +307,27 @@
       align-items: center;
       min-height: 22px;
       padding: 0 7px;
-      border-radius: 6px;
+      border-radius: clamp(6px, .8vw, 8px);
       background: #22304a;
       color: #cbd5e1;
       font-size: 11px;
       white-space: nowrap;
     }
 
+    .trade-subtabs {
+      display: flex;
+      gap: 6px;
+      padding: clamp(7px, .9vw, 10px) clamp(10px, 1vw, 14px);
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-3);
+    }
+
+    .trade-subtabs button { min-height: clamp(30px, 5vw, 40px); }
+
     .trade-sections {
       min-height: 0;
       display: grid;
-      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 0;
+      grid-template-rows: minmax(0, 1fr);
       overflow: hidden;
     }
 
@@ -296,10 +335,7 @@
       min-height: 0;
       display: grid;
       grid-template-rows: auto 1fr;
-      border-bottom: 1px solid var(--border);
     }
-
-    .trade-section:last-child { border-bottom: 0; }
 
     .section-title {
       display: flex;
@@ -307,14 +343,14 @@
       justify-content: space-between;
       gap: 8px;
       min-height: 34px;
-      padding: 7px 10px;
+      padding: clamp(7px, .9vw, 10px) clamp(10px, 1vw, 14px);
       background: var(--panel-3);
       color: var(--muted);
       font-size: 12px;
       border-bottom: 1px solid var(--border);
     }
 
-    .trade-table { min-width: 1120px; }
+    .trade-table { min-width: max(100%, var(--trade-table-min-width)); }
     .empty, .error {
       padding: 28px 20px;
       text-align: center;
@@ -325,6 +361,20 @@
     [hidden] { display: none !important; }
 
     @media (max-width: 900px) {
+      :root {
+        --shell-pad-x: clamp(8px, 2.4vw, 12px);
+        --shell-pad-y: clamp(8px, 2vw, 10px);
+        --gap: clamp(6px, 1.8vw, 10px);
+        --touch-size: clamp(40px, 10vw, 46px);
+        --stat-min: 128px;
+        --table-min-width: clamp(620px, 165vw, 760px);
+        --trade-table-min-width: clamp(740px, 190vw, 900px);
+        --sticky-symbol-width: clamp(82px, 24vw, 104px);
+        --sticky-symbol-max: clamp(96px, 28vw, 116px);
+        --cell-pad-y: clamp(9px, 2.2vw, 12px);
+        --cell-pad-x: clamp(8px, 2vw, 10px);
+      }
+
       html, body {
         height: 100dvh;
         overflow-y: auto;
@@ -333,20 +383,90 @@
       .shell {
         min-height: 100dvh;
         height: auto;
-        padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-        gap: 6px;
+        padding: var(--shell-pad-y) var(--shell-pad-x) calc(var(--shell-pad-y) + env(safe-area-inset-bottom));
+        gap: var(--gap);
         overflow: visible;
       }
       header { grid-template-columns: 1fr; gap: 6px; }
       .actions { justify-content: space-between; white-space: normal; }
       .topbar { grid-template-columns: 1fr; }
-      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .stats { grid-template-columns: repeat(auto-fit, minmax(min(var(--stat-min), 100%), 1fr)); }
       .toolbar { grid-template-columns: 1fr; }
       .tabs { justify-content: stretch; }
       .tabs button { flex: 1; }
-      .trade-sections { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
-      .scroll { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
+      .panel,
+      .trade-sections,
+      .trade-section {
+        display: block;
+        overflow: visible;
+      }
+      .trade-subtabs { padding: 6px 8px; }
+      .trade-subtabs button { flex: 1; }
+      .trade-section { border-bottom: 1px solid var(--border); }
+      .scroll {
+        overflow-x: auto;
+        overflow-y: visible;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      }
+
+      /* Better touch targets */
+      button, select { min-height: var(--touch-size); }
+      .tag-filter { min-height: 36px; }
+      .sort-button { min-height: 0; }
+      .trade-subtabs button { min-height: 36px; }
+
+      /* Hide desktop-only helper text */
+      .desktop-hint { display: none; }
+
+      /* Sort select fills available width */
+      #sortSelect { width: 100%; }
+
+      /* Signals table: hide rank and all sub-score columns */
+      #signalsTab table th:nth-child(1),
+      #signalsTab table td:nth-child(1),
+      #signalsTab table th:nth-child(9),
+      #signalsTab table td:nth-child(9),
+      #signalsTab table th:nth-child(10),
+      #signalsTab table td:nth-child(10),
+      #signalsTab table th:nth-child(11),
+      #signalsTab table td:nth-child(11),
+      #signalsTab table th:nth-child(12),
+      #signalsTab table td:nth-child(12) { display: none; }
+
+      #signalsTab table { min-width: max(100%, var(--table-min-width)); }
+
+      /* Open trades: hide Status and Max Up/Down */
+      #openTradesSection th:nth-child(2),
+      #openTradesSection td:nth-child(2),
+      #openTradesSection th:nth-child(6),
+      #openTradesSection td:nth-child(6),
+      #openTradesSection th:nth-child(7),
+      #openTradesSection td:nth-child(7) { display: none; }
+
+      #openTradesSection .trade-table { min-width: max(100%, var(--trade-table-min-width)); }
+
+      /* Closed trades: hide Max Up/Down */
+      #closedTradesSection th:nth-child(6),
+      #closedTradesSection td:nth-child(6),
+      #closedTradesSection th:nth-child(7),
+      #closedTradesSection td:nth-child(7) { display: none; }
+      #closedTradesSection .trade-table { min-width: max(100%, calc(var(--trade-table-min-width) + 60px)); }
     }
+
+    @media (max-width: 480px) {
+      :root {
+        --stat-min: 132px;
+        --table-min-width: clamp(560px, 170vw, 660px);
+        --trade-table-min-width: clamp(680px, 205vw, 820px);
+      }
+
+      .stats { grid-template-columns: repeat(auto-fit, minmax(min(var(--stat-min), 100%), 1fr)); }
+      .stat .value { font-size: clamp(16px, 5vw, 19px); }
+      th, td { font-size: clamp(12px, 3.5vw, 13px); }
+    }
+
   </style>
 </head>
 <body>
@@ -420,7 +540,7 @@
           <thead>
             <tr>
               <th><button type="button" class="sort-button" data-sort-key="rank">#</button></th>
-              <th><button type="button" class="sort-button" data-sort-key="symbol">Symbol</button></th>
+              <th class="sticky-symbol"><button type="button" class="sort-button" data-sort-key="symbol">Symbol</button></th>
               <th><button type="button" class="sort-button" data-sort-key="scan-price">Scan Price</button></th>
               <th><button type="button" class="sort-button" data-sort-key="live-price">Live Price</button></th>
               <th><button type="button" class="sort-button" data-sort-key="from-scan">From Scan</button></th>
@@ -443,19 +563,23 @@
     <section id="tradesTab" class="panel" hidden>
       <div class="toolbar">
         <span id="tradeSummary">No trades loaded</span>
-        <span>Open trade high/low updates from live price; closed trades stay fixed</span>
+        <span class="desktop-hint">Open trade high/low updates from live price; closed trades stay fixed</span>
       </div>
+      <nav class="trade-subtabs" aria-label="Trade record tabs">
+        <button type="button" class="active" data-trade-tab="open">Open Positions</button>
+        <button type="button" data-trade-tab="closed">Closed Trades</button>
+      </nav>
       <div class="trade-sections">
-        <section class="trade-section">
+        <section class="trade-section" id="openTradesSection" data-trade-panel="open">
           <div class="section-title">
-            <strong>Open Positions</strong>
+            <strong>持倉</strong>
             <span id="openTradeCount">0</span>
           </div>
           <div class="scroll">
             <table class="trade-table">
               <thead>
                 <tr>
-                  <th>Symbol</th>
+                  <th class="sticky-symbol">Symbol</th>
                   <th>Status</th>
                   <th>Entry</th>
                   <th>Live</th>
@@ -473,16 +597,16 @@
             <div class="empty" id="openTradesEmpty" hidden>No open positions.</div>
           </div>
         </section>
-        <section class="trade-section">
+        <section class="trade-section" id="closedTradesSection" data-trade-panel="closed" hidden>
           <div class="section-title">
-            <strong>Closed Trades</strong>
+            <strong>已平倉</strong>
             <span id="closedTradeCount">0</span>
           </div>
           <div class="scroll">
             <table class="trade-table">
               <thead>
                 <tr>
-                  <th>Symbol</th>
+                  <th class="sticky-symbol">Symbol</th>
                   <th>Exit Reason</th>
                   <th>Entry</th>
                   <th>Exit</th>
@@ -803,7 +927,7 @@
 
         return `<tr>
           <td>${index + 1}</td>
-          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${signal.base || signal.symbol}" target="_blank" rel="noopener"><span class="symbol">${signal.base || signal.symbol}</span></a></td>
+          <td class="sticky-symbol"><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${signal.base || signal.symbol}" target="_blank" rel="noopener"><span class="symbol">${signal.base || signal.symbol}</span></a></td>
           <td class="money">$${formatPrice(scanPrice)}</td>
           <td class="money">${livePrice ? `$${formatPrice(livePrice)}` : '<span class="muted">Pending</span>'}</td>
           <td class="${fromScan === null ? 'muted' : classForNumber(fromScan)}">${fromScan === null ? "Pending" : formatPct(fromScan)}</td>
@@ -834,7 +958,7 @@
         const live = pnl.live;
         const tags = Array.isArray(trade.tags) ? trade.tags : [];
         return `<tr>
-          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
+          <td class="sticky-symbol"><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
           <td>Open</td>
           <td class="money">$${formatPrice(trade.entry_price)}</td>
           <td class="money">${live ? `$${formatPrice(live)}` : '<span class="muted">Pending</span>'}</td>
@@ -853,7 +977,7 @@
         const pct = asNumber(trade.realized_pnl_pct);
         const tags = Array.isArray(trade.tags) ? trade.tags : [];
         return `<tr>
-          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
+          <td class="sticky-symbol"><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
           <td>${escapeHtml(trade.exit_reason || "Closed")}</td>
           <td class="money">$${formatPrice(trade.entry_price)}</td>
           <td class="money">$${formatPrice(trade.exit_price)}</td>
@@ -885,6 +1009,15 @@
         document.querySelectorAll("[data-tab]").forEach((item) => item.classList.toggle("active", item === button));
         $("signalsTab").hidden = button.dataset.tab !== "signals";
         $("tradesTab").hidden = button.dataset.tab !== "trades";
+      });
+    });
+
+    document.querySelectorAll("[data-trade-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-trade-tab]").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll("[data-trade-panel]").forEach((panel) => {
+          panel.hidden = panel.dataset.tradePanel !== button.dataset.tradeTab;
+        });
       });
     });
 
