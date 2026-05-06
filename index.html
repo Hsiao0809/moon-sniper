@@ -421,9 +421,16 @@
     <button class="btn btn-primary" onclick="liveScan()" id="liveScanBtn">🔍 開始即時掃描</button>
     <div id="liveScanStatus" class="scanning-status" style="display:none">
       <div class="spinner"></div>
-      <span>掃描中... 正在拉取 Binance 資料</span>
+      <span>掃描中...</span>
     </div>
     <span id="liveScanIdle" style="color:var(--text-dim);font-size:13px">點擊開始從 Binance 即時拉取資料掃描（約 15 秒）</span>
+  </div>
+  <!-- 市場類別選擇 -->
+  <div class="tabs" style="margin-bottom:8px">
+    <button class="tab active" data-livescan-cat="crypto" onclick="switchLiveScanCategory('crypto')">🪙 Crypto</button>
+    <button class="tab" data-livescan-cat="us_stocks" onclick="switchLiveScanCategory('us_stocks')">📈 美股</button>
+    <button class="tab" data-livescan-cat="etf" onclick="switchLiveScanCategory('etf')">📊 ETF</button>
+    <button class="tab" data-livescan-cat="commodities" onclick="switchLiveScanCategory('commodities')">🛢️ 商品</button>
   </div>
   <div id="liveScanInfo" style="display:none;font-size:12px;color:var(--text-dim);margin-bottom:8px"></div>
   <div class="table-wrap" id="liveScanWrap" style="display:none">
@@ -431,7 +438,7 @@
       <thead>
         <tr>
           <th>#</th>
-          <th class="sticky-symbol">幣種</th>
+          <th class="sticky-symbol">標的</th>
           <th>價格</th>
           <th>24h 漲跌</th>
           <th>24h 成交量</th>
@@ -449,7 +456,7 @@
   </div>
   <div id="liveScanEmpty" class="empty-state">
     <div class="emoji">⚡</div>
-    <div>尚未掃描<br><small>點擊「開始即時掃描」按鈕從 Binance 取得最新資料</small></div>
+    <div>尚未掃描<br><small>選擇市場類別後，點擊「開始即時掃描」</small></div>
   </div>
 </div>
 
@@ -939,7 +946,24 @@ refreshAll();
 
 // ===== 即時掃描（全前端 Binance API）=====
 
-// Binance API helper
+// 當前選中的掃描類別
+let liveScanCategory = 'crypto';
+
+function switchLiveScanCategory(cat) {
+  liveScanCategory = cat;
+  document.querySelectorAll('[data-livescan-cat]').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('data-livescan-cat') === cat);
+  });
+  // 清空舊結果並重設 UI
+  document.getElementById('liveScanWrap').style.display = 'none';
+  document.getElementById('liveScanEmpty').style.display = 'block';
+  document.getElementById('liveScanBody').innerHTML = '';
+  document.getElementById('liveScanInfo').style.display = 'none';
+  document.getElementById('liveScanIdle').textContent = `🔍 點擊開始掃描 ${cat === 'crypto' ? '加密貨幣' : cat === 'us_stocks' ? '美股' : cat === 'etf' ? 'ETF' : '商品'}...`;
+  document.getElementById('liveScanBtn').textContent = '🔍 開始即時掃描';
+}
+
+// Binance API helpers
 async function binanceGet(path, params) {
   let url = 'https://api.binance.com' + path;
   if (params) url += '?' + new URLSearchParams(params);
@@ -948,30 +972,63 @@ async function binanceGet(path, params) {
   return resp.json();
 }
 
+async function binanceFapiGet(path, params) {
+  let url = 'https://fapi.binance.com' + path;
+  if (params) url += '?' + new URLSearchParams(params);
+  const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  if (!resp.ok) throw new Error('Binance FAPI ' + resp.status);
+  return resp.json();
+}
+
 // 穩定幣排除
 const STABLECOINS = new Set(['USDC', 'BUSD', 'DAI', 'FDUSD', 'TUSD', 'USDP', 'USDD', 'PAX', 'GUSD', 'HUSD', 'EUR', 'GBP', 'AUD', 'BRL']);
 
-// 計算評分（對齊 Python scanner 邏輯）
-function calcScores(ticker, klines, depth) {
+// TradFi 類別對應 Binance contractType (從 exchangeInfo 過濾)
+const TRADFI_CATEGORIES = {
+  us_stocks: { name: '美股', emoji: '📈' },
+  etf: { name: 'ETF', emoji: '📊' },
+  commodities: { name: '商品', emoji: '🛢️' }
+};
+
+// 計算評分（支援 TradFi 不同權重）
+function calcScores(ticker, klines, depth, category) {
   const scores = { volume: 0, momentum: 0, orderbook: 50, smart_money: 0, breakout: 0 };
   const tags = [];
-
-  // 成交量變化（30 分）
-  const vol = Number(ticker.quoteVolume);
   const chg24 = Number(ticker.priceChangePercent);
-  const volNorm = Math.min(vol / 5000000, 1);
-  scores.volume = Math.round(volNorm * 30);
+  const vol = Number(ticker.quoteVolume);
 
-  // 動能（25 分）
-  if (chg24 >= 3 && chg24 < 5) { scores.momentum = 10; tags.push('📈 微漲'); }
-  else if (chg24 >= 5 && chg24 < 10) { scores.momentum = 18; tags.push('⚡ 上漲中'); }
-  else if (chg24 >= 10 && chg24 < 15) { scores.momentum = 22; tags.push('🔥 強勢'); }
-  else if (chg24 >= 15 && chg24 < 20) { scores.momentum = 25; tags.push('🚀 暴漲'); }
+  if (category === 'crypto') {
+    // Crypto 評分（原邏輯）
+    const volNorm = Math.min(vol / 5000000, 1);
+    scores.volume = Math.round(volNorm * 30);
+    if (volNorm > 0.5) tags.push('📊 量爆增');
 
-  // 量爆增檢查
-  if (volNorm > 0.5) tags.push('📊 量爆增');
+    if (chg24 >= 3 && chg24 < 5) { scores.momentum = 10; tags.push('📈 微漲'); }
+    else if (chg24 >= 5 && chg24 < 10) { scores.momentum = 18; tags.push('⚡ 上漲中'); }
+    else if (chg24 >= 10 && chg24 < 15) { scores.momentum = 22; tags.push('🔥 強勢'); }
+    else if (chg24 >= 15 && chg24 < 20) { scores.momentum = 25; tags.push('🚀 暴漲'); }
+  } else {
+    // TradFi 評分（權重調整）
+    const volNorm = Math.min(vol / 50000000, 1); // TradFi 成交量較大
+    scores.volume = Math.round(volNorm * 25);
+    if (volNorm > 0.6) tags.push('📊 量大');
 
-  // 訂單簿（20 分）— 用 bid/ask ratio
+    // 股票/ETF 波動較小，1% 以上就算有動能；商品稍微放寬
+    if (category === 'commodities') {
+      if (chg24 >= 2 && chg24 < 4) { scores.momentum = 15; tags.push('📈 上漲'); }
+      else if (chg24 >= 4 && chg24 < 7) { scores.momentum = 22; tags.push('⚡ 強勢'); }
+      else if (chg24 >= 7 && chg24 < 12) { scores.momentum = 28; tags.push('🔥 大漲'); }
+      else if (chg24 >= 12) { scores.momentum = 30; tags.push('🚀 暴漲'); }
+    } else {
+      // 美股/ETF
+      if (chg24 >= 1 && chg24 < 2) { scores.momentum = 10; tags.push('📈 微漲'); }
+      else if (chg24 >= 2 && chg24 < 4) { scores.momentum = 18; tags.push('⚡ 上漲中'); }
+      else if (chg24 >= 4 && chg24 < 7) { scores.momentum = 25; tags.push('🔥 強勢'); }
+      else if (chg24 >= 7) { scores.momentum = 30; tags.push('🚀 大漲'); }
+    }
+  }
+
+  // 訂單簿（20 分）— crypto 和 TradFi 共用 fapi depth
   if (depth) {
     const bids = depth.bids.slice(0, 10).reduce((s, b) => s + Number(b[1]), 0);
     const asks = depth.asks.slice(0, 10).reduce((s, a) => s + Number(a[1]), 0);
@@ -982,7 +1039,7 @@ function calcScores(ticker, klines, depth) {
     else { scores.orderbook = 5; tags.push('📕 賣壓重'); }
   }
 
-  // 聰明錢（10 分）— 用 klines 最後一根的成交量 vs 平均
+  // 聰明錢（10 分）
   if (klines && klines.length >= 6) {
     const closes = klines.map(k => Number(k[4]));
     const volumes = klines.map(k => Number(k[5]));
@@ -997,8 +1054,11 @@ function calcScores(ticker, klines, depth) {
     const prev = closes.slice(0, 4);
     const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
     const prevAvg = prev.reduce((a, b) => a + b, 0) / prev.length;
-    if (recentAvg > prevAvg * 1.03) { scores.breakout = 15; tags.push('📈 突破壓力'); }
-    else if (recentAvg > prevAvg * 1.01) { scores.breakout = 8; }
+    // TradFi 突破門檻稍微調低（波動較小）
+    const threshold = category === 'crypto' ? 1.03 : 1.015;
+    const threshold2 = category === 'crypto' ? 1.01 : 1.008;
+    if (recentAvg > prevAvg * threshold) { scores.breakout = 15; tags.push('📈 突破壓力'); }
+    else if (recentAvg > prevAvg * threshold2) { scores.breakout = 8; }
     else { scores.breakout = 3; }
   }
 
@@ -1006,7 +1066,29 @@ function calcScores(ticker, klines, depth) {
   return { total: Math.round(total), ...scores, tags };
 }
 
+// TradFi 標的的分類
+function classifyTradFi(symbolName, exchangeInfo) {
+  const info = exchangeInfo.symbols.find(s => s.symbol === symbolName);
+  if (!info) return 'unknown';
+  const base = symbolName.replace('USDT', '');
+  // 從 series 判斷：COIN_MARGINED / USD_MARGINED
+  // 先從 exchangeInfo 看 contractType
+  const ct = info.contractType;
+  if (ct === 'TRADIFI_PERPETUAL') {
+    // 再用 base symbol 判斷類別
+    const stockSet = new Set(['AAPL','AMD','AMZN','AVGO','BABA','COIN','CRCL','GOOGL','HOOD','INTC','META','MSFT','MSTR','MU','NVDA','PAYP','PLTR','QCOM','SNDK','TSLA','TSM','USAR']);
+    const etfSet = new Set(['QQQ','SPY','EWY','EWJ']);
+    const commoditySet = new Set(['XAU','XAG','XPT','XPD','CL','BZ','NATGAS','COPPER','XPD']);
+    if (stockSet.has(base)) return 'us_stocks';
+    if (etfSet.has(base)) return 'etf';
+    if (commoditySet.has(base)) return 'commodities';
+  }
+  return 'unknown';
+}
+
+// 主要掃描函數
 async function liveScan() {
+  const category = liveScanCategory;
   const btn = document.getElementById('liveScanBtn');
   const statusDiv = document.getElementById('liveScanStatus');
   const statusText = statusDiv.querySelector('span');
@@ -1014,91 +1096,112 @@ async function liveScan() {
   const wrap = document.getElementById('liveScanWrap');
   const body = document.getElementById('liveScanBody');
   const empty = document.getElementById('liveScanEmpty');
+  const info = document.getElementById('liveScanInfo');
 
   btn.disabled = true;
   btn.textContent = '⏳ 掃描中...';
   idleText.style.display = 'none';
   statusDiv.style.display = 'flex';
-  statusText.textContent = '階段 1/3：拉取全部 USDT 交易對...';
 
   try {
-    // 階段 1：拉 24hr ticker 全部
-    const allTickers = await binanceGet('/api/v3/ticker/24hr');
-    const usdtPairs = allTickers.filter(t =>
-      t.symbol.endsWith('USDT') &&
-      !STABLECOINS.has(t.symbol.replace('USDT', '')) &&
-      Number(t.quoteVolume) >= 50000 &&
-      Number(t.priceChangePercent) >= 3 &&
-      Number(t.priceChangePercent) < 20 &&
-      Number(t.lastPrice) > 0.000001
-    );
+    if (category === 'crypto') {
+      // === Crypto 掃描（原邏輯）===
+      statusText.textContent = '階段 1/3：拉取全部 USDT 交易對...';
+      const allTickers = await binanceGet('/api/v3/ticker/24hr');
+      const usdtPairs = allTickers.filter(t =>
+        t.symbol.endsWith('USDT') &&
+        !STABLECOINS.has(t.symbol.replace('USDT', '')) &&
+        Number(t.quoteVolume) >= 50000 &&
+        Number(t.priceChangePercent) >= 3 &&
+        Number(t.priceChangePercent) < 20 &&
+        Number(t.lastPrice) > 0.000001
+      );
 
-    // 依成交量排序取前 50
-    usdtPairs.sort((a, b) => Number(b.quoteVolume) - Number(a.quoteVolume));
-    const top50 = usdtPairs.slice(0, 50);
-    statusText.textContent = `階段 2/3：分析 ${top50.length} 個潛力幣種（拉取 klines + depth）...`;
+      usdtPairs.sort((a, b) => Number(b.quoteVolume) - Number(a.quoteVolume));
+      const top50 = usdtPairs.slice(0, 50);
+      statusText.textContent = `階段 2/3：分析 ${top50.length} 個潛力幣種（拉取 klines + depth）...`;
 
-    // 階段 2：分批拉 klines 和 depth（每批 5 個並行）
-    const results = [];
-    const batchSize = 5;
-    for (let i = 0; i < top50.length; i += batchSize) {
-      const batch = top50.slice(i, i + batchSize);
-      const batchPromises = batch.map(async (ticker) => {
-        try {
-          const [klines, depth] = await Promise.all([
-            binanceGet('/api/v3/klines', { symbol: ticker.symbol, interval: '1h', limit: 24 }),
-            binanceGet('/api/v3/depth', { symbol: ticker.symbol, limit: 20 })
-          ]);
-          const scores = calcScores(ticker, klines, depth);
-          return { symbol: ticker.symbol, base: ticker.symbol.replace('USDT', ''), price: Number(ticker.lastPrice), scores, volume: Number(ticker.quoteVolume), chg24: Number(ticker.priceChangePercent) };
-        } catch(e) {
-          return null;
-        }
+      const results = [];
+      const batchSize = 5;
+      for (let i = 0; i < top50.length; i += batchSize) {
+        const batch = top50.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (ticker) => {
+          try {
+            const [klines, depth] = await Promise.all([
+              binanceGet('/api/v3/klines', { symbol: ticker.symbol, interval: '1h', limit: 24 }),
+              binanceGet('/api/v3/depth', { symbol: ticker.symbol, limit: 20 })
+            ]);
+            const scores = calcScores(ticker, klines, depth, 'crypto');
+            return { symbol: ticker.symbol, base: ticker.symbol.replace('USDT', ''), price: Number(ticker.lastPrice), scores, volume: Number(ticker.quoteVolume), chg24: Number(ticker.priceChangePercent) };
+          } catch(e) { return null; }
+        });
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults.filter(r => r !== null));
+        statusText.textContent = `階段 2/3：${Math.min(i + batchSize, top50.length)}/${top50.length} 個已分析...`;
+      }
+
+      statusText.textContent = '階段 3/3：計算結果...';
+      results.sort((a, b) => b.scores.total - a.scores.total);
+      const top20 = results.slice(0, 20);
+
+      wrap.style.display = 'block';
+      empty.style.display = 'none';
+      body.innerHTML = renderLiveResults(top20, 'crypto');
+      info.style.display = 'block';
+      info.textContent = `🪙 Crypto：掃描 ${allTickers.length} 個交易對 → ${top50.length} 個符合門檻 → 顯示前 ${top20.length} 名`;
+      statusText.textContent = `✅ 掃描完成！${top20.length} 個幣種`;
+    } else {
+      // === TradFi 掃描（美股/ETF/商品）===
+      statusText.textContent = '階段 1/3：拉取 Binance Futures 全部交易對...';
+      const exchangeInfo = await binanceFapiGet('/fapi/v1/exchangeInfo');
+      const allTickers = await binanceFapiGet('/fapi/v1/ticker/24hr');
+
+      // 過濾出 TradFi
+      const tradfiSymbols = exchangeInfo.symbols
+        .filter(s => s.contractType === 'TRADIFI_PERPETUAL' && s.status === 'TRADING')
+        .map(s => s.symbol);
+
+      // 依類別過濾
+      const catLabel = TRADFI_CATEGORIES[category].name;
+      const catEmoji = TRADFI_CATEGORIES[category].emoji;
+      const catTickers = allTickers.filter(t => {
+        if (!trafiSymbols.includes(t.symbol)) return false;
+        const c = classifyTradFi(t.symbol, exchangeInfo);
+        return c === category;
       });
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults.filter(r => r !== null));
-      statusText.textContent = `階段 2/3：${Math.min(i + batchSize, top50.length)}/${top50.length} 個已分析...`;
+
+      statusText.textContent = `階段 2/3：分析 ${catTickers.length} 個 ${catLabel}（拉取 klines + depth）...`;
+
+      const results = [];
+      const batchSize = 5;
+      for (let i = 0; i < catTickers.length; i += batchSize) {
+        const batch = catTickers.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (ticker) => {
+          try {
+            const [klines, depth] = await Promise.all([
+              binanceFapiGet('/fapi/v1/klines', { symbol: ticker.symbol, interval: '1h', limit: 24 }),
+              binanceFapiGet('/fapi/v1/depth', { symbol: ticker.symbol, limit: 20 })
+            ]);
+            const scores = calcScores(ticker, klines, depth, category);
+            return { symbol: ticker.symbol, base: ticker.symbol.replace('USDT', ''), price: Number(ticker.lastPrice), scores, volume: Number(ticker.quoteVolume), chg24: Number(ticker.priceChangePercent) };
+          } catch(e) { return null; }
+        });
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults.filter(r => r !== null));
+        statusText.textContent = `階段 2/3：${Math.min(i + batchSize, catTickers.length)}/${catTickers.length} 個已分析...`;
+      }
+
+      statusText.textContent = '階段 3/3：計算結果...';
+      results.sort((a, b) => b.scores.total - a.scores.total);
+
+      wrap.style.display = 'block';
+      empty.style.display = 'none';
+      body.innerHTML = renderLiveResults(results, category);
+      info.style.display = 'block';
+      info.textContent = `${catEmoji} ${catLabel}：${catTickers.length} 個標的掃描完成`;
+      statusText.textContent = `✅ ${catLabel}掃描完成！${results.length} 個標的`;
     }
 
-    // 階段 3：排序顯示
-    statusText.textContent = '階段 3/3：計算結果...';
-    results.sort((a, b) => b.scores.total - a.scores.total);
-    const top20 = results.slice(0, 20);
-
-    wrap.style.display = 'block';
-    empty.style.display = 'none';
-    body.innerHTML = top20.map((r, i) => {
-      const s = r.scores;
-      const chgSign = r.chg24 >= 0 ? '+' : '';
-      const scoreCls = s.total >= 70 ? 'score-high' : s.total >= 50 ? 'score-mid' : 'score-low';
-      const tags = (s.tags || []).map(t => {
-        const cls = t.includes('突破') ? 'tag-breakout'
-          : t.includes('強勢') ? 'tag-strong'
-          : t.includes('上漲') ? 'tag-rising'
-          : t.includes('量') ? 'tag-volume'
-          : t.includes('聰明') || t.includes('買盤') || t.includes('支撐') ? 'tag-breakout'
-          : t.includes('賣壓') ? 'tag-strong'
-          : 'tag-default';
-        return `<span class="tag ${cls}">${t}</span>`;
-      }).join('');
-
-      return `<tr>
-        <td>${i + 1}</td>
-        <td class="sticky-symbol"><a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${r.base}USDT" target="_blank">${r.base}</a></td>
-        <td class="price">$${r.price.toFixed(r.price < 1 ? 6 : r.price < 100 ? 4 : 2)}</td>
-        <td class="change ${r.chg24 >= 0 ? 'positive' : 'negative'}">${chgSign}${r.chg24.toFixed(2)}%</td>
-        <td>${formatVolume(r.volume)}</td>
-        <td><span class="score-text ${scoreCls}">${s.total}</span></td>
-        <td>${s.volume}</td>
-        <td>${s.momentum}</td>
-        <td>${s.orderbook}</td>
-        <td>${s.smart_money}</td>
-        <td>${s.breakout}</td>
-        <td><div class="tags">${tags || '<span class="tag tag-default">觀察中</span>'}</div></td>
-      </tr>`;
-    }).join('');
-
-    statusText.textContent = `✅ 掃描完成！${top50.length} 個幣種分析完畢，顯示前 ${top20.length} 名`;
     statusDiv.style.display = 'none';
   } catch(e) {
     statusText.textContent = `❌ 掃描失敗：${e.message}`;
@@ -1110,6 +1213,43 @@ async function liveScan() {
     btn.disabled = false;
     btn.textContent = '🔍 重新掃描';
   }
+}
+
+// 渲染結果表格
+function renderLiveResults(results, category) {
+  return results.map((r, i) => {
+    const s = r.scores;
+    const chgSign = r.chg24 >= 0 ? '+' : '';
+    const scoreCls = s.total >= 70 ? 'score-high' : s.total >= 50 ? 'score-mid' : 'score-low';
+    const tags = (s.tags || []).map(t => {
+      const cls = t.includes('突破') ? 'tag-breakout'
+        : t.includes('強勢') ? 'tag-strong'
+        : t.includes('上漲') ? 'tag-rising'
+        : t.includes('量大') || t.includes('量爆') ? 'tag-volume'
+        : t.includes('聰明') || t.includes('買盤') || t.includes('支撐') ? 'tag-breakout'
+        : t.includes('賣壓') ? 'tag-strong'
+        : 'tag-default';
+      return `<span class="tag ${cls}">${t}</span>`;
+    }).join('');
+
+    // 決定 TradingView link
+    const tvSymbol = category === 'crypto' ? `BINANCE:${r.base}USDT` : `BINANCE:${r.base}USDT`;
+
+    return `<tr>
+      <td>${i + 1}</td>
+      <td class="sticky-symbol"><a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=${tvSymbol}" target="_blank">${r.base}</a></td>
+      <td class="price">$${r.price.toFixed(r.price < 1 ? 6 : r.price < 100 ? 4 : 2)}</td>
+      <td class="change ${r.chg24 >= 0 ? 'positive' : 'negative'}">${chgSign}${r.chg24.toFixed(2)}%</td>
+      <td>${formatVolume(r.volume)}</td>
+      <td><span class="score-text ${scoreCls}">${s.total}</span></td>
+      <td>${s.volume}</td>
+      <td>${s.momentum}</td>
+      <td>${s.orderbook}</td>
+      <td>${s.smart_money}</td>
+      <td>${s.breakout}</td>
+      <td><div class="tags">${tags || '<span class="tag tag-default">觀察中</span>'}</div></td>
+    </tr>`;
+  }).join('');
 }
 </script>
 
