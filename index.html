@@ -293,6 +293,7 @@
 <!-- Stats -->
 <div class="stats-bar" id="statsBar">
   <div class="stat-card"><div class="value blue" id="statTotal">—</div><div class="label">潛力幣種</div></div>
+  <div class="stat-card"><div class="value" id="statBalance">300</div><div class="label">帳戶餘額 (USDT)</div></div>
   <div class="stat-card"><div class="value" id="statOpenTrades">—</div><div class="label">進行中紙交易</div></div>
   <div class="stat-card"><div class="value green" id="statWinRate">—</div><div class="label">勝率</div></div>
   <div class="stat-card"><div class="value" id="statTotalPnl">—</div><div class="label">已實現損益 (USDT)</div></div>
@@ -408,6 +409,7 @@ function render(data, tradesData) {
   
   // Stats
   document.getElementById('statTotal').textContent = signals.length;
+  document.getElementById('statBalance').textContent = (300 + (stats.total_realized_pnl_usdt || 0) + (stats.total_unrealized_pnl_usdt || 0)).toFixed(2);
   document.getElementById('statOpenTrades').textContent = stats.open_count || 0;
   document.getElementById('statWinRate').textContent = (stats.win_rate || 0) + '%';
   document.getElementById('statWinRate').className = 'value ' + ((stats.win_rate || 0) >= 50 ? 'green' : 'red');
@@ -683,6 +685,12 @@ function updateUnrealizedStats(trades) {
   if (el) {
     el.textContent = (totalUnrealized >= 0 ? '+' : '') + totalUnrealized.toFixed(2);
     el.className = 'value ' + (totalUnrealized >= 0 ? 'green' : 'red');
+  }
+  // 同步更新帳戶餘額
+  const balanceEl = document.getElementById('statBalance');
+  if (balanceEl) {
+    const realized = parseFloat(document.getElementById('statTotalPnl')?.textContent?.replace('+','') || '0');
+    balanceEl.textContent = (300 + realized + totalUnrealized).toFixed(2);
   }
 }
 
