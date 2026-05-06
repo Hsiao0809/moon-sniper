@@ -42,18 +42,37 @@ def save_trades(data):
     with open(TRADES_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-def get_position_value(config):
-    """計算每筆交易的部位值（USDT）"""
+def get_position_value(config, trades=None):
+    # 計算部位、保證金、槓桿
+    # margin per trade = 可用資金 / 剩餘可開倉位數
+    # 可用資金 = account_balance + total_realized_pnl - 已佔用保證金
     tc = config["paper_trade"]
-    # 支援兩種設定方式
-    if "max_risk_usdt" in tc:
-        max_risk = tc["max_risk_usdt"]
-    else:
-        max_risk = tc["account_balance"] * tc["max_risk_per_trade_pct"]
-    stop_loss_pct = abs(tc["stop_loss"])
-    if stop_loss_pct == 0:
-        return 0
-    return max_risk / stop_loss_pct  # 30 / 0.05 = 600 USDT
+    leverage = tc.get("default_leverage", 2)
+
+    # 計算已佔用保證金
+    used_margin = 0
+    if trades:
+        for t in trades["trades"]:
+            if t.get("status") == "open":
+                used_margin += t.get("margin", 0)
+
+    # 可用資金 = 初始資金 + 已實現損益 - 已佔用保證金
+    realized_pnl = trades.get("stats", {}).get("total_realized_pnl_usdt", 0) if trades else 0
+    total_equity = tc["account_balance"] + realized_pnl  # 帳戶總權益
+    available = total_equity - used_margin  # 可用保證金
+
+    # 最多開 max_open_trades 筆，每筆保証金 = available / 剩餘可開
+    open_count = sum(1 for t in (trades["trades"] if trades else []) if t.get("status") == "open")
+    max_open = tc["max_open_trades"]
+    slots_left = max_open - open_count
+
+    if slots_left <= 0 or available <= 0:
+        return 0, 0, 0, 0, 0
+
+    margin_per_trade = available / slots_left
+    max_risk = margin_per_trade * abs(tc.get("stop_loss", 0.05))  # margin*SL% = 每筆風險金額
+    position_value = margin_per_trade * leverage
+    return position_value, margin_per_trade, leverage, max_risk, total_equity
 
 def calc_pnl(current_price, entry_price, position_value):
     """計算損益 USDT 和百分比"""
@@ -69,7 +88,7 @@ def check_new_trades(signals, trades, config):
     min_score = trade_config["min_score_to_trade"]
     short_min = trade_config.get("short_min_score", 50)
     max_open = trade_config["max_open_trades"]
-    position_value = get_position_value(config)
+    position_value, margin, leverage, max_risk, total_equity = get_position_value(config, trades)
 
     existing_symbols = {t["symbol"] for t in trades["trades"] if t["status"] == "open"}
 
@@ -110,6 +129,10 @@ def check_new_trades(signals, trades, config):
             "status": "open",
             "score": short_score if is_short else total_score,
             "tags": s["tags"],
+            # 保證金與槓桿
+            "leverage": leverage,
+            "margin": round(margin, 2),
+            "position_value": round(position_value, 2),
             # TP/SL 價格
             "stop_loss_price": round(entry_price * (1 + trade_config["stop_loss"] * multiplier), 8),
             "tp1_price": round(entry_price * (1 + trade_config["take_profit_1"] * multiplier), 8),
@@ -143,7 +166,7 @@ def update_open_trades(trades, signals, config):
     trade_config = config["paper_trade"]
     signal_map = {s["symbol"]: s for s in signals}
     now = datetime.now(timezone.utc)
-    position_value = get_position_value(config)
+    position_value, margin, leverage, max_risk, total_equity = get_position_value(config, trades)
     updated = 0
 
     for trade in trades["trades"]:
@@ -231,7 +254,6 @@ def calculate_stats(trades):
     """計算績效統計"""
     config = load_config()
     trade_config = config["paper_trade"]
-    max_risk = trade_config["max_risk_usdt"]
 
     closed = [t for t in trades["trades"] if t["status"] == "closed"]
     open_trades = [t for t in trades["trades"] if t["status"] == "open"]
@@ -246,6 +268,9 @@ def calculate_stats(trades):
     avg_win = sum(t["realized_pnl_usdt"] for t in wins) / len(wins) if wins else 0
     avg_loss = sum(t["realized_pnl_usdt"] for t in losses) / len(losses) if losses else 0
 
+    # 計算帳戶權益
+    total_equity = trade_config["account_balance"] + total_realized_pnl
+
     # 最大回撤（基於已實現損益的累積）
     max_drawdown = 0
     cumulative = 0
@@ -257,6 +282,12 @@ def calculate_stats(trades):
         drawdown = peak - cumulative
         if drawdown > max_drawdown:
             max_drawdown = drawdown
+
+    # 計算每筆 margin（動態）
+    used_margin = sum(t.get("margin", 0) for t in open_trades)
+    available = total_equity - used_margin
+    slots_left = trade_config["max_open_trades"] - len(open_trades)
+    max_risk_per_trade = (available / slots_left * abs(trade_config.get("stop_loss", 0.05))) if slots_left > 0 and available > 0 else 0
 
     trades["stats"] = {
         "total_trades": total_trades,
@@ -270,7 +301,9 @@ def calculate_stats(trades):
         "avg_win_usdt": round(avg_win, 2),
         "avg_loss_usdt": round(avg_loss, 2),
         "max_drawdown_usdt": round(max_drawdown, 2),
-        "max_risk_per_trade": max_risk,
+        "max_risk_per_trade": round(max_risk_per_trade, 2),
+        "total_equity": round(total_equity, 2),
+        "account_balance": trade_config["account_balance"],
         "last_updated": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -297,6 +330,7 @@ def run():
     save_trades(trades)
 
     print(f"紙交易狀態：{trades['stats']['total_trades']} 筆總計，{trades['stats']['open_count']} 筆進行中")
+    print(f"帳戶權益：{trades['stats']['total_equity']} USDT")
     print(f"已實現損益：{trades['stats']['total_realized_pnl_usdt']} USDT")
     print(f"未實現損益：{trades['stats']['total_unrealized_pnl_usdt']} USDT")
 
