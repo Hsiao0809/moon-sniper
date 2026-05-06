@@ -295,7 +295,8 @@
   <div class="stat-card"><div class="value blue" id="statTotal">—</div><div class="label">潛力幣種</div></div>
   <div class="stat-card"><div class="value" id="statOpenTrades">—</div><div class="label">進行中紙交易</div></div>
   <div class="stat-card"><div class="value green" id="statWinRate">—</div><div class="label">勝率</div></div>
-  <div class="stat-card"><div class="value" id="statTotalPnl">—</div><div class="label">總損益 (USDT)</div></div>
+  <div class="stat-card"><div class="value" id="statTotalPnl">—</div><div class="label">已實現損益 (USDT)</div></div>
+  <div class="stat-card"><div class="value" id="statUnrealizedPnl">—</div><div class="label">未實現損益 (USDT)</div></div>
   <div class="stat-card"><div class="value red" id="statMaxDD">—</div><div class="label">最大回撤 (USDT)</div></div>
   <div class="stat-card"><div class="value" id="statTotalTrades">—</div><div class="label">總交易次數</div></div>
 </div>
@@ -405,9 +406,12 @@ function render(data, tradesData) {
   document.getElementById('statOpenTrades').textContent = stats.open_count || 0;
   document.getElementById('statWinRate').textContent = (stats.win_rate || 0) + '%';
   document.getElementById('statWinRate').className = 'value ' + ((stats.win_rate || 0) >= 50 ? 'green' : 'red');
-  const totalPnl = stats.total_pnl_usdt || 0;
+  const totalPnl = stats.total_realized_pnl_usdt || 0;
+  const totalUnrealized = stats.total_unrealized_pnl_usdt || 0;
   document.getElementById('statTotalPnl').textContent = (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(2);
   document.getElementById('statTotalPnl').className = 'value ' + (totalPnl >= 0 ? 'green' : 'red');
+  document.getElementById('statUnrealizedPnl').textContent = (totalUnrealized >= 0 ? '+' : '') + totalUnrealized.toFixed(2);
+  document.getElementById('statUnrealizedPnl').className = 'value ' + (totalUnrealized >= 0 ? 'green' : 'red');
   // 勝率顯示盈/虧
   const wins = stats.wins || 0;
   const losses = stats.losses || 0;
@@ -579,19 +583,33 @@ function renderTrades(trades) {
 }
 
 function renderTradeItem(t) {
-  const pnl = t.pnl_usdt || 0;
-  const pnlPct = t.pnl_pct || 0;
+  // 已實現損益（已平倉）
+  const realizedPnl = t.realized_pnl_usdt || 0;
+  const realizedPnlPct = t.realized_pnl_pct || 0;
   
-  // 如果是 open trade，用即時價格計算浮動損益
-  let displayPnl = pnl;
-  let displayPnlPct = pnlPct;
+  // 未實現損益（持有中，用即時價格計算）
+  let unrealizedPnl = 0;
+  let unrealizedPnlPct = 0;
   if (t.status === 'open') {
     const live = livePrices[t.symbol];
     if (live) {
-      displayPnlPct = ((live - t.entry_price) / t.entry_price) * 100;
-      displayPnl = (displayPnlPct / 100) * 10;
+      unrealizedPnlPct = ((live - t.entry_price) / t.entry_price) * 100;
+      unrealizedPnl = (unrealizedPnlPct / 100) * 200;  // 部位值 200 USDT
+    } else {
+      unrealizedPnl = t.unrealized_pnl_usdt || 0;
+      unrealizedPnlPct = t.unrealized_pnl_pct || 0;
     }
   }
+  
+  // 顯示用的損益（已平倉顯示 realized，持有中顯示 unrealized）
+  const displayPnl = t.status === 'closed' ? realizedPnl : unrealizedPnl;
+  const displayPnlPct = t.status === 'closed' ? realizedPnlPct : unrealizedPnlPct;
+  
+  // 最大漲幅 / 最大回撤
+  const maxPnl = t.max_unrealized_pnl_usdt || 0;
+  const maxPnlPct = t.max_unrealized_pnl_pct || 0;
+  const minPnl = t.min_unrealized_pnl_usdt || 0;
+  const minPnlPct = t.min_unrealized_pnl_pct || 0;
   
   const pnlCls = displayPnl >= 0 ? 'positive' : 'negative';
   const pnlSign = displayPnl >= 0 ? '+' : '';
@@ -619,6 +637,10 @@ function renderTradeItem(t) {
     </div>
     <div style="text-align:right">
       <div class="trade-pnl ${pnlCls}" style="font-size:18px;font-weight:700">${pnlSign}${displayPnl.toFixed(2)} USDT <span style="font-size:14px;font-weight:400">(${pnlSign}${displayPnlPct.toFixed(2)}%)</span></div>
+      ${t.status === 'open' ? `<div style="font-size:11px;color:var(--text-dim);margin-top:4px">
+        最高 ${maxPnlPct > 0 ? '+' : ''}${maxPnlPct.toFixed(1)}% / 最低 ${minPnlPct > 0 ? '+' : ''}${minPnlPct.toFixed(1)}%
+      </div>` : ''}
+      ${t.status === 'closed' ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px">已實現</div>` : `<div style="font-size:11px;color:var(--text-dim);margin-top:2px">未實現</div>`}
     </div>
   </div>`;
 }
