@@ -392,7 +392,12 @@ function render(data, tradesData) {
   const scanTime = data.scanned_at 
     ? '評分更新：' + new Date(data.scanned_at).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})
     : '—';
-  document.getElementById('scanTime').textContent = scanTime + ' | 即時價格每 30 秒刷新';
+  let timeStr = scanTime;
+  if (tradesData?.stats?.last_updated) {
+    timeStr += ' | 交易更新：' + new Date(tradesData.stats.last_updated).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'});
+  }
+  timeStr += ' | 即時價格每 30 秒刷新';
+  document.getElementById('scanTime').textContent = timeStr;
   
   const signals = data.signals || [];
   const trades = tradesData?.trades || [];
