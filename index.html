@@ -548,6 +548,9 @@ function updateLiveDisplay(signals, trades) {
   
   // 更新紙交易列表
   renderTrades(trades);
+  
+  // 更新 stats bar 未實現損益
+  updateUnrealizedStats(trades);
 }
 
 // 獨立渲染紙交易，讓即時更新可以重複呼叫
@@ -586,30 +589,41 @@ function renderTradeItem(t) {
   // 已實現損益（已平倉）
   const realizedPnl = t.realized_pnl_usdt || 0;
   const realizedPnlPct = t.realized_pnl_pct || 0;
-  
-  // 未實現損益（持有中，用即時價格計算）
+
+  const POSITION_VALUE = 200; // 10U / 5% stop
+
+  // 未實現損益（持有中，一律用即時價格計算）
+  const live = t.status === 'open' ? (livePrices[t.symbol] || null) : null;
   let unrealizedPnl = 0;
   let unrealizedPnlPct = 0;
-  if (t.status === 'open') {
-    const live = livePrices[t.symbol];
-    if (live) {
-      unrealizedPnlPct = ((live - t.entry_price) / t.entry_price) * 100;
-      unrealizedPnl = (unrealizedPnlPct / 100) * 200;  // 部位值 200 USDT
-    } else {
-      unrealizedPnl = t.unrealized_pnl_usdt || 0;
-      unrealizedPnlPct = t.unrealized_pnl_pct || 0;
-    }
+  if (live) {
+    unrealizedPnlPct = ((live - t.entry_price) / t.entry_price) * 100;
+    unrealizedPnl = (unrealizedPnlPct / 100) * POSITION_VALUE;
+  } else if (t.status === 'open') {
+    unrealizedPnl = t.unrealized_pnl_usdt || 0;
+    unrealizedPnlPct = t.unrealized_pnl_pct || 0;
   }
-  
-  // 顯示用的損益（已平倉顯示 realized，持有中顯示 unrealized）
+
+  // 顯示用的損益
   const displayPnl = t.status === 'closed' ? realizedPnl : unrealizedPnl;
   const displayPnlPct = t.status === 'closed' ? realizedPnlPct : unrealizedPnlPct;
-  
-  // 最大漲幅 / 最大回撤
-  const maxPnl = t.max_unrealized_pnl_usdt || 0;
-  const maxPnlPct = t.max_unrealized_pnl_pct || 0;
-  const minPnl = t.min_unrealized_pnl_usdt || 0;
-  const minPnlPct = t.min_unrealized_pnl_pct || 0;
+
+  // 最大漲幅/回撤 — 持有中即時更新
+  let maxPnlPct = t.max_unrealized_pnl_pct || 0;
+  let minPnlPct = t.min_unrealized_pnl_pct || 0;
+  if (t.status === 'open') {
+    // 更新 stored max/min，並存回 data 以便下次刷新還能記住
+    if (unrealizedPnlPct > maxPnlPct) {
+      maxPnlPct = unrealizedPnlPct;
+      t.max_unrealized_pnl_pct = unrealizedPnlPct;
+      t.max_unrealized_pnl_usdt = unrealizedPnl;
+    }
+    if (unrealizedPnlPct < minPnlPct) {
+      minPnlPct = unrealizedPnlPct;
+      t.min_unrealized_pnl_pct = unrealizedPnlPct;
+      t.min_unrealized_pnl_usdt = unrealizedPnl;
+    }
+  }
   
   const pnlCls = displayPnl >= 0 ? 'positive' : 'negative';
   const pnlSign = displayPnl >= 0 ? '+' : '';
@@ -642,6 +656,26 @@ function renderTradeItem(t) {
       </div>` : ''}
     </div>
   </div>`;
+}
+
+// 即時更新 stats bar 的未實現損益
+function updateUnrealizedStats(trades) {
+  if (!trades || !trades.trades) return;
+  const POSITION_VALUE = 200;
+  let totalUnrealized = 0;
+  for (const t of trades.trades) {
+    if (t.status !== 'open') continue;
+    const live = livePrices[t.symbol];
+    if (live) {
+      const pnlPct = ((live - t.entry_price) / t.entry_price) * 100;
+      totalUnrealized += (pnlPct / 100) * POSITION_VALUE;
+    }
+  }
+  const el = document.getElementById('statUnrealizedPnl');
+  if (el) {
+    el.textContent = (totalUnrealized >= 0 ? '+' : '') + totalUnrealized.toFixed(2);
+    el.className = 'value ' + (totalUnrealized >= 0 ? 'green' : 'red');
+  }
 }
 
 // 每 30 秒刷新即時價格
