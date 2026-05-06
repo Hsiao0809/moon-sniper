@@ -99,20 +99,36 @@ def call_binance_api(args):
         return None
 
 def get_all_tickers():
-    """取得所有 USDT 交易對的 24hr 行情"""
-    data = run_binance_cli(["spot", "ticker24hr"])
-    if not data:
+    """取得所有 USDT 交易對的 24hr 行情 — 用 urllib（相容性最高）"""
+    import urllib.request
+    try:
+        resp = urllib.request.urlopen("https://api.binance.com/api/v3/ticker/24hr", timeout=30)
+        data = json.loads(resp.read())
+        if isinstance(data, dict):
+            data = [data]
+        usdt_pairs = [t for t in data if t.get("symbol", "").endswith("USDT")]
+        return usdt_pairs
+    except Exception as e:
+        print(f"get_all_tickers error: {e}", file=sys.stderr)
         return []
-    # binance-cli 可能回傳 list 或 dict
-    if isinstance(data, dict):
-        data = [data]
-    # 只保留 USDT 交易對
-    usdt_pairs = [t for t in data if t.get("symbol", "").endswith("USDT")]
-    return usdt_pairs
+
+def http_get(path, params=None):
+    """直接 HTTP GET Binance API"""
+    import urllib.request
+    url = f"https://api.binance.com{path}"
+    if params:
+        query = "&".join(f"{k}={v}" for k, v in params.items())
+        url += f"?{query}"
+    try:
+        resp = urllib.request.urlopen(url, timeout=30)
+        return json.loads(resp.read())
+    except Exception as e:
+        print(f"HTTP error {path}: {e}", file=sys.stderr)
+        return None
 
 def get_exchange_info():
-    """取得交易對資訊（狀態、最小交易量等）"""
-    data = run_binance_cli(["spot", "exchange-info"])
+    """取得交易對資訊"""
+    data = http_get("/api/v3/exchangeInfo")
     if not data:
         return {}
     symbols = {}
@@ -128,11 +144,11 @@ def get_klines_batch(symbols, interval="1h", limit=12):
     """平行取得多個幣種的 K 線資料"""
     import concurrent.futures
     result = {}
-    
+
     def fetch(symbol):
-        data = run_binance_cli(["spot", "klines", "--symbol", symbol, "--interval", interval, "--limit", str(limit)])
+        data = http_get("/api/v3/klines", {"symbol": symbol, "interval": interval, "limit": str(limit)})
         return symbol, data
-    
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(fetch, s) for s in symbols]
         for future in concurrent.futures.as_completed(futures):
@@ -145,11 +161,11 @@ def get_orderbook_batch(symbols, limit=20):
     """平行取得多個幣種的訂單簿深度資料"""
     import concurrent.futures
     result = {}
-    
+
     def fetch(symbol):
-        data = run_binance_cli(["spot", "depth", "--symbol", symbol, "--limit", str(limit)])
+        data = http_get("/api/v3/depth", {"symbol": symbol, "limit": str(limit)})
         return symbol, data
-    
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(fetch, s) for s in symbols]
         for future in concurrent.futures.as_completed(futures):

@@ -17,9 +17,6 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Install binance-cli
-        run: npm install -g @binance/binance-cli
-      
       - name: Run scanner
         run: python scanner.py
         env:
