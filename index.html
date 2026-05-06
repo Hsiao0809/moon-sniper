@@ -21,24 +21,29 @@
     --purple: #8b5cf6;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding: 20px;
+    padding: 12px 20px;
     max-width: 1400px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
   }
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
+    flex-shrink: 0;
   }
   .header h1 {
-    font-size: 28px;
+    font-size: 20px;
     background: linear-gradient(135deg, var(--green), var(--blue));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -83,19 +88,20 @@
   /* Stats bar */
   .stats-bar {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
   }
   .stat-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 8px;
+    padding: 8px;
     text-align: center;
   }
   .stat-card .value {
-    font-size: 24px;
+    font-size: 16px;
     font-weight: 700;
   }
   .stat-card .label {
@@ -111,11 +117,12 @@
   .tabs {
     display: flex;
     gap: 4px;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     background: var(--card);
-    border-radius: 10px;
-    padding: 4px;
+    border-radius: 8px;
+    padding: 3px;
     border: 1px solid var(--border);
+    flex-shrink: 0;
   }
   .tab {
     padding: 8px 20px;
@@ -138,7 +145,8 @@
 
   /* Signal table */
   .table-wrap {
-    overflow-x: auto;
+    overflow: auto;
+    max-height: calc(100vh - 180px);
   }
   table {
     width: 100%;
@@ -224,7 +232,9 @@
   .trade-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
+    overflow: auto;
+    max-height: calc(100vh - 200px);
   }
   .trade-item {
     background: var(--card);
@@ -606,14 +616,19 @@ function renderTradeItem(t) {
   const realizedPnlPct = t.realized_pnl_pct || 0;
 
   const POSITION_VALUE = 600; // 30U / 5% stop (updated from 200)
+  const FEE_RATE = 0.0004; // 0.04% 手續費
 
   // 未實現損益（持有中，一律用即時價格計算）
   const live = t.status === 'open' ? (livePrices[t.symbol] || null) : null;
   let unrealizedPnl = 0;
   let unrealizedPnlPct = 0;
   if (live) {
-    unrealizedPnlPct = ((live - t.entry_price) / t.entry_price) * 100;
-    unrealizedPnl = (unrealizedPnlPct / 100) * POSITION_VALUE;
+    // 進出各一次手續費 = FEE_RATE * 2 * POSITION_VALUE
+    const grossPnlPct = ((live - t.entry_price) / t.entry_price) * 100;
+    const grossPnl = (grossPnlPct / 100) * POSITION_VALUE;
+    const fees = POSITION_VALUE * FEE_RATE * 2; // 進+出
+    unrealizedPnlPct = ((grossPnl - fees) / POSITION_VALUE) * 100;
+    unrealizedPnl = grossPnl - fees;
   } else if (t.status === 'open') {
     unrealizedPnl = t.unrealized_pnl_usdt || 0;
     unrealizedPnlPct = t.unrealized_pnl_pct || 0;
@@ -677,13 +692,15 @@ function renderTradeItem(t) {
 function updateUnrealizedStats(trades) {
   if (!trades || !trades.trades) return;
   const POSITION_VALUE = 600; // 30U / 5% stop
+  const FEE_RATE = 0.0004;
   let totalUnrealized = 0;
   for (const t of trades.trades) {
     if (t.status !== 'open') continue;
     const live = livePrices[t.symbol];
     if (live) {
-      const pnlPct = ((live - t.entry_price) / t.entry_price) * 100;
-      totalUnrealized += (pnlPct / 100) * POSITION_VALUE;
+      const grossPnl = ((live - t.entry_price) / t.entry_price) * POSITION_VALUE;
+      const fees = POSITION_VALUE * FEE_RATE * 2;
+      totalUnrealized += grossPnl - fees;
     }
   }
   const el = document.getElementById('statUnrealizedPnl');
