@@ -944,6 +944,7 @@ function startLiveUpdates(signals, trades) {
 }
 
 function switchTab(tab) {
+  localStorage.setItem('hermes_tab', tab);
   document.querySelectorAll('.tabs > .tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
   document.querySelector(`.tabs > .tab[data-tab="${tab}"]`).classList.add('active');
@@ -963,7 +964,7 @@ let cachedTrades = [];
 let currentTab = 'signals';
 
 async function refreshAll() {
-  currentTab = document.querySelector('.tabs > .tab.active')?.getAttribute('data-tab') || 'signals';
+  currentTab = localStorage.getItem('hermes_tab') || 'signals';
   await refreshData();
   // 如果有資料，啟動即時更新
   if (cachedSignals.length > 0) {
