@@ -22,26 +22,32 @@ for s in signals["signals"][:5]:
 
 stats = trades.get("stats", {})
 if stats.get("total_trades", 0) > 0:
+    realized = stats.get("total_realized_pnl_usdt", stats.get("total_pnl_usdt", 0))
+    unrealized = stats.get("total_unrealized_pnl_usdt", 0)
+    total_equity_pnl = realized + unrealized
     lines.append("")
     lines.append(
-        f"📊 紙交易：{stats['open_count']} 筆進行中 | "
-        f"總損益 {stats['total_pnl_usdt']} USDT"
+        f"📊 紙交易：{stats.get('open_count', 0)} 筆進行中 | "
+        f"已實現 {realized:+.2f}U | 未實現 {unrealized:+.2f}U | 總浮盈 {total_equity_pnl:+.2f}U"
     )
-    lines.append(f"勝率 {stats['win_rate']}% | {stats['total_trades']} 筆總計")
+    lines.append(f"勝率 {stats.get('win_rate', 0)}% | {stats.get('total_trades', 0)} 筆總計")
 
 lines.append("")
 lines.append("🔗 https://hsiao0809.github.io/moon-sniper/")
 
 msg = "\n".join(lines)
 
-bot_token = os.environ["TELEGRAM_BOT_TOKEN"]
-chat_id = os.environ["TELEGRAM_CHAT_ID"]
+bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 
-url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-data = urllib.parse.urlencode({
-    "chat_id": chat_id,
-    "text": msg,
-}).encode()
+if not bot_token or not chat_id:
+    print("Telegram secrets not configured; skip notification")
+else:
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    data = urllib.parse.urlencode({
+        "chat_id": chat_id,
+        "text": msg,
+    }).encode()
 
-resp = urllib.request.urlopen(url, data=data)
-print(f"Telegram 通知已發送: {resp.status}")
+    resp = urllib.request.urlopen(url, data=data)
+    print(f"Telegram 通知已發送: {resp.status}")
