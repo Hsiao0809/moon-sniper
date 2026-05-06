@@ -370,9 +370,13 @@
       .tabs button { flex: 1; }
       .panel,
       .trade-sections,
-      .trade-section { overflow: visible; }
+      .trade-section {
+        display: block;
+        overflow: visible;
+      }
       .trade-subtabs { padding: 6px 8px; }
       .trade-subtabs button { flex: 1; }
+      .trade-section { border-bottom: 1px solid var(--border); }
       .scroll {
         overflow-x: auto;
         overflow-y: visible;
@@ -480,8 +484,8 @@
         <span>Open trade high/low updates from live price; closed trades stay fixed</span>
       </div>
       <nav class="trade-subtabs" aria-label="Trade record tabs">
-        <button type="button" class="active" data-trade-tab="open">持倉</button>
-        <button type="button" data-trade-tab="closed">已平倉</button>
+        <button type="button" class="active" data-trade-tab="open">Open Positions</button>
+        <button type="button" data-trade-tab="closed">Closed Trades</button>
       </nav>
       <div class="trade-sections">
         <section class="trade-section" id="openTradesSection" data-trade-panel="open">
