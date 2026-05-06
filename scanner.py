@@ -269,15 +269,116 @@ def calculate_liquidity_score(ticker):
     ask = float(ticker.get("askPrice", 0))
     last = float(ticker.get("lastPrice", 1))
     volume = float(ticker.get("quoteVolume", 0))
-    
+
     # 價差分數（越小越好）
     spread = abs(ask - bid) / last if last > 0 and ask > 0 and bid > 0 else 0.01
     spread_score = max(0, 100 - spread * 10000)  # 0.1% spread = 90分
-    
+
     # 成交量分數
     vol_score = min(volume / 10000000, 1.0) * 100  # 1000萬U以上滿分
-    
+
     return spread_score * 0.4 + vol_score * 0.6
+
+def detect_patterns(klines, ticker):
+    """技術型態分析：雙底/雙頂/Bollinger Squeeze/量價背離"""
+    if not klines or len(klines) < 20:
+        return {}
+
+    patterns = {}
+    closes = [float(k[4]) for k in klines]
+    highs = [float(k[2]) for k in klines]
+    lows = [float(k[3]) for k in klines]
+    volumes = [float(k[5]) for k in klines]
+    last_price = float(ticker.get("lastPrice", 0))
+
+    # 1. 雙底偵測（反轉看多）
+    # 找最近 20 根 K 線中的兩個相近低點，間隔 5-15 根
+    recent_lows = lows[-20:]
+    min1_idx = recent_lows.index(min(recent_lows))
+    # 排除 min1 附近，找第二個低點
+    mask = [True] * len(recent_lows)
+    for offset in range(-3, 4):
+        if 0 <= min1_idx + offset < len(recent_lows):
+            mask[min1_idx + offset] = False
+    filtered_lows = [recent_lows[i] for i in range(len(recent_lows)) if mask[i]]
+    if filtered_lows:
+        min2 = min(filtered_lows)
+        min1 = recent_lows[min1_idx]
+        low_diff = abs(min1 - min2) / max(min1, min2) * 100
+        # 兩個低點差距 < 3%，且中間有反彈
+        if low_diff < 3.0 and min1_idx < len(recent_lows) * 0.7:
+            neckline = max(closes[-20:])  # 頸線 = 期間最高收盤
+            patterns["double_bottom"] = {
+                "left_low": round(min1, 2),
+                "right_low": round(min2, 2),
+                "neckline": round(neckline, 2),
+                "distance_pct": round(low_diff, 2),
+                "broken": last_price > neckline,
+                "signal": "bullish_reversal" if last_price > neckline else "potential_bullish"
+            }
+
+    # 2. 雙頂偵測（反轉看空）
+    recent_highs = highs[-20:]
+    max1_idx = recent_highs.index(max(recent_highs))
+    mask = [True] * len(recent_highs)
+    for offset in range(-3, 4):
+        if 0 <= max1_idx + offset < len(recent_highs):
+            mask[max1_idx + offset] = False
+    filtered_highs = [recent_highs[i] for i in range(len(recent_highs)) if mask[i]]
+    if filtered_highs:
+        max2 = max(filtered_highs)
+        max1 = recent_highs[max1_idx]
+        high_diff = abs(max1 - max2) / max(max1, max2) * 100
+        if high_diff < 3.0 and max1_idx < len(recent_highs) * 0.7:
+            neckline = min(closes[-20:])
+            patterns["double_top"] = {
+                "left_high": round(max1, 2),
+                "right_high": round(max2, 2),
+                "neckline": round(neckline, 2),
+                "distance_pct": round(high_diff, 2),
+                "broken": last_price < neckline,
+                "signal": "bearish_reversal" if last_price < neckline else "potential_bearish"
+            }
+
+    # 3. Bollinger Squeeze（突破前兆）
+    if len(closes) >= 20:
+        sma20 = sum(closes[-20:]) / 20
+        variance = sum((c - sma20) ** 2 for c in closes[-20:]) / 20
+        std = variance ** 0.5
+        upper = sma20 + 2 * std
+        lower = sma20 - 2 * std
+        bandwidth = (upper - lower) / sma20 * 100
+        # 帶寬 < 5% 視為壓縮（BTC 通常 5-15%，小幣更寬）
+        if bandwidth < 5.0:
+            patterns["bollinger_squeeze"] = {
+                "bandwidth_pct": round(bandwidth, 2),
+                "sma20": round(sma20, 4),
+                "upper": round(upper, 4),
+                "lower": round(lower, 4),
+                "signal": "breakout_imminent"
+            }
+
+    # 4. 量價背離
+    if len(closes) >= 10:
+        price_trend = closes[-1] - closes[-10]
+        vol_5 = sum(volumes[-5:]) / 5
+        vol_20 = sum(volumes[-20:]) / 20
+        vol_ratio = vol_5 / vol_20 if vol_20 > 0 else 1
+
+        if price_trend > 0 and vol_ratio < 0.8:
+            patterns["volume_divergence"] = {
+                "type": "bearish_divergence",
+                "detail": f"價格上漲但量比僅 {vol_ratio:.2f}x",
+                "vol_ratio": round(vol_ratio, 2)
+            }
+        elif price_trend < 0 and vol_ratio > 1.2:
+            patterns["volume_divergence"] = {
+                "type": "healthy_down",
+                "detail": "下跌量增，趨勢健康",
+                "vol_ratio": round(vol_ratio, 2)
+            }
+
+    return patterns
 
 def scan(config):
     """主掃描邏輯"""
@@ -358,6 +459,9 @@ def scan(config):
         asks = ob.get("asks", [])
         last_price = float(ticker.get("lastPrice", 0))
         ob_score, ob_summary, ob_detail = calculate_orderbook_score(bids, asks, last_price)
+
+        # 技術型態分析
+        patterns = detect_patterns(klines, ticker)
         
         # Smart Money 評分
         base = symbol.replace("USDT", "")
@@ -405,6 +509,7 @@ def scan(config):
             },
             "orderbook": ob_summary,
             "smart_money": sm if sm else {},
+            "patterns": patterns,
             "tags": [],
             "scanned_at": datetime.now(timezone.utc).isoformat(),
         })
@@ -442,6 +547,30 @@ def scan(config):
             count = sm.get("count", 0)
             chain = sm.get("chain", "")
             tags.append(f"🐋 聰明買入({chain},{count}地址)")
+        
+        # 型態標籤
+        pat = s.get("patterns", {})
+        if "double_bottom" in pat:
+            db = pat["double_bottom"]
+            if db.get("broken"):
+                tags.append("📈 雙底突破")
+            else:
+                tags.append("🔄 潛在雙底")
+        if "double_top" in pat:
+            dt = pat["double_top"]
+            if dt.get("broken"):
+                tags.append("📉 雙頂跌破")
+            else:
+                tags.append("⚠️ 潛在雙頂")
+        if "bollinger_squeeze" in pat:
+            tags.append("📦 壓縮待突破")
+        if "volume_divergence" in pat:
+            vd = pat["volume_divergence"]
+            if "bearish" in vd.get("type", ""):
+                tags.append("🔻 量價背離")
+            elif "healthy" in vd.get("type", ""):
+                tags.append("✅ 量價健康")
+        
         s["tags"] = tags
     
     print(f"掃描完成：{len(signals)} 個潛力幣種")
