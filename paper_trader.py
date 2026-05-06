@@ -136,8 +136,10 @@ def update_open_trades(trades, signals, config):
 
         # 從 signals 取得最新價格
         current_price = None
+        high_24h = None
         if symbol in signal_map:
             current_price = float(signal_map[symbol]["price"])
+            high_24h = float(signal_map[symbol].get("high_24h", current_price))
 
         if current_price is None:
             continue
@@ -157,8 +159,9 @@ def update_open_trades(trades, signals, config):
             trade["min_unrealized_pnl_usdt"] = unrealized_u
             trade["min_unrealized_pnl_pct"] = unrealized_pct
 
-        # 檢查 TP2（+20% 全出）
-        if not trade["take_profit_2_hit"] and current_price >= trade["tp2_price"]:
+        # 檢查 TP2（+20% 全出）— 用當前價或 24h 高點判斷
+        price_for_tp = max(current_price, high_24h) if high_24h else current_price
+        if not trade["take_profit_2_hit"] and price_for_tp >= trade["tp2_price"]:
             trade["status"] = "closed"
             trade["exit_price"] = current_price
             trade["exit_time"] = now.isoformat()
