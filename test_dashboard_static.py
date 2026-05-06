@@ -58,7 +58,9 @@ def test_stats_bar_does_not_show_max_drawdown():
 def test_symbol_column_is_sticky():
     assert_contains(HTML, '.sticky-symbol', 'symbol column needs sticky CSS class')
     assert_contains(HTML, 'position: sticky', 'sticky symbol column must use position: sticky')
+    assert_contains(HTML, 'left: 0', 'sticky symbol column must pin to the left edge')
     assert_contains(HTML, 'class="sticky-symbol"', 'symbol header/cells must use sticky-symbol class')
+    assert_not_contains(HTML, 'overflow: hidden;\n    border: 1px solid var(--border);', 'table overflow hidden can break sticky columns on mobile')
 
 
 def test_signal_headers_are_sortable():
