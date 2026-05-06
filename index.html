@@ -1279,7 +1279,18 @@ function renderLiveResults(results, category) {
     }).join('');
 
     // 決定 TradingView link
-    const tvSymbol = category === 'crypto' ? `BINANCE:${r.base}USDT` : `BINANCE:${r.base}USDT`;
+    let tvSymbol;
+    if (category === 'crypto') {
+      tvSymbol = `BINANCE:${r.base}USDT`;
+    } else if (category === 'us_stocks') {
+      // 美股用 NASDAQ 代碼（大部分在 NASDAQ）
+      tvSymbol = `NASDAQ:${r.base}`;
+    } else if (category === 'etf') {
+      tvSymbol = `AMEX:${r.base}`;
+    } else {
+      // 商品用 Ticker
+      tvSymbol = `TVC:${r.base}`;
+    }
 
     return `<tr>
       <td>${i + 1}</td>
