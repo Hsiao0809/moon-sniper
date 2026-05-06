@@ -21,21 +21,81 @@ def load_config():
         return json.load(f)
 
 def run_binance_cli(args):
-    """執行 binance-cli 並回傳 parsed JSON"""
-    # 支援兩種安裝方式：~/.hermes/node/bin（本地）和 PATH（GitHub Actions）
+    """執行 binance-cli 或直接 HTTP 呼叫 Binance API"""
+    # 方法 1: 本地 binance-cli
     local_path = os.path.expanduser("~/.hermes/node/bin/binance-cli")
     if os.path.exists(local_path):
         cmd = [local_path] + args
-    else:
-        cmd = ["binance-cli"] + args
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-    if result.returncode != 0:
-        print(f"binance-cli error: {result.stderr}", file=sys.stderr)
-        return None
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        if result.returncode == 0:
+            try:
+                return json.loads(result.stdout)
+            except json.JSONDecodeError:
+                pass
+    # 方法 2: PATH 上的 binance-cli
     try:
-        return json.loads(result.stdout)
-    except json.JSONDecodeError:
-        print(f"JSON parse error: {result.stdout[:200]}", file=sys.stderr)
+        cmd = ["binance-cli"] + args
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        if result.returncode == 0:
+            return json.loads(result.stdout)
+    except Exception:
+        pass
+    # 方法 3: 直接 HTTP API（GitHub Actions 用這個）
+    return call_binance_api(args)
+
+def call_binance_api(args):
+    """直接用 HTTP 呼叫 Binance 公開 API（不需要 API key）"""
+    import urllib.request
+    
+    # 把 binance-cli 的 args 轉成 HTTP 路徑
+    # 支援: spot ticker24hr, spot klines --symbol X --interval 1d --limit N, spot depth --symbol X
+    api_path = ""
+    params = {}
+    
+    if len(args) >= 2 and args[0] == "spot":
+        if args[1] == "ticker24hr":
+            api_path = "/api/v3/ticker/24hr"
+            # 如果有 --symbol 參數
+            for j, a in enumerate(args):
+                if a == "--symbol" and j + 1 < len(args):
+                    params["symbol"] = args[j + 1]
+        elif args[1] == "klines":
+            api_path = "/api/v3/klines"
+            for j, a in enumerate(args):
+                if a == "--symbol" and j + 1 < len(args):
+                    params["symbol"] = args[j + 1]
+                elif a == "--interval" and j + 1 < len(args):
+                    params["interval"] = args[j + 1]
+                elif a == "--limit" and j + 1 < len(args):
+                    params["limit"] = args[j + 1]
+        elif args[1] == "depth":
+            api_path = "/api/v3/depth"
+            for j, a in enumerate(args):
+                if a == "--symbol" and j + 1 < len(args):
+                    params["symbol"] = args[j + 1]
+                elif a == "--limit" and j + 1 < len(args):
+                    params["limit"] = args[j + 1]
+        elif args[1] == "exchange-info":
+            api_path = "/api/v3/exchangeInfo"
+        elif args[1] == "ticker-price" or args[1] == "ticker":
+            api_path = "/api/v3/ticker/price"
+            for j, a in enumerate(args):
+                if a == "--symbol" and j + 1 < len(args):
+                    params["symbol"] = args[j + 1]
+    
+    if not api_path:
+        return None
+    
+    query = "&".join(f"{k}={v}" for k, v in params.items())
+    url = f"https://api.binance.com{api_path}"
+    if query:
+        url += f"?{query}"
+    
+    try:
+        resp = urllib.request.urlopen(url, timeout=30)
+        return json.loads(resp.read())
+    except Exception as e:
+        print(f"HTTP API error: {e}", file=sys.stderr)
         return None
 
 def get_all_tickers():
