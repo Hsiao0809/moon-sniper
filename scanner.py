@@ -22,7 +22,12 @@ def load_config():
 
 def run_binance_cli(args):
     """執行 binance-cli 並回傳 parsed JSON"""
-    cmd = [os.path.expanduser("~/.hermes/node/bin/binance-cli")] + args
+    # 支援兩種安裝方式：~/.hermes/node/bin（本地）和 PATH（GitHub Actions）
+    local_path = os.path.expanduser("~/.hermes/node/bin/binance-cli")
+    if os.path.exists(local_path):
+        cmd = [local_path] + args
+    else:
+        cmd = ["binance-cli"] + args
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     if result.returncode != 0:
         print(f"binance-cli error: {result.stderr}", file=sys.stderr)
@@ -490,7 +495,28 @@ def scan(config):
             ob_score * config_score["orderbook_weight"] +
             smart_money_score * config_score["smart_money_weight"]
         )
-        
+
+        # 做空評分：動能過高反轉 + 雙頂 + 賣壓
+        short_score = 0
+        change_pct = float(ticker.get("priceChangePercent", 0))
+        # 漲太多（>15%）且動能可能衰竭
+        if change_pct > 15:
+            short_score += 30
+        elif change_pct > 10:
+            short_score += 20
+        elif change_pct > 5:
+            short_score += 10
+        # 雙頂型態
+        if "double_top" in patterns:
+            short_score += 30
+        # 賣壓沉重（訂單簿）
+        if ob_summary.get("bid_ask_ratio", 1) < 0.6:
+            short_score += 20
+        # 量價背離
+        if "volume_divergence" in patterns and "bearish" in patterns["volume_divergence"].get("type", ""):
+            short_score += 20
+        short_score = min(short_score, 100)
+
         signals.append({
             "symbol": symbol,
             "base": symbol.replace("USDT", ""),
@@ -506,6 +532,7 @@ def scan(config):
                 "smart_money": round(smart_money_score, 1),
                 "orderbook": round(ob_score, 1),
                 "total": round(total_score, 1),
+                "short": round(short_score, 1),
             },
             "orderbook": ob_summary,
             "smart_money": sm if sm else {},
@@ -570,6 +597,12 @@ def scan(config):
                 tags.append("🔻 量價背離")
             elif "healthy" in vd.get("type", ""):
                 tags.append("✅ 量價健康")
+        
+        # 做空標籤
+        if s["scores"].get("short", 0) >= 60:
+            tags.append("📉 做空訊號")
+        elif s["scores"].get("short", 0) >= 40:
+            tags.append("⚠️ 可能做空")
         
         s["tags"] = tags
     

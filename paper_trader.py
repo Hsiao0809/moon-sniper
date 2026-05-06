@@ -64,9 +64,10 @@ def calc_pnl(current_price, entry_price, position_value):
     return round(pnl_usdt, 2), round(pnl_pct * 100, 2)
 
 def check_new_trades(signals, trades, config):
-    """檢查新訊號是否有符合進場條件的"""
+    """檢查新訊號是否有符合進場條件的（多空雙向）"""
     trade_config = config["paper_trade"]
     min_score = trade_config["min_score_to_trade"]
+    short_min = trade_config.get("short_min_score", 50)
     max_open = trade_config["max_open_trades"]
     position_value = get_position_value(config)
 
@@ -76,29 +77,43 @@ def check_new_trades(signals, trades, config):
     for s in signals:
         symbol = s["symbol"]
         total_score = s["scores"]["total"]
+        short_score = s["scores"].get("short", 0)
 
         if symbol in existing_symbols:
-            continue
-        if total_score < min_score:
             continue
         if len(existing_symbols) + len(new_trades) >= max_open:
             break
 
+        # 決定方向：做多或做空
+        is_short = short_score >= short_min and short_score > total_score
+        is_long = total_score >= min_score and not is_short
+
+        if not is_long and not is_short:
+            continue
+
         entry_price = float(s["price"])
         now = datetime.now(timezone.utc)
+
+        if is_short:
+            # 做空：反向 TP/SL
+            multiplier = -1
+        else:
+            multiplier = 1
+
         trade = {
             "id": f"PT-{now.strftime('%Y%m%d-%H%M%S')}-{symbol}",
             "symbol": symbol,
             "base": s["base"],
+            "direction": "short" if is_short else "long",
             "entry_price": entry_price,
             "entry_time": now.isoformat(),
             "status": "open",
-            "score": total_score,
+            "score": short_score if is_short else total_score,
             "tags": s["tags"],
             # TP/SL 價格
-            "stop_loss_price": round(entry_price * (1 + trade_config["stop_loss"]), 8),
-            "tp1_price": round(entry_price * (1 + trade_config["take_profit_1"]), 8),
-            "tp2_price": round(entry_price * (1 + trade_config["take_profit_2"]), 8),
+            "stop_loss_price": round(entry_price * (1 + trade_config["stop_loss"] * multiplier), 8),
+            "tp1_price": round(entry_price * (1 + trade_config["take_profit_1"] * multiplier), 8),
+            "tp2_price": round(entry_price * (1 + trade_config["take_profit_2"] * multiplier), 8),
             "max_hold_until": (now + timedelta(days=trade_config["max_hold_days"])).isoformat(),
             # TP 狀態
             "take_profit_1_hit": False,
