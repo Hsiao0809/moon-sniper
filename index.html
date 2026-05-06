@@ -360,8 +360,20 @@
       .toolbar { grid-template-columns: 1fr; }
       .tabs { justify-content: stretch; }
       .tabs button { flex: 1; }
-      .trade-sections { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
-      .scroll { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
+      .panel,
+      .trade-sections,
+      .trade-section {
+        display: block;
+        overflow: visible;
+      }
+      .trade-section { border-bottom: 1px solid var(--border); }
+      .scroll {
+        overflow-x: auto;
+        overflow-y: visible;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      }
     }
   </style>
 </head>
