@@ -1,8 +1,43 @@
 #!/usr/bin/env python3
 """Static regression checks for Moon Sniper dashboard UI."""
+import json
+from html.parser import HTMLParser
 from pathlib import Path
 
 HTML = Path('index.html').read_text(encoding='utf-8')
+SIGNALS = json.loads(Path('signals.json').read_text(encoding='utf-8'))
+
+
+class DashboardHtmlParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.stack = []
+        self.signals_body_inside_table = False
+        self.signals_table_depth = None
+        self.signals_empty_inside_wrap = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        self.stack.append((tag, attrs))
+
+        if tag == 'tbody' and attrs.get('id') == 'signalsBody':
+            self.signals_body_inside_table = any(parent_tag == 'table' for parent_tag, _ in self.stack)
+            for idx in range(len(self.stack) - 1, -1, -1):
+                if self.stack[idx][0] == 'table':
+                    self.signals_table_depth = idx
+                    break
+
+        if tag == 'div' and attrs.get('id') == 'signalsEmpty':
+            self.signals_empty_inside_wrap = any(
+                parent_tag == 'div' and 'table-wrap' in parent_attrs.get('class', '').split()
+                for parent_tag, parent_attrs in self.stack
+            )
+
+    def handle_endtag(self, tag):
+        while self.stack:
+            open_tag, _ = self.stack.pop()
+            if open_tag == tag:
+                break
 
 
 def assert_contains(text, needle, message):
@@ -30,6 +65,24 @@ def test_signal_headers_are_sortable():
     assert_contains(HTML, 'sortSignals(', 'headers should call sortSignals')
     assert_contains(HTML, 'data-sort=', 'sortable headers should declare data-sort keys')
     assert_contains(HTML, 'sortState', 'sorting state should be tracked')
+
+
+def test_signals_tbody_stays_inside_table():
+    parser = DashboardHtmlParser()
+    parser.feed(HTML)
+    assert parser.signals_body_inside_table, 'signalsBody tbody must remain inside its table'
+    assert parser.signals_empty_inside_wrap, 'signalsEmpty should remain inside the table wrapper'
+
+
+def test_legacy_waiting_message_is_not_visible():
+    assert_contains(HTML, '#tab-signals > .emoji,\n  #tab-signals > .emoji + div', 'legacy waiting block must stay hidden if it remains in markup')
+    assert_contains(HTML, 'display: none !important', 'legacy waiting block hide rule must be forceful')
+    assert_contains(HTML, "empty.textContent = 'No current signals.';", 'empty-state text should not claim the first scan is pending')
+
+
+def test_committed_signals_data_has_completed_scan_shape():
+    assert SIGNALS.get('total_scanned', 0) > 0, 'signals.json should represent a completed scan, not a first-run placeholder'
+    assert isinstance(SIGNALS.get('signals'), list), 'signals.json should include a signals list'
 
 
 def test_mobile_allows_page_scroll_and_pull_refresh():
