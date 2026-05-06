@@ -292,13 +292,18 @@ def calculate_volume_score(ticker, config):
     """成交量評分：24h 量 vs 7日均量"""
     quote_vol = float(ticker.get("quoteVolume", 0))
     if quote_vol < config["scan"]["min_24h_volume_usdt"]:
-        return 0, 0
+        return 0, 0, 0, 0  # 回傳 4 個值
     
     # 用 count 近似估算交易活躍度
     count = int(ticker.get("count", 0))
     vol_score = min(quote_vol / 5000000, 1.0) * 100  # 500萬U以上滿分
     
-    return vol_score, quote_vol
+    # 量比評分 (相對量) — 用 24h 量 vs 粗略均量估算
+    # 真正的量比由 volume_monitor.py 算, 這裡先設預設值
+    vol_ratio = 1.0
+    vol_ratio_score = 0  # 稍後由 klines 覆蓋
+    
+    return vol_score, quote_vol, vol_ratio_score, vol_ratio
 
 def calculate_momentum_score(ticker):
     """價格動能評分：24h 漲跌幅"""
@@ -359,6 +364,120 @@ def calculate_liquidity_score(ticker):
     vol_score = min(volume / 10000000, 1.0) * 100  # 1000萬U以上滿分
 
     return spread_score * 0.4 + vol_score * 0.6
+
+
+# ----- 量能監控相關函數 (新) -----
+
+def calculate_volume_ratio_score(klines):
+    """
+    量比評分：最後一根 K 線量 vs 前 3 根 / 前 10 根均量
+    核心邏輯來自 TON 案例：量爆 3x-5x 是初爆訊號
+    """
+    if not klines or len(klines) < 12:
+        return 0, 1.0, 1.0
+    
+    volumes = [float(k[5]) for k in klines]
+    latest_vol = volumes[-1]
+    
+    short_vols = volumes[-4:-1]  # 前 3 根
+    long_vols = volumes[-11:-1]  # 前 10 根
+    
+    short_avg = sum(short_vols) / len(short_vols) if short_vols else 1
+    long_avg = sum(long_vols) / len(long_vols) if long_vols else 1
+    
+    short_ratio = latest_vol / short_avg if short_avg > 0 else 1.0
+    long_ratio = latest_vol / long_avg if long_avg > 0 else 1.0
+    
+    # 量比評分：3x = 60分, 5x = 90分, 8x+ = 滿分
+    # 使用 short_ratio (對前3根均量) 作為主要訊號
+    ratio = short_ratio
+    if ratio >= 5:
+        score = 90 + min((ratio - 5) / 3 * 10, 10)  # 5x=90, 8x+=100
+    elif ratio >= 3:
+        score = 60 + (ratio - 3) / 2 * 30  # 3x=60, 5x=90
+    elif ratio >= 2:
+        score = 30 + (ratio - 2) * 30  # 2x=30, 3x=60
+    elif ratio >= 1.5:
+        score = 10 + (ratio - 1.5) * 40  # 1.5x=10, 2x=30
+    elif ratio >= 0.8:
+        score = 5  # 正常量
+    else:
+        score = 0  # 量縮
+    
+    return min(score, 100), round(short_ratio, 2), round(long_ratio, 2)
+
+
+def calculate_consolidation_score(klines, max_range=8.0):
+    """
+    盤整評分：價格在狹幅內波動天數
+    盤整越久，爆發潛力越高
+    返回 (分數, 盤整天數, 盤整振幅%)
+    """
+    if not klines or len(klines) < 24:
+        return 0, 0, 0
+    
+    high = max(float(k[2]) for k in klines[-48:])  # 最近 48h 最高
+    low = min(float(k[3]) for k in klines[-48:])   # 最近 48h 最低
+    current = float(klines[-1][4])
+    
+    range_pct = (high - low) / low * 100 if low > 0 else 999
+    
+    if range_pct > max_range:
+        return 0, 0, round(range_pct, 2)  # 不是盤整，不給分
+    
+    # 盤整天數 = 持續在 range_pct% 內的小時數 / 24
+    hours = 0
+    for k in reversed(klines):
+        k_high, k_low = float(k[2]), float(k[3])
+        if (k_high - low) / low * 100 <= max_range:
+            hours += 1
+        else:
+            break
+    
+    days = hours / 24
+    
+    # 評分：3天池整 = 60分起跳, 每多1天+10
+    if days >= 5:
+        score = 80 + min((days - 5) * 5, 20)
+    elif days >= 3:
+        score = 60 + (days - 3) * 10  # 3天=60, 5天=80
+    elif days >= 1:
+        score = 20 + days * 13  # 1天=33, 3天=59
+    else:
+        score = 0
+    
+    return min(score, 100), round(days, 1), round(range_pct, 2)
+
+
+def calculate_overbought_penalty(ticker, klines):
+    """
+    已漲幅懲罰：如果 24h 漲太多，扣分
+    避免 scanner 在漲完一大段之後還發訊號
+    """
+    change = abs(float(ticker.get("priceChangePercent", 0)))
+    
+    if change < 15:
+        return 0  # < 15% 正常，不懲罰
+    elif change < 25:
+        # 15-25%: 已漲不少，輕微懲罰
+        penalty = (change - 15) * 2  # 15%=0, 25%=20
+    elif change < 40:
+        # 25-40%: 漲太多，重懲
+        penalty = 20 + (change - 25) * 1.5  # 25%=20, 40%=42.5
+    else:
+        penalty = 50  # > 40% 直接半殘
+    
+    # 如果量還在持續爆增 (量比 > 4x)，降低懲罰
+    if klines and len(klines) >= 12:
+        volumes = [float(k[5]) for k in klines[-4:-1]]
+        latest_vol = float(klines[-1][5])
+        avg = sum(volumes) / len(volumes) if volumes else 1
+        ratio = latest_vol / avg if avg > 0 else 1
+        if ratio > 4:
+            penalty *= 0.5  # 量還在追，懲罰減半
+    
+    return min(penalty, 50)
+
 
 def detect_patterns(klines, ticker):
     """技術型態分析：雙底/雙頂/Bollinger Squeeze/量價背離"""
@@ -528,7 +647,7 @@ def scan(config):
             continue
         
         # 計算各項分數
-        vol_score, quote_vol = calculate_volume_score(ticker, config)
+        vol_score, quote_vol, vol_ratio_score, vol_ratio = calculate_volume_score(ticker, config)
         momentum_score = calculate_momentum_score(ticker)
         
         klines = klines_data.get(symbol, [])
@@ -563,14 +682,20 @@ def scan(config):
         else:
             smart_money_score = 0
         
+        # ----- 新維度：量比、盤整、已漲幅懲罰 -----
+        vol_ratio_score, short_ratio, long_ratio = calculate_volume_ratio_score(klines)
+        consolidation_score, consolidation_days, consolidation_range = calculate_consolidation_score(klines)
+        overbought_penalty = calculate_overbought_penalty(ticker, klines)
+        
         # 加權總分
         total_score = (
             vol_score * config_score["volume_weight"] +
+            vol_ratio_score * config_score["volume_ratio_weight"] +
             momentum_score * config_score["momentum_weight"] +
             breakout_score * config_score["breakout_weight"] +
             ob_score * config_score["orderbook_weight"] +
             smart_money_score * config_score["smart_money_weight"]
-        )
+        ) - overbought_penalty
 
         # 做空評分：動能過高反轉 + 雙頂 + 賣壓
         short_score = 0
@@ -601,8 +726,15 @@ def scan(config):
             "high_24h": ticker["highPrice"],
             "low_24h": ticker["lowPrice"],
             "volume_24h_usdt": round(quote_vol, 0),
+            "volume_short_ratio": short_ratio,
+            "volume_long_ratio": long_ratio,
+            "consolidation_days": consolidation_days,
+            "consolidation_range_pct": consolidation_range,
+            "overbought_penalty": round(overbought_penalty, 1),
             "scores": {
                 "volume": round(vol_score, 1),
+                "volume_ratio": round(vol_ratio_score, 1),
+                "consolidation": round(consolidation_score, 1),
                 "momentum": round(momentum_score, 1),
                 "breakout": round(breakout_score, 1),
                 "smart_money": round(smart_money_score, 1),
@@ -626,6 +758,22 @@ def scan(config):
     # 加上標籤
     for s in signals:
         tags = []
+        # 新維度：量比和盤整
+        vol_ratio = s.get("volume_short_ratio", 0)
+        if vol_ratio >= 5:
+            tags.append(f"📊 量爆{vol_ratio}x")
+        elif vol_ratio >= 3:
+            tags.append(f"📊 量增{vol_ratio}x")
+        cons_days = s.get("consolidation_days", 0)
+        if cons_days >= 3 and vol_ratio >= 2:
+            tags.append(f"💤 盤整{cons_days}天")
+        elif cons_days >= 5:
+            tags.append(f"💤 久盤{cons_days}天")
+        penalty = s.get("overbought_penalty", 0)
+        if penalty >= 30:
+            tags.append("⚠️ 已漲過頭")
+        elif penalty >= 10:
+            tags.append("⚡ 漲多注意")
         if s["scores"]["breakout"] >= 80:
             tags.append("📈 突破壓力")
         if float(s["price_change_24h"]) >= 10:
