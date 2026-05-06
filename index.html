@@ -384,51 +384,6 @@
         overscroll-behavior-y: auto;
         padding-bottom: calc(12px + env(safe-area-inset-bottom));
       }
-
-      /* Better touch targets */
-      button, select { min-height: 44px; }
-      .tag-filter { min-height: 36px; }
-      .sort-button { min-height: 0; }
-      .trade-subtabs button { min-height: 36px; }
-
-      /* Hide desktop-only helper text */
-      .desktop-hint { display: none; }
-
-      /* Sort select fills available width */
-      #sortSelect { width: 100%; }
-
-      /* Signals table: hide rank and all sub-score columns */
-      #signalsTab table th:nth-child(1),
-      #signalsTab table td:nth-child(1),
-      #signalsTab table th:nth-child(9),
-      #signalsTab table td:nth-child(9),
-      #signalsTab table th:nth-child(10),
-      #signalsTab table td:nth-child(10),
-      #signalsTab table th:nth-child(11),
-      #signalsTab table td:nth-child(11),
-      #signalsTab table th:nth-child(12),
-      #signalsTab table td:nth-child(12) { display: none; }
-      #signalsTab table { min-width: 640px; }
-
-      /* Open trades: hide Status and Max Up/Down */
-      #openTradesSection th:nth-child(2),
-      #openTradesSection td:nth-child(2),
-      #openTradesSection th:nth-child(6),
-      #openTradesSection td:nth-child(6),
-      #openTradesSection th:nth-child(7),
-      #openTradesSection td:nth-child(7) { display: none; }
-      #openTradesSection .trade-table { min-width: 760px; }
-
-      /* Closed trades: hide Max Up/Down */
-      #closedTradesSection th:nth-child(6),
-      #closedTradesSection td:nth-child(6),
-      #closedTradesSection th:nth-child(7),
-      #closedTradesSection td:nth-child(7) { display: none; }
-      #closedTradesSection .trade-table { min-width: 820px; }
-    }
-
-    @media (max-width: 480px) {
-      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
   </style>
 </head>
@@ -495,7 +450,7 @@
             <option value="tags-asc">Tags A to Z</option>
             <option value="tags-desc">Tags Z to A</option>
           </select>
-          <span class="desktop-hint">Live prices refresh every 30s</span>
+          <span>Live prices refresh every 30s</span>
         </div>
       </div>
       <div class="scroll">
@@ -526,7 +481,7 @@
     <section id="tradesTab" class="panel" hidden>
       <div class="toolbar">
         <span id="tradeSummary">No trades loaded</span>
-        <span class="desktop-hint">Open trade high/low updates from live price; closed trades stay fixed</span>
+        <span>Open trade high/low updates from live price; closed trades stay fixed</span>
       </div>
       <nav class="trade-subtabs" aria-label="Trade record tabs">
         <button type="button" class="active" data-trade-tab="open">Open Positions</button>
