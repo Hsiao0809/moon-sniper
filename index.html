@@ -314,7 +314,9 @@
         <tr>
           <th>#</th>
           <th>幣種</th>
-          <th>價格</th>
+          <th>掃描價</th>
+          <th>當前價</th>
+          <th>掃描至今</th>
           <th>24h 漲跌</th>
           <th>24h 成交量</th>
           <th>評分</th>
@@ -430,6 +432,15 @@ function render(data, tradesData) {
       const chgSign = chg >= 0 ? '+' : '';
       const vol = formatVolume(s.volume_24h_usdt);
       const scoreCls = scores.total >= 70 ? 'score-high' : scores.total >= 50 ? 'score-mid' : 'score-low';
+      
+      // 掃描價格與即時價格
+      const scanPrice = parseFloat(s.price);
+      const livePrice = livePrices[s.symbol];
+      const displayPrice = livePrice || scanPrice;
+      const chgFromScan = livePrice ? ((livePrice - scanPrice) / scanPrice) * 100 : 0;
+      const chgScanCls = chgFromScan >= 0 ? 'positive' : 'negative';
+      const chgScanSign = chgFromScan >= 0 ? '+' : '';
+      
       const tags = (s.tags || []).map(t => {
         const cls = t.includes('突破') ? 'tag-breakout' 
           : t.includes('強勢') ? 'tag-strong'
@@ -446,7 +457,9 @@ function render(data, tradesData) {
       return `<tr>
         <td>${i+1}</td>
         <td><a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.base}USDT" target="_blank" rel="noopener"><span class="symbol-name">${s.base}</span> 🔗</a></td>
-        <td class="price">$${parseFloat(s.price).toFixed(s.price < 1 ? 6 : s.price < 100 ? 4 : 2)}</td>
+        <td class="price">$${scanPrice.toFixed(scanPrice < 1 ? 6 : scanPrice < 100 ? 4 : 2)}</td>
+        <td class="price">$${displayPrice.toFixed(displayPrice < 1 ? 6 : displayPrice < 100 ? 4 : 2)}</td>
+        <td class="change ${chgScanCls}">${livePrice ? chgScanSign + chgFromScan.toFixed(2) + '%' : '—'}</td>
         <td class="change ${chgCls}">${chgSign}${chg.toFixed(2)}%</td>
         <td>${vol}</td>
         <td><span class="score-text ${scoreCls}">${scores.total}</span></td>
@@ -512,10 +525,19 @@ function updateLiveDisplay(signals, trades) {
     const s = signals[i];
     const live = livePrices[s.symbol];
     if (live) {
-      const priceCell = row.querySelector('.price');
-      if (priceCell) {
-        const chgFromScan = ((live - parseFloat(s.price)) / parseFloat(s.price)) * 100;
-        priceCell.innerHTML = `$${live.toFixed(live < 1 ? 6 : live < 100 ? 4 : 2)}`;
+      const scanPrice = parseFloat(s.price);
+      const chgFromScan = ((live - scanPrice) / scanPrice) * 100;
+      const chgSign = chgFromScan >= 0 ? '+' : '';
+      const priceCells = row.querySelectorAll('.price');
+      // .price cells: [0]=掃描價, [1]=當前價
+      if (priceCells.length >= 2) {
+        priceCells[1].innerHTML = `$${live.toFixed(live < 1 ? 6 : live < 100 ? 4 : 2)}`;
+      }
+      // 掃描至今變化（第 5 個 td，index=4）
+      const changeCells = row.querySelectorAll('.change');
+      if (changeCells.length >= 1) {
+        changeCells[0].innerHTML = chgSign + chgFromScan.toFixed(2) + '%';
+        changeCells[0].className = 'change ' + (chgFromScan >= 0 ? 'positive' : 'negative');
       }
     }
   });
@@ -591,6 +613,7 @@ function renderTradeItem(t) {
     </div>
     <div>
       <div>入場：$${t.entry_price.toFixed(t.entry_price < 1 ? 6 : t.entry_price < 100 ? 4 : 2)}</div>
+      ${t.status === 'open' && livePrices[t.symbol] ? `<div>當前：$${livePrices[t.symbol].toFixed(livePrices[t.symbol] < 1 ? 6 : livePrices[t.symbol] < 100 ? 4 : 2)}</div>` : ''}
       ${t.exit_price ? `<div>出場：$${t.exit_price.toFixed(t.exit_price < 1 ? 6 : t.exit_price < 100 ? 4 : 2)}</div>` : ''}
       <div class="trade-info">${new Date(t.entry_time).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})}</div>
     </div>
