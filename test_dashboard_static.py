@@ -39,6 +39,13 @@ def test_mobile_allows_page_scroll_and_pull_refresh():
     assert_contains(HTML, '-webkit-overflow-scrolling: touch', 'mobile scrolling should be momentum/touch friendly')
 
 
+def test_trade_cards_are_compact():
+    assert_contains(HTML, 'padding: 8px 10px;', 'trade cards should use compact padding')
+    assert_contains(HTML, '.trade-item .trade-symbol {\n    font-weight: 700;\n    font-size: 14px;', 'trade symbol font should be compact')
+    assert_contains(HTML, 'font-size:15px;font-weight:700', 'trade PnL font should be smaller than before')
+    assert_contains(HTML, 'trade-meta-grid', 'trade card details should use compact grid layout')
+
+
 if __name__ == '__main__':
     for name, fn in list(globals().items()):
         if name.startswith('test_'):
