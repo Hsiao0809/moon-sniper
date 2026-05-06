@@ -1,763 +1,579 @@
-<!DOCTYPE html>
-<html lang="zh-TW" data-theme="dark">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moon Sniper — 暴漲潛力幣種偵測 + 紙交易</title>
-<style>
-  :root {
-    --bg: #0a0e17;
-    --card: #131a2b;
-    --card-hover: #1a2440;
-    --border: #1e2d4a;
-    --text: #e0e6f0;
-    --text-dim: #6b7fa0;
-    --green: #22c55e;
-    --green-bg: rgba(34,197,94,0.1);
-    --red: #ef4444;
-    --red-bg: rgba(239,68,68,0.1);
-    --blue: #3b82f6;
-    --yellow: #f59e0b;
-    --purple: #8b5cf6;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { height: 100%; overflow: hidden; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    padding: 12px 20px;
-    max-width: 1400px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-  }
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  .header h1 {
-    font-size: 20px;
-    background: linear-gradient(135deg, var(--green), var(--blue));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .header .subtitle {
-    color: var(--text-dim);
-    font-size: 14px;
-  }
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .scan-time {
-    color: var(--text-dim);
-    font-size: 13px;
-  }
-  .btn {
-    padding: 8px 16px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--card);
-    color: var(--text);
-    cursor: pointer;
-    font-size: 13px;
-    transition: all 0.2s;
-  }
-  .btn:hover {
-    background: var(--card-hover);
-    border-color: var(--blue);
-  }
-  .btn-primary {
-    background: var(--blue);
-    border-color: var(--blue);
-    color: white;
-  }
-  .btn-primary:hover {
-    opacity: 0.9;
-  }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Moon Sniper</title>
+  <style>
+    :root {
+      --bg: #080b12;
+      --panel: #111827;
+      --panel-2: #182033;
+      --border: #25324a;
+      --text: #e7edf7;
+      --muted: #94a3b8;
+      --blue: #38bdf8;
+      --green: #22c55e;
+      --red: #f87171;
+      --amber: #f59e0b;
+      --violet: #a78bfa;
+    }
 
-  /* Stats bar */
-  .stats-bar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: 6px;
-    margin-bottom: 8px;
-    flex-shrink: 0;
-  }
-  .stat-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px;
-    text-align: center;
-  }
-  .stat-card .value {
-    font-size: 16px;
-    font-weight: 700;
-  }
-  .stat-card .label {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 4px;
-  }
-  .stat-card .value.green { color: var(--green); }
-  .stat-card .value.red { color: var(--red); }
-  .stat-card .value.blue { color: var(--blue); }
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
-  /* Tabs */
-  .tabs {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 8px;
-    background: var(--card);
-    border-radius: 8px;
-    padding: 3px;
-    border: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .tab {
-    padding: 8px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    color: var(--text-dim);
-    transition: all 0.2s;
-    border: none;
-    background: transparent;
-  }
-  .tab.active {
-    background: var(--blue);
-    color: white;
-  }
-  .tab:hover:not(.active) {
-    color: var(--text);
-    background: var(--card-hover);
-  }
+    .shell {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 20px;
+    }
 
-  /* Signal table */
-  .table-wrap {
-    overflow: auto;
-    max-height: calc(100vh - 180px);
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--card);
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-  }
-  th {
-    background: var(--card-hover);
-    padding: 12px 16px;
-    text-align: left;
-    font-size: 12px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-  }
-  td {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-  }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--card-hover); }
-  
-  .symbol-name {
-    font-weight: 600;
-    font-size: 15px;
-  }
-  .symbol-link {
-    color: var(--text);
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-  .symbol-link:hover {
-    color: var(--blue);
-    text-decoration: underline;
-  }
-  .price {
-    font-family: 'SF Mono', 'Fira Code', monospace;
-  }
-  .change.positive { color: var(--green); }
-  .change.negative { color: var(--red); }
-  
-  .score-bar {
-    display: inline-block;
-    height: 6px;
-    border-radius: 3px;
-    width: 60px;
-    margin-right: 8px;
-    vertical-align: middle;
-  }
-  .score-text {
-    font-weight: 600;
-  }
-  .score-high { color: var(--green); }
-  .score-mid { color: var(--yellow); }
-  .score-low { color: var(--red); }
-  
-  .tags {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-  }
-  .tag {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-  .tag-breakout { background: rgba(59,130,246,0.2); color: var(--blue); }
-  .tag-strong { background: rgba(239,68,68,0.2); color: var(--red); }
-  .tag-rising { background: rgba(34,197,94,0.2); color: var(--green); }
-  .tag-volume { background: rgba(245,158,11,0.2); color: var(--yellow); }
-  .tag-reversal { background: rgba(139,92,246,0.2); color: var(--purple); }
-  .tag-default { background: rgba(107,127,160,0.2); color: var(--text-dim); }
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
 
-  /* Trade list */
-  .trade-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    overflow: auto;
-    max-height: calc(100vh - 200px);
-  }
-  .trade-item {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .trade-item .trade-symbol {
-    font-weight: 700;
-    font-size: 15px;
-  }
-  .trade-item .trade-pnl.positive { color: var(--green); }
-  .trade-item .trade-pnl.negative { color: var(--red); }
-  .trade-item .trade-info {
-    color: var(--text-dim);
-    font-size: 12px;
-  }
-  .trade-status {
-    padding: 3px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-  .trade-status.open { background: rgba(59,130,246,0.2); color: var(--blue); }
-  .trade-status.closed { background: rgba(107,127,160,0.2); color: var(--text-dim); }
-  .trade-status.tp2 { background: rgba(34,197,94,0.2); color: var(--green); }
-  .trade-status.sl { background: rgba(239,68,68,0.2); color: var(--red); }
+    h1 {
+      margin: 0;
+      font-size: clamp(26px, 4vw, 44px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
 
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-dim);
-  }
-  .empty-state .emoji {
-    font-size: 48px;
-    margin-bottom: 12px;
-  }
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
 
-  /* Responsive */
-  @media (max-width: 768px) {
-    body { padding: 12px; }
-    .header h1 { font-size: 22px; }
-    .stats-bar { grid-template-columns: repeat(2, 1fr); }
-    td, th { padding: 8px 10px; font-size: 13px; }
-  }
-</style>
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--text);
+      min-height: 38px;
+      padding: 0 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover { border-color: var(--blue); }
+    button.active {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #04111d;
+      font-weight: 700;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(130px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .stat {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 82px;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat .value {
+      margin-top: 8px;
+      font-size: 22px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      background: #0d1422;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: var(--blue); text-decoration: underline; }
+    .scroll { overflow: auto; }
+    .symbol { font-weight: 800; }
+    .muted { color: var(--muted); }
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .warn { color: var(--amber); }
+    .money { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+    .score {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 88px;
+      font-weight: 800;
+    }
+
+    .score i {
+      display: block;
+      width: 48px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--score-color, var(--muted));
+      opacity: .9;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: 360px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 6px;
+      background: #22304a;
+      color: #cbd5e1;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .trade-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .trade {
+      border: 1px solid var(--border);
+      background: #0d1422;
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .trade-head, .trade-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .pill {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .empty, .error {
+      padding: 48px 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .error { color: var(--red); }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 900px) {
+      .shell { padding: 14px; }
+      header { align-items: start; flex-direction: column; }
+      .actions { justify-content: flex-start; text-align: left; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .stat .value { font-size: 18px; }
+      .tabs button { flex: 1; }
+    }
+  </style>
 </head>
 <body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>Moon Sniper</h1>
+        <div class="subtitle">Binance USDT signal scanner and paper trading dashboard</div>
+      </div>
+      <div class="actions">
+        <span id="lastUpdated">Loading data...</span>
+        <button type="button" id="refreshBtn">Refresh</button>
+      </div>
+    </header>
 
-<div class="header">
-  <div>
-    <h1>🌙 Moon Sniper</h1>
-    <div class="subtitle">暴漲潛力幣種偵測 · 紙交易追蹤</div>
-  </div>
-  <div class="header-right">
-    <span class="scan-time" id="scanTime">—</span>
-    <button class="btn btn-primary" onclick="refreshAll()">🔄 重新整理</button>
-  </div>
-</div>
+    <section class="stats" aria-label="Portfolio statistics">
+      <div class="stat"><div class="label">Signals</div><div class="value" id="statSignals">0</div></div>
+      <div class="stat"><div class="label">Equity USDT</div><div class="value money" id="statEquity">300.00</div></div>
+      <div class="stat"><div class="label">Open Trades</div><div class="value" id="statOpen">0</div></div>
+      <div class="stat"><div class="label">Win Rate</div><div class="value" id="statWin">0%</div></div>
+      <div class="stat"><div class="label">Realized PnL</div><div class="value money" id="statRealized">0.00</div></div>
+      <div class="stat"><div class="label">Unrealized PnL</div><div class="value money" id="statUnrealized">0.00</div></div>
+    </section>
 
-<!-- Stats -->
-<div class="stats-bar" id="statsBar">
-  <div class="stat-card"><div class="value blue" id="statTotal">—</div><div class="label">潛力幣種</div></div>
-  <div class="stat-card"><div class="value" id="statBalance">300</div><div class="label">帳戶餘額 (USDT)</div></div>
-  <div class="stat-card"><div class="value" id="statOpenTrades">—</div><div class="label">進行中紙交易</div></div>
-  <div class="stat-card"><div class="value green" id="statWinRate">—</div><div class="label">勝率</div></div>
-  <div class="stat-card"><div class="value" id="statTotalPnl">—</div><div class="label">已實現損益 (USDT)</div></div>
-  <div class="stat-card"><div class="value" id="statUnrealizedPnl">—</div><div class="label">未實現損益 (USDT)</div></div>
-  <div class="stat-card"><div class="value red" id="statMaxDD">—</div><div class="label">最大回撤 (USDT)</div></div>
-  <div class="stat-card"><div class="value" id="statTotalTrades">—</div><div class="label">總交易次數</div></div>
-</div>
+    <nav class="tabs" aria-label="Dashboard tabs">
+      <button type="button" class="active" data-tab="signals">Signals</button>
+      <button type="button" data-tab="trades">Paper Trades</button>
+    </nav>
 
-<!-- Tabs -->
-<div class="tabs">
-  <button class="tab active" data-tab="signals" onclick="switchTab('signals')">📡 潛力幣種</button>
-  <button class="tab" data-tab="trades" onclick="switchTab('trades')">📊 紙交易</button>
-</div>
+    <section id="signalsTab" class="panel">
+      <div class="toolbar">
+        <span id="signalSummary">No signals loaded</span>
+        <span>Live prices refresh every 30 seconds when available</span>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Symbol</th>
+              <th>Scan Price</th>
+              <th>Live Price</th>
+              <th>From Scan</th>
+              <th>24h</th>
+              <th>24h Volume</th>
+              <th>Total</th>
+              <th>Volume</th>
+              <th>Momentum</th>
+              <th>Order Book</th>
+              <th>Breakout</th>
+              <th>Tags</th>
+            </tr>
+          </thead>
+          <tbody id="signalsBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="signalsEmpty" hidden>No current signals. Trigger the GitHub Action or wait for the next scheduled scan.</div>
+    </section>
 
-<!-- Signals Tab -->
-<div id="tab-signals" class="tab-content">
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>幣種</th>
-          <th>掃描價</th>
-          <th>當前價</th>
-          <th>掃描至今</th>
-          <th>24h 漲跌</th>
-          <th>24h 成交量</th>
-          <th>評分</th>
-          <th>量能</th>
-          <th>動能</th>
-          <th>訂單簿</th>
-          <th>聰明錢</th>
-          <th>突破</th>
-          <th>訊號</th>
-        </tr>
-      </thead>
-      <tbody id="signalsBody">
-      </tbody>
-    </table>
-  </div>
-  <div id="signalsEmpty" class="empty-state" style="display:none">
-    <div class="emoji">🔭</div>
-    <div>正在等待第一次掃描...<br>請等待 GitHub Actions 執行或手動執行 scanner.py</div>
-  </div>
-</div>
+    <section id="tradesTab" class="panel" hidden>
+      <div class="toolbar">
+        <span id="tradeSummary">No trades loaded</span>
+        <span id="tradeFilterLabel">Open and closed paper trades</span>
+      </div>
+      <div class="trade-grid" id="tradesBody"></div>
+      <div class="empty" id="tradesEmpty" hidden>No paper trades yet.</div>
+    </section>
+  </main>
 
-<!-- Trades Tab -->
-<div id="tab-trades" class="tab-content" style="display:none">
-  <div class="tabs" style="margin-bottom:16px;background:transparent;padding:0;border:none">
-    <button class="tab active" data-subtab="open" onclick="switchSubTab('open')">📌 持倉中</button>
-    <button class="tab" data-subtab="closed" onclick="switchSubTab('closed')">📋 已平倉</button>
-  </div>
-  <div id="tab-open" class="subtab-content">
-    <div class="trade-list" id="openTradesBody"></div>
-    <div id="openTradesEmpty" class="empty-state" style="display:none">
-      <div class="emoji">📭</div>
-      <div>沒有進行中的交易</div>
-    </div>
-  </div>
-  <div id="tab-closed" class="subtab-content" style="display:none">
-    <div class="trade-list" id="closedTradesBody"></div>
-    <div id="closedTradesEmpty" class="empty-state" style="display:none">
-      <div class="emoji">📋</div>
-      <div>還沒有已平倉的交易</div>
-    </div>
-  </div>
-</div>
+  <script>
+    const START_BALANCE = 300;
+    const POSITION_VALUE = 600;
+    const FEE_RATE = 0.0004;
 
-<script>
-let dataCache = null;
+    let signals = [];
+    let trades = [];
+    let tradeStats = {};
+    let livePrices = {};
+    let liveTimer = null;
 
-async function refreshData() {
-  try {
-    const resp = await fetch('./signals.json?_=' + Date.now());
-    const data = await resp.json();
-    dataCache = data;
-    
-    // Try to load trades
-    let tradesData = null;
-    try {
-      const tresp = await fetch('./paper_trades.json?_=' + Date.now());
-      tradesData = await tresp.json();
-    } catch(e) {}
-    
-    render(data, tradesData);
-  } catch(e) {
-    document.getElementById('signalsBody').innerHTML = 
-      `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-dim)">
-        ⚠️ 無法載入資料：${e.message}<br>
-        <small>請確認 signals.json 已產生且 GitHub Pages 已部署</small>
-      </td></tr>`;
-  }
-}
+    const $ = (id) => document.getElementById(id);
 
-function render(data, tradesData) {
-  // 更新時間
-  const scanTime = data.scanned_at 
-    ? '評分更新：' + new Date(data.scanned_at).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})
-    : '—';
-  let timeStr = scanTime;
-  if (tradesData?.stats?.last_updated) {
-    timeStr += ' | 交易更新：' + new Date(tradesData.stats.last_updated).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'});
-  }
-  timeStr += ' | 即時價格每 30 秒刷新';
-  document.getElementById('scanTime').textContent = timeStr;
-  
-  const signals = data.signals || [];
-  const trades = tradesData?.trades || [];
-  const stats = tradesData?.stats || {};
-  
-  // 載入即時價格
-  fetchLivePrices(signals, trades);
-  
-  // Stats
-  document.getElementById('statTotal').textContent = signals.length;
-  document.getElementById('statBalance').textContent = (300 + (stats.total_realized_pnl_usdt || 0) + (stats.total_unrealized_pnl_usdt || 0)).toFixed(2);
-  document.getElementById('statOpenTrades').textContent = stats.open_count || 0;
-  document.getElementById('statWinRate').textContent = (stats.win_rate || 0) + '%';
-  document.getElementById('statWinRate').className = 'value ' + ((stats.win_rate || 0) >= 50 ? 'green' : 'red');
-  const totalPnl = stats.total_realized_pnl_usdt || 0;
-  const totalUnrealized = stats.total_unrealized_pnl_usdt || 0;
-  document.getElementById('statTotalPnl').textContent = (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(2);
-  document.getElementById('statTotalPnl').className = 'value ' + (totalPnl >= 0 ? 'green' : 'red');
-  document.getElementById('statUnrealizedPnl').textContent = (totalUnrealized >= 0 ? '+' : '') + totalUnrealized.toFixed(2);
-  document.getElementById('statUnrealizedPnl').className = 'value ' + (totalUnrealized >= 0 ? 'green' : 'red');
-  // 勝率顯示盈/虧
-  const wins = stats.wins || 0;
-  const losses = stats.losses || 0;
-  const closed = stats.closed_count || 0;
-  document.getElementById('statWinRate').textContent = closed > 0 ? `✅ ${wins} / ❌ ${losses}（${(stats.win_rate || 0)}%）` : '—';
-  document.getElementById('statWinRate').className = 'value ' + ((stats.win_rate || 0) >= 50 ? 'green' : 'red');
-  document.getElementById('statTotalTrades').textContent = stats.total_trades || 0;
-  
-  // Signals table
-  const tbody = document.getElementById('signalsBody');
-  const empty = document.getElementById('signalsEmpty');
-  
-  if (signals.length === 0) {
-    tbody.innerHTML = '';
-    empty.style.display = 'block';
-  } else {
-    empty.style.display = 'none';
-    tbody.innerHTML = signals.map((s, i) => {
-      const scores = s.scores;
-      const chg = parseFloat(s.price_change_24h);
-      const chgCls = chg >= 0 ? 'positive' : 'negative';
-      const chgSign = chg >= 0 ? '+' : '';
-      const vol = formatVolume(s.volume_24h_usdt);
-      const scoreCls = scores.total >= 70 ? 'score-high' : scores.total >= 50 ? 'score-mid' : 'score-low';
-      
-      // 掃描價格與即時價格
-      const scanPrice = parseFloat(s.price);
-      const livePrice = livePrices[s.symbol];
-      const displayPrice = livePrice || scanPrice;
-      const chgFromScan = livePrice ? ((livePrice - scanPrice) / scanPrice) * 100 : 0;
-      const chgScanCls = chgFromScan >= 0 ? 'positive' : 'negative';
-      const chgScanSign = chgFromScan >= 0 ? '+' : '';
-      
-      const tags = (s.tags || []).map(t => {
-        const cls = t.includes('突破') ? 'tag-breakout' 
-          : t.includes('強勢') ? 'tag-strong'
-          : t.includes('上漲') ? 'tag-rising'
-          : t.includes('量') ? 'tag-volume'
-          : t.includes('反轉') ? 'tag-reversal'
-          : t.includes('雙底') || t.includes('雙頂') ? 'tag-breakout'
-          : t.includes('壓縮') ? 'tag-volume'
-          : t.includes('背離') ? 'tag-strong'
-          : t.includes('買盤') || t.includes('支撐') ? 'tag-breakout'
-          : t.includes('賣壓') ? 'tag-strong'
-          : t.includes('聰明') ? 'tag-volume'
-          : 'tag-default';
-        return `<span class="tag ${cls}">${t}</span>`;
-      }).join('');
-      
-      return `<tr>
-        <td>${i+1}</td>
-        <td><a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.base}USDT" target="_blank" rel="noopener"><span class="symbol-name">${s.base}</span> 🔗</a></td>
-        <td class="price">$${scanPrice.toFixed(scanPrice < 1 ? 6 : scanPrice < 100 ? 4 : 2)}</td>
-        <td class="price">$${displayPrice.toFixed(displayPrice < 1 ? 6 : displayPrice < 100 ? 4 : 2)}</td>
-        <td class="change ${chgScanCls}">${livePrice ? chgScanSign + chgFromScan.toFixed(2) + '%' : '—'}</td>
-        <td class="change ${chgCls}">${chgSign}${chg.toFixed(2)}%</td>
-        <td>${vol}</td>
-        <td><span class="score-text ${scoreCls}">${scores.total}</span></td>
-        <td>${scores.volume}</td>
-        <td>${scores.momentum}</td>
-        <td>${scores.orderbook || 50}</td>
-        <td>${scores.smart_money || 0}</td>
-        <td>${scores.breakout}</td>
-        <td><div class="tags">${tags || '<span class="tag tag-default">觀察中</span>'}</div></td>
-      </tr>`;
-    }).join('');
-  }
-  
-  // Trades list
-  renderTrades(trades);
-}
-
-function formatVolume(v) {
-  if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
-  if (v >= 1000) return (v / 1000).toFixed(1) + 'K';
-  return v?.toFixed(0) || '0';
-}
-
-// 即時價格
-let livePrices = {};
-let liveInterval = null;
-
-async function fetchLivePrices(signals, trades) {
-  if (!signals || signals.length === 0) return;
-  
-  // 從 signals 和 open trades 收集所有需要即時價格的幣種
-  const allSymbols = new Set();
-  signals.forEach(s => allSymbols.add(s.symbol));
-  (trades || []).forEach(t => { if (t.status === 'open') allSymbols.add(t.symbol); });
-  
-  if (allSymbols.size === 0) return;
-  
-  try {
-    const symbolsArr = Array.from(allSymbols);
-    const symbols = symbolsArr.map(s => `"${s}"`).join(',');
-    const resp = await fetch(`https://api.binance.com/api/v3/ticker/price?symbols=[${symbols}]`);
-    const data = await resp.json();
-    
-    livePrices = {};
-    if (Array.isArray(data)) {
-      data.forEach(d => { livePrices[d.symbol] = parseFloat(d.price); });
+    function asNumber(value, fallback = 0) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : fallback;
     }
-    
-    updateLiveDisplay(signals, trades);
-  } catch(e) {
-    console.log('即時價格取得失敗，使用訊號價格');
-  }
-}
 
-function updateLiveDisplay(signals, trades) {
-  // 記住 scroll 位置
-  const scrollY = window.scrollY;
-  const tbody = document.getElementById('signalsBody');
-  if (!tbody) return;
-  
-  // 更新信號表價格
-  const rows = tbody.querySelectorAll('tr');
-  rows.forEach((row, i) => {
-    if (i >= signals.length) return;
-    const s = signals[i];
-    const live = livePrices[s.symbol];
-    if (live) {
-      const scanPrice = parseFloat(s.price);
-      const chgFromScan = ((live - scanPrice) / scanPrice) * 100;
-      const chgSign = chgFromScan >= 0 ? '+' : '';
-      const priceCells = row.querySelectorAll('.price');
-      // .price cells: [0]=掃描價, [1]=當前價
-      if (priceCells.length >= 2) {
-        priceCells[1].innerHTML = `$${live.toFixed(live < 1 ? 6 : live < 100 ? 4 : 2)}`;
-      }
-      // 掃描至今變化（第 5 個 td，index=4）
-      const changeCells = row.querySelectorAll('.change');
-      if (changeCells.length >= 1) {
-        changeCells[0].innerHTML = chgSign + chgFromScan.toFixed(2) + '%';
-        changeCells[0].className = 'change ' + (chgFromScan >= 0 ? 'positive' : 'negative');
+    function formatPrice(value) {
+      const number = asNumber(value);
+      if (number === 0) return "0.00";
+      if (number < 0.0001) return number.toPrecision(4);
+      if (number < 1) return number.toFixed(6);
+      if (number < 100) return number.toFixed(4);
+      return number.toFixed(2);
+    }
+
+    function formatMoney(value) {
+      const number = asNumber(value);
+      return `${number >= 0 ? "+" : ""}${number.toFixed(2)}`;
+    }
+
+    function formatPct(value) {
+      const number = asNumber(value);
+      return `${number >= 0 ? "+" : ""}${number.toFixed(2)}%`;
+    }
+
+    function formatVolume(value) {
+      const number = asNumber(value);
+      if (number >= 1_000_000_000) return `${(number / 1_000_000_000).toFixed(2)}B`;
+      if (number >= 1_000_000) return `${(number / 1_000_000).toFixed(2)}M`;
+      if (number >= 1_000) return `${(number / 1_000).toFixed(2)}K`;
+      return number.toFixed(0);
+    }
+
+    function timeText(value) {
+      if (!value) return "Never";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "Unknown";
+      return date.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
+    }
+
+    function classForNumber(value) {
+      return asNumber(value) >= 0 ? "pos" : "neg";
+    }
+
+    function scoreColor(score) {
+      const value = asNumber(score);
+      if (value >= 75) return "var(--green)";
+      if (value >= 55) return "var(--amber)";
+      return "var(--red)";
+    }
+
+    async function loadJson(path, fallback) {
+      const response = await fetch(`${path}?v=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+      return response.json();
+    }
+
+    async function refreshAll() {
+      $("refreshBtn").disabled = true;
+      $("refreshBtn").textContent = "Refreshing";
+      try {
+        const signalData = await loadJson("./signals.json", { signals: [] });
+        let tradeData = { trades: [], stats: {} };
+        try {
+          tradeData = await loadJson("./paper_trades.json", { trades: [], stats: {} });
+        } catch (error) {
+          console.warn("paper_trades.json is unavailable", error);
+        }
+
+        signals = Array.isArray(signalData.signals) ? signalData.signals : [];
+        trades = Array.isArray(tradeData.trades) ? tradeData.trades : [];
+        tradeStats = tradeData.stats || {};
+
+        $("lastUpdated").textContent = `Signals: ${timeText(signalData.scanned_at)} | Trades: ${timeText(tradeStats.last_updated)}`;
+        render();
+        await refreshLivePrices();
+        startLiveTimer();
+      } catch (error) {
+        $("signalsBody").innerHTML = "";
+        $("signalsEmpty").hidden = false;
+        $("signalsEmpty").className = "error";
+        $("signalsEmpty").textContent = `Could not load dashboard data: ${error.message}`;
+      } finally {
+        $("refreshBtn").disabled = false;
+        $("refreshBtn").textContent = "Refresh";
       }
     }
-  });
-  
-  // 更新紙交易列表
-  renderTrades(trades);
-  
-  // 更新 stats bar 未實現損益
-  updateUnrealizedStats(trades);
-  
-  // 恢復 scroll 位置
-  window.scrollTo(0, scrollY);
-}
 
-// 獨立渲染紙交易，讓即時更新可以重複呼叫
-function renderTrades(trades) {
-  if (!trades) return;
-  
-  const openTrades = trades.filter(t => t.status === 'open');
-  const closedTrades = trades.filter(t => t.status === 'closed');
-  
-  // 持倉中
-  const openBody = document.getElementById('openTradesBody');
-  const openEmpty = document.getElementById('openTradesEmpty');
-  if (openTrades.length === 0) {
-    openBody.innerHTML = '';
-    openEmpty.style.display = 'block';
-  } else {
-    openEmpty.style.display = 'none';
-    const sorted = [...openTrades].reverse();
-    openBody.innerHTML = sorted.map(t => renderTradeItem(t)).join('');
-  }
-  
-  // 已平倉
-  const closedBody = document.getElementById('closedTradesBody');
-  const closedEmpty = document.getElementById('closedTradesEmpty');
-  if (closedTrades.length === 0) {
-    closedBody.innerHTML = '';
-    closedEmpty.style.display = 'block';
-  } else {
-    closedEmpty.style.display = 'none';
-    const sorted = [...closedTrades].reverse();
-    closedBody.innerHTML = sorted.map(t => renderTradeItem(t)).join('');
-  }
-}
+    async function refreshLivePrices() {
+      const symbols = [...new Set([
+        ...signals.map((signal) => signal.symbol),
+        ...trades.filter((trade) => trade.status === "open").map((trade) => trade.symbol),
+      ].filter(Boolean))];
 
-function renderTradeItem(t) {
-  // 已實現損益（已平倉）
-  const realizedPnl = t.realized_pnl_usdt || 0;
-  const realizedPnlPct = t.realized_pnl_pct || 0;
+      if (symbols.length === 0) return;
 
-  const POSITION_VALUE = 600; // 30U / 5% stop (updated from 200)
-  const FEE_RATE = 0.0004; // 0.04% 手續費
-
-  // 未實現損益（持有中，一律用即時價格計算）
-  const live = t.status === 'open' ? (livePrices[t.symbol] || null) : null;
-  let unrealizedPnl = 0;
-  let unrealizedPnlPct = 0;
-  if (live) {
-    // 進出各一次手續費 = FEE_RATE * 2 * POSITION_VALUE
-    const grossPnlPct = ((live - t.entry_price) / t.entry_price) * 100;
-    const grossPnl = (grossPnlPct / 100) * POSITION_VALUE;
-    const fees = POSITION_VALUE * FEE_RATE * 2; // 進+出
-    unrealizedPnlPct = ((grossPnl - fees) / POSITION_VALUE) * 100;
-    unrealizedPnl = grossPnl - fees;
-  } else if (t.status === 'open') {
-    unrealizedPnl = t.unrealized_pnl_usdt || 0;
-    unrealizedPnlPct = t.unrealized_pnl_pct || 0;
-  }
-
-  // 顯示用的損益
-  const displayPnl = t.status === 'closed' ? realizedPnl : unrealizedPnl;
-  const displayPnlPct = t.status === 'closed' ? realizedPnlPct : unrealizedPnlPct;
-
-  // 最大漲幅/回撤 — 持有中即時更新
-  let maxPnlPct = t.max_unrealized_pnl_pct || 0;
-  let minPnlPct = t.min_unrealized_pnl_pct || 0;
-  if (t.status === 'open') {
-    // 更新 stored max/min，並存回 data 以便下次刷新還能記住
-    if (unrealizedPnlPct > maxPnlPct) {
-      maxPnlPct = unrealizedPnlPct;
-      t.max_unrealized_pnl_pct = unrealizedPnlPct;
-      t.max_unrealized_pnl_usdt = unrealizedPnl;
+      try {
+        const query = encodeURIComponent(JSON.stringify(symbols));
+        const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbols=${query}`);
+        if (!response.ok) throw new Error(`Binance returned ${response.status}`);
+        const data = await response.json();
+        livePrices = {};
+        if (Array.isArray(data)) {
+          data.forEach((item) => {
+            livePrices[item.symbol] = asNumber(item.price);
+          });
+        }
+        render();
+      } catch (error) {
+        console.warn("Live price refresh failed", error);
+      }
     }
-    if (unrealizedPnlPct < minPnlPct) {
-      minPnlPct = unrealizedPnlPct;
-      t.min_unrealized_pnl_pct = unrealizedPnlPct;
-      t.min_unrealized_pnl_usdt = unrealizedPnl;
-    }
-  }
-  
-  const pnlCls = displayPnl >= 0 ? 'positive' : 'negative';
-  const pnlSign = displayPnl >= 0 ? '+' : '';
-  
-  const statusText = t.status === 'open' ? '進行中'
-    : t.exit_reason === 'tp2' ? '✅ 停利'
-    : t.exit_reason === 'stop_loss' ? '❌ 停損'
-    : t.exit_reason === 'timeout' ? '⏰ 時間到'
-    : '已結束';
-  const statusCls = t.status === 'open' ? 'open'
-    : t.exit_reason === 'tp2' ? 'tp2'
-    : t.exit_reason === 'stop_loss' ? 'sl'
-    : 'closed';
-  
-  return `<div class="trade-item">
-    <div>
-      <a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${t.base}USDT" target="_blank" rel="noopener"><span class="trade-symbol">${t.base}</span> 🔗</a>
-      <span class="trade-status ${statusCls}">${statusText}</span>
-    </div>
-    <div>
-      <div>入場：$${t.entry_price.toFixed(t.entry_price < 1 ? 6 : t.entry_price < 100 ? 4 : 2)}</div>
-      ${t.status === 'open' && livePrices[t.symbol] ? `<div>當前：$${livePrices[t.symbol].toFixed(livePrices[t.symbol] < 1 ? 6 : livePrices[t.symbol] < 100 ? 4 : 2)}</div>` : ''}
-      ${t.exit_price ? `<div>出場：$${t.exit_price.toFixed(t.exit_price < 1 ? 6 : t.exit_price < 100 ? 4 : 2)}</div>` : ''}
-      <div class="trade-info">${new Date(t.entry_time).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})}</div>
-    </div>
-    <div style="text-align:right">
-      <div class="trade-pnl ${pnlCls}" style="font-size:18px;font-weight:700">${pnlSign}${displayPnl.toFixed(2)} USDT <span style="font-size:14px;font-weight:400">(${pnlSign}${displayPnlPct.toFixed(2)}%)</span></div>
-      ${t.status === 'open' ? `<div style="font-size:11px;color:var(--text-dim);margin-top:4px">
-        最高 ${maxPnlPct > 0 ? '+' : ''}${maxPnlPct.toFixed(1)}% / 最低 ${minPnlPct > 0 ? '+' : ''}${minPnlPct.toFixed(1)}%
-      </div>` : ''}
-    </div>
-  </div>`;
-}
 
-// 即時更新 stats bar 的未實現損益
-function updateUnrealizedStats(trades) {
-  if (!trades || !trades.trades) return;
-  const POSITION_VALUE = 600; // 30U / 5% stop
-  const FEE_RATE = 0.0004;
-  let totalUnrealized = 0;
-  for (const t of trades.trades) {
-    if (t.status !== 'open') continue;
-    const live = livePrices[t.symbol];
-    if (live) {
-      const grossPnl = ((live - t.entry_price) / t.entry_price) * POSITION_VALUE;
+    function startLiveTimer() {
+      if (liveTimer) clearInterval(liveTimer);
+      liveTimer = setInterval(refreshLivePrices, 30000);
+    }
+
+    function render() {
+      renderStats();
+      renderSignals();
+      renderTrades();
+    }
+
+    function getOpenTradePnl(trade) {
+      const live = livePrices[trade.symbol];
+      if (!live) {
+        return {
+          pnl: asNumber(trade.unrealized_pnl_usdt),
+          pct: asNumber(trade.unrealized_pnl_pct),
+          live: null,
+        };
+      }
+
+      const grossPnl = ((live - asNumber(trade.entry_price)) / asNumber(trade.entry_price)) * POSITION_VALUE;
       const fees = POSITION_VALUE * FEE_RATE * 2;
-      totalUnrealized += grossPnl - fees;
+      const pnl = grossPnl - fees;
+      return { pnl, pct: (pnl / POSITION_VALUE) * 100, live };
     }
-  }
-  const el = document.getElementById('statUnrealizedPnl');
-  if (el) {
-    el.textContent = (totalUnrealized >= 0 ? '+' : '') + totalUnrealized.toFixed(2);
-    el.className = 'value ' + (totalUnrealized >= 0 ? 'green' : 'red');
-  }
-  // 同步更新帳戶餘額
-  const balanceEl = document.getElementById('statBalance');
-  if (balanceEl) {
-    const realized = parseFloat(document.getElementById('statTotalPnl')?.textContent?.replace('+','') || '0');
-    balanceEl.textContent = (300 + realized + totalUnrealized).toFixed(2);
-  }
-}
 
-// 每 30 秒刷新即時價格
-function startLiveUpdates(signals, trades) {
-  if (liveInterval) clearInterval(liveInterval);
-  liveInterval = setInterval(() => fetchLivePrices(signals, trades), 30000);
-}
+    function renderStats() {
+      const openTrades = trades.filter((trade) => trade.status === "open");
+      const unrealized = openTrades.reduce((sum, trade) => sum + getOpenTradePnl(trade).pnl, 0);
+      const realized = asNumber(tradeStats.total_realized_pnl_usdt);
+      const equity = START_BALANCE + realized + unrealized;
 
-function switchTab(tab) {
-  document.querySelectorAll('.tabs > .tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-  document.querySelector(`.tabs > .tab[data-tab="${tab}"]`).classList.add('active');
-  document.getElementById(`tab-${tab}`).style.display = 'block';
-}
+      $("statSignals").textContent = signals.length;
+      $("statEquity").textContent = equity.toFixed(2);
+      $("statOpen").textContent = openTrades.length;
+      $("statWin").textContent = `${tradeStats.wins || 0}W / ${tradeStats.losses || 0}L (${asNumber(tradeStats.win_rate).toFixed(0)}%)`;
+      $("statRealized").textContent = formatMoney(realized);
+      $("statRealized").className = `value money ${classForNumber(realized)}`;
+      $("statUnrealized").textContent = formatMoney(unrealized);
+      $("statUnrealized").className = `value money ${classForNumber(unrealized)}`;
+    }
 
-function switchSubTab(subtab) {
-  document.querySelectorAll('.tab-content .tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.subtab-content').forEach(t => t.style.display = 'none');
-  document.querySelector(`.tab-content .tab[data-subtab="${subtab}"]`).classList.add('active');
-  document.getElementById(`tab-${subtab}`).style.display = 'block';
-}
+    function renderSignals() {
+      $("signalSummary").textContent = `${signals.length} signals`;
+      $("signalsEmpty").hidden = signals.length !== 0;
+      $("signalsBody").innerHTML = signals.map((signal, index) => {
+        const scores = signal.scores || {};
+        const scanPrice = asNumber(signal.price);
+        const livePrice = livePrices[signal.symbol];
+        const fromScan = livePrice ? ((livePrice - scanPrice) / scanPrice) * 100 : null;
+        const change24h = asNumber(signal.price_change_24h);
+        const totalScore = asNumber(scores.total);
+        const tags = Array.isArray(signal.tags) ? signal.tags : [];
 
-// Auto refresh on load
-let cachedSignals = [];
-let cachedTrades = [];
+        return `<tr>
+          <td>${index + 1}</td>
+          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${signal.base || signal.symbol}" target="_blank" rel="noopener"><span class="symbol">${signal.base || signal.symbol}</span></a></td>
+          <td class="money">$${formatPrice(scanPrice)}</td>
+          <td class="money">${livePrice ? `$${formatPrice(livePrice)}` : '<span class="muted">Pending</span>'}</td>
+          <td class="${fromScan === null ? 'muted' : classForNumber(fromScan)}">${fromScan === null ? "Pending" : formatPct(fromScan)}</td>
+          <td class="${classForNumber(change24h)}">${formatPct(change24h)}</td>
+          <td>${formatVolume(signal.volume_24h_usdt)}</td>
+          <td><span class="score" style="--score-color:${scoreColor(totalScore)}"><i></i>${totalScore.toFixed(1)}</span></td>
+          <td>${asNumber(scores.volume).toFixed(1)}</td>
+          <td>${asNumber(scores.momentum).toFixed(1)}</td>
+          <td>${asNumber(scores.orderbook).toFixed(1)}</td>
+          <td>${asNumber(scores.breakout).toFixed(1)}</td>
+          <td><div class="tags">${tags.length ? tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("") : '<span class="tag">No tags</span>'}</div></td>
+        </tr>`;
+      }).join("");
+    }
 
-async function refreshAll() {
-  await refreshData();
-  // 如果有資料，啟動即時更新
-  if (cachedSignals.length > 0) {
-    startLiveUpdates(cachedSignals, cachedTrades);
-  }
-}
+    function renderTrades() {
+      const openCount = trades.filter((trade) => trade.status === "open").length;
+      const closedCount = trades.filter((trade) => trade.status === "closed").length;
+      $("tradeSummary").textContent = `${openCount} open, ${closedCount} closed`;
+      $("tradesEmpty").hidden = trades.length !== 0;
 
-// 覆蓋原來的 refreshData 來 cache 資料
-const originalRender = render;
-render = function(data, tradesData) {
-  cachedSignals = data?.signals || [];
-  cachedTrades = tradesData?.trades || [];
-  originalRender(data, tradesData);
-};
+      $("tradesBody").innerHTML = [...trades].reverse().map((trade) => {
+        const isOpen = trade.status === "open";
+        const openPnl = getOpenTradePnl(trade);
+        const pnl = isOpen ? openPnl.pnl : asNumber(trade.realized_pnl_usdt);
+        const pct = isOpen ? openPnl.pct : asNumber(trade.realized_pnl_pct);
+        const live = openPnl.live;
+        const status = isOpen ? "Open" : (trade.exit_reason || "Closed");
+        const tags = Array.isArray(trade.tags) ? trade.tags : [];
 
-refreshAll();
-</script>
+        return `<article class="trade">
+          <div class="trade-head">
+            <a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a>
+            <span class="pill">${status}</span>
+          </div>
+          <div class="trade-row"><span class="muted">Entry</span><span class="money">$${formatPrice(trade.entry_price)}</span></div>
+          ${live ? `<div class="trade-row"><span class="muted">Live</span><span class="money">$${formatPrice(live)}</span></div>` : ""}
+          ${trade.exit_price ? `<div class="trade-row"><span class="muted">Exit</span><span class="money">$${formatPrice(trade.exit_price)}</span></div>` : ""}
+          <div class="trade-row"><span class="muted">Score</span><span>${asNumber(trade.score).toFixed(1)}</span></div>
+          <div class="trade-row"><span class="muted">PnL</span><strong class="${classForNumber(pnl)}">${formatMoney(pnl)} USDT (${formatPct(pct)})</strong></div>
+          <div class="muted">${timeText(trade.entry_time)}</div>
+          <div class="tags">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
+        </article>`;
+      }).join("");
+    }
 
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.querySelectorAll("[data-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-tab]").forEach((item) => item.classList.toggle("active", item === button));
+        $("signalsTab").hidden = button.dataset.tab !== "signals";
+        $("tradesTab").hidden = button.dataset.tab !== "trades";
+      });
+    });
+
+    $("refreshBtn").addEventListener("click", refreshAll);
+    refreshAll();
+  </script>
 </body>
 </html>
