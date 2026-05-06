@@ -380,8 +380,9 @@
 <div class="tabs">
   <button class="tab active" data-tab="signals" onclick="switchTab('signals')">📡 潛力幣種</button>
   <button class="tab" data-tab="livescan" onclick="switchTab('livescan')">⚡ 即時掃描</button>
-  <button class="tab" data-tab="trades" onclick="switchTab('trades')">📊 紙交易</button>
-</div>
+    <button class="tab" data-tab="trades" onclick="switchTab('trades')">📊 紙交易</button>
+    <button class="tab" data-tab="microstructure" onclick="switchTab('microstructure')">🔬 微結構</button>
+  </div>
 
 <!-- Signals Tab -->
 <div id="tab-signals" class="tab-content">
@@ -479,6 +480,30 @@
       <div class="emoji">📋</div>
       <div>還沒有已平倉的交易</div>
     </div>
+  </div>
+</div>
+
+<!-- 微結構 Tab -->
+<div id="tab-microstructure" class="tab-content" style="display:none">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="microstructureScan()" id="microBtn">🔬 掃描 BTC 微結構</button>
+    <div id="microStatus" class="scanning-status" style="display:none">
+      <div class="spinner"></div>
+      <span>分析中...</span>
+    </div>
+    <span id="microIdle" style="color:var(--text-dim);font-size:13px">分析 BTC 訂單簿、成交量、CVD 與 Gamma 狀態</span>
+  </div>
+  <div id="microResult" style="display:none">
+    <!-- BTC 價格概覽 -->
+    <div class="stats-bar" id="microPriceBar"></div>
+    <!-- 四層分析卡片 -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-top:8px" id="microLayers"></div>
+    <!-- 結論 -->
+    <div id="microConclusion" style="margin-top:12px;padding:16px;border-radius:8px;border:1px solid var(--border);background:var(--card);display:none"></div>
+  </div>
+  <div id="microEmpty" class="empty-state">
+    <div class="emoji">🔬</div>
+    <div>尚未分析<br><small>點擊「掃描 BTC 微結構」查看市場四層狀態</small></div>
   </div>
 </div>
 
@@ -1307,6 +1332,146 @@ function renderLiveResults(results, category) {
       <td><div class="tags">${tags || '<span class="tag tag-default">觀察中</span>'}</div></td>
     </tr>`;
   }).join('');
+}
+
+// ===== 微結構分析（全前端 Binance API）=====
+async function microstructureScan() {
+  const btn = document.getElementById('microBtn');
+  const statusDiv = document.getElementById('microStatus');
+  const statusText = statusDiv.querySelector('span');
+  const idleText = document.getElementById('microIdle');
+  const resultDiv = document.getElementById('microResult');
+  const emptyDiv = document.getElementById('microEmpty');
+  const priceBar = document.getElementById('microPriceBar');
+  const layersDiv = document.getElementById('microLayers');
+  const conclusionDiv = document.getElementById('microConclusion');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ 分析中...';
+  idleText.style.display = 'none';
+  statusDiv.style.display = 'flex';
+  statusText.textContent = '正在拉取 BTC 市場資料...';
+
+  try {
+    // 拉 BTC 資料
+    const [depth, ticker, klines, klines1h] = await Promise.all([
+      binanceGet('/api/v3/depth', { symbol: 'BTCUSDT', limit: 50 }),
+      binanceGet('/api/v3/ticker/24hr', { symbol: 'BTCUSDT' }),
+      binanceGet('/api/v3/klines', { symbol: 'BTCUSDT', interval: '1d', limit: 90 }),
+      binanceGet('/api/v3/klines', { symbol: 'BTCUSDT', interval: '1h', limit: 48 }),
+    ]);
+
+    // 計算各層數據
+    const price = Number(ticker.lastPrice);
+    const chg24 = Number(ticker.priceChangePercent);
+    const vol24 = Number(ticker.quoteVolume);
+
+    // 訂單簿
+    const bids = depth.bids.slice(0, 10).reduce((s, b) => s + Number(b[1]), 0);
+    const asks = depth.asks.slice(0, 10).reduce((s, a) => s + Number(a[1]), 0);
+    const bidAskRatio = bids / (asks || 1);
+
+    // SMA
+    const closes = klines.map(k => Number(k[4]));
+    const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+    const sma50 = closes.slice(-50).reduce((a, b) => a + b, 0) / 50;
+
+    // 成交量 regime
+    const vol1h = klines1h.map(k => Number(k[5]));
+    const avgVol1h = vol1h.reduce((a, b) => a + b, 0) / vol1h.length;
+    const volRatio1h = vol1h[vol1h.length - 1] / (avgVol1h || 1);
+
+    // CVD 估計
+    let cvdSignal, cvdDetail;
+    if (bidAskRatio > 1.3 && volRatio1h > 1.3) { cvdSignal = 'bullish'; cvdDetail = '買盤強勁+量增，有人在吸籌'; }
+    else if (bidAskRatio < 0.7 && volRatio1h > 1.3) { cvdSignal = 'bearish'; cvdDetail = '賣壓沉重+量增，有人在出貨'; }
+    else if (bidAskRatio > 1.1) { cvdSignal = 'slightly_bullish'; cvdDetail = '買盤略佔優勢'; }
+    else if (bidAskRatio < 0.9) { cvdSignal = 'slightly_bearish'; cvdDetail = '賣盤略多'; }
+    else { cvdSignal = 'neutral'; cvdDetail = '買賣平衡'; }
+
+    // Regime
+    let regimeSignal, regimeDetail;
+    if (price > sma20 && sma20 > sma50) { regimeSignal = 'bullish'; regimeDetail = '多頭排列'; }
+    else if (price < sma20 && sma20 < sma50) { regimeSignal = 'bearish'; regimeDetail = '空頭排列'; }
+    else if (price > sma20 && price < sma50) { regimeSignal = 'neutral'; regimeDetail = '盤整（在兩均線之間）'; }
+    else { regimeSignal = 'mixed'; regimeDetail = '方向不明'; }
+
+    // Gamma 估計
+    const priceVsSma20 = (price - sma20) / sma20;
+    let gammaSignal, gammaDetail;
+    if (priceVsSma20 > 0.05) { gammaSignal = 'bearish'; gammaDetail = `價格高於 SMA20 ${(priceVsSma20*100).toFixed(1)}%，可能負 gamma，突破會加速`; }
+    else if (priceVsSma20 > 0.02) { gammaSignal = 'slightly_bearish'; gammaDetail = '略高於 SMA20，接近 gamma neutral'; }
+    else if (priceVsSma20 < -0.05) { gammaSignal = 'bullish'; gammaDetail = `價格低於 SMA20 ${Math.abs(priceVsSma20*100).toFixed(1)}%，可能正 gamma，有支撐`; }
+    else { gammaSignal = 'neutral'; gammaDetail = '在 SMA20 附近，gamma 中性'; }
+
+    // 成交量分析
+    let volSignal, volDetail;
+    if (chg24 > 3 && volRatio1h > 1.3) { volSignal = 'bullish'; volDetail = '價漲量增，健康趨勢'; }
+    else if (chg24 > 3 && volRatio1h < 0.7) { volSignal = 'bearish_div'; volDetail = '價漲量縮，趨勢衰竭'; }
+    else if (chg24 < -3 && volRatio1h > 1.3) { volSignal = 'bearish'; volDetail = '價跌量增，恐慌或換手'; }
+    else if (chg24 < -3 && volRatio1h < 0.7) { volSignal = 'neutral'; volDetail = '價跌量縮，正常回檔'; }
+    else { volSignal = 'neutral'; volDetail = '量能正常'; }
+
+    // 渲染
+    statusText.textContent = '繪製結果...';
+
+    // Price bar
+    priceBar.innerHTML = `
+      <div class="stat-card"><div class="value blue">$${price.toLocaleString()}</div><div class="label">BTC 價格</div></div>
+      <div class="stat-card"><div class="value ${chg24 >= 0 ? 'green' : 'red'}">${chg24 >= 0 ? '+' : ''}${chg24.toFixed(2)}%</div><div class="label">24h 漲跌</div></div>
+      <div class="stat-card"><div class="value">$${(vol24 / 1000000).toFixed(0)}M</div><div class="label">24h 成交量</div></div>
+      <div class="stat-card"><div class="value">SMA20 $${sma20.toLocaleString()}</div><div class="label">${regimeSignal.includes('bullish') ? '🟢' : regimeSignal.includes('bearish') ? '🔴' : '⚪'} ${regimeDetail}</div></div>
+      <div class="stat-card"><div class="value">SMA50 $${sma50.toLocaleString()}</div><div class="label">vol 1h比: ${volRatio1h.toFixed(2)}</div></div>
+    `;
+
+    // 層級卡片
+    const layers = [
+      { icon: '📗', name: '① 訂單簿', sig: bidAskRatio > 1.2 ? 'bullish' : bidAskRatio < 0.8 ? 'bearish' : 'neutral', detail: `Bid/Ask Ratio: ${bidAskRatio.toFixed(2)}。${bidAskRatio > 1.2 ? '買盤強勁，有人在接' : bidAskRatio < 0.8 ? '賣壓較重' : '買賣均衡'}` },
+      { icon: '📊', name: '② 成交量', sig: volSignal, detail: volDetail },
+      { icon: '🎯', name: '③ CVD 意圖', sig: cvdSignal, detail: cvdDetail },
+      { icon: '🔄', name: '④ Gamma', sig: gammaSignal, detail: gammaDetail },
+    ];
+    layersDiv.innerHTML = layers.map(l => {
+      const sigClass = l.sig.includes('bullish') ? 'green' : l.sig.includes('bearish') ? 'red' : 'blue';
+      const sigLabel = l.sig.includes('bullish') ? '🟢 偏多' : l.sig.includes('bearish') ? '🔴 偏空' : '⚪ 中性';
+      return `<div class="stat-card" style="text-align:left;padding:12px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px">${l.icon} ${l.name}</div>
+        <div class="value ${sigClass}" style="font-size:13px;margin-bottom:4px">${sigLabel}</div>
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.4">${l.detail}</div>
+      </div>`;
+    }).join('');
+
+    // 結論
+    const bullishCount = layers.filter(l => l.sig.includes('bullish')).length + (regimeSignal.includes('bullish') ? 1 : 0);
+    const bearishCount = layers.filter(l => l.sig.includes('bearish')).length + (regimeSignal.includes('bearish') ? 1 : 0);
+    const totalCount = 5; // 4 layers + regime
+
+    let conclusionText, conclusionColor, conclusionBg;
+    if (bullishCount >= 4) { conclusionText = `✅ 結構偏多（${bullishCount}/${totalCount} 層確認）。可找做多機會，順勢交易。`; conclusionColor = 'var(--green)'; conclusionBg = 'rgba(34,197,94,0.1)'; }
+    else if (bearishCount >= 4) { conclusionText = `🔴 結構偏空（${bearishCount}/${totalCount} 層確認）。可找做空機會，或空手觀望。`; conclusionColor = 'var(--red)'; conclusionBg = 'rgba(239,68,68,0.1)'; }
+    else if (bullishCount >= 3) { conclusionText = `🟡 微偏多（${bullishCount}/${totalCount} 層）。謹慎進場，窄停損。`; conclusionColor = 'var(--yellow)'; conclusionBg = 'rgba(245,158,11,0.1)'; }
+    else if (bearishCount >= 3) { conclusionText = `🟠 微偏空（${bearishCount}/${totalCount} 層）。謹慎或等待。`; conclusionColor = 'var(--yellow)'; conclusionBg = 'rgba(245,158,11,0.1)'; }
+    else { conclusionText = `⚪ 方向不明確（多${bullishCount} / 空${bearishCount}）。不交易，等更多確認。`; conclusionColor = 'var(--text-dim)'; conclusionBg = 'rgba(107,127,160,0.1)'; }
+
+    conclusionDiv.style.display = 'block';
+    conclusionDiv.style.border = `1px solid ${conclusionColor}`;
+    conclusionDiv.style.background = conclusionBg;
+    conclusionDiv.innerHTML = `<div style="font-size:16px;font-weight:700;color:${conclusionColor}">${conclusionText}</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:6px">BTC $${price.toLocaleString()} | ${new Date().toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})}</div>`;
+
+    resultDiv.style.display = 'block';
+    emptyDiv.style.display = 'none';
+    statusDiv.style.display = 'none';
+    btn.textContent = '🔄 重新掃描';
+  } catch(e) {
+    statusText.textContent = `❌ 分析失敗：${e.message}`;
+    statusDiv.style.display = 'none';
+    resultDiv.style.display = 'block';
+    document.getElementById('microLayers').innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">❌ ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔬 重新掃描';
+  }
 }
 </script>
 
