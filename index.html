@@ -384,6 +384,28 @@
         overscroll-behavior-y: auto;
         padding-bottom: calc(12px + env(safe-area-inset-bottom));
       }
+
+      /* Prevent layout overflow from reaching document level */
+      .shell { overflow-x: hidden; }
+
+      /* Hide desktop hint texts */
+      .desktop-hint { display: none; }
+
+      /* Compact table: smaller font + tighter padding so more columns are
+         visible before horizontal scroll starts */
+      th { font-size: 10px; letter-spacing: 0; }
+      td { font-size: 12px; }
+      th, td { padding: 4px 5px; }
+      table { min-width: 680px; }
+      .trade-table { min-width: 720px; }
+
+      /* Narrower score bar */
+      .score { min-width: 60px; gap: 5px; }
+      .score i { width: 28px; }
+
+      /* Compact tag chips */
+      .tags { max-width: 180px; }
+      .tag { font-size: 10px; min-height: 18px; padding: 0 4px; }
     }
   </style>
 </head>
@@ -450,7 +472,7 @@
             <option value="tags-asc">Tags A to Z</option>
             <option value="tags-desc">Tags Z to A</option>
           </select>
-          <span>Live prices refresh every 30s</span>
+          <span class="desktop-hint">Live prices refresh every 30s</span>
         </div>
       </div>
       <div class="scroll">
@@ -481,7 +503,7 @@
     <section id="tradesTab" class="panel" hidden>
       <div class="toolbar">
         <span id="tradeSummary">No trades loaded</span>
-        <span>Open trade high/low updates from live price; closed trades stay fixed</span>
+        <span class="desktop-hint">Open trade high/low updates from live price; closed trades stay fixed</span>
       </div>
       <nav class="trade-subtabs" aria-label="Trade record tabs">
         <button type="button" class="active" data-trade-tab="open">Open Positions</button>
