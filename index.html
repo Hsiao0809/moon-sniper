@@ -529,6 +529,8 @@ async function fetchLivePrices(signals, trades) {
 }
 
 function updateLiveDisplay(signals, trades) {
+  // 記住 scroll 位置
+  const scrollY = window.scrollY;
   const tbody = document.getElementById('signalsBody');
   if (!tbody) return;
   
@@ -561,6 +563,9 @@ function updateLiveDisplay(signals, trades) {
   
   // 更新 stats bar 未實現損益
   updateUnrealizedStats(trades);
+  
+  // 恢復 scroll 位置
+  window.scrollTo(0, scrollY);
 }
 
 // 獨立渲染紙交易，讓即時更新可以重複呼叫
