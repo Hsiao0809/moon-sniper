@@ -926,13 +926,17 @@ function switchSubTab(subtab) {
 // Auto refresh on load
 let cachedSignals = [];
 let cachedTrades = [];
+let currentTab = 'signals';
 
 async function refreshAll() {
+  currentTab = document.querySelector('.tabs > .tab.active')?.getAttribute('data-tab') || 'signals';
   await refreshData();
   // 如果有資料，啟動即時更新
   if (cachedSignals.length > 0) {
     startLiveUpdates(cachedSignals, cachedTrades);
   }
+  // 恢復 tab
+  switchTab(currentTab);
 }
 
 // 覆蓋原來的 refreshData 來 cache 資料
