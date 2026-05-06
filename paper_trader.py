@@ -23,23 +23,23 @@ TRADES_PATH = BASE_DIR / "paper_trades.json"
 POSITION_VALUE_MULTIPLIER = 1.0  # 稍後從 config 計算
 
 def load_config():
-    with open(CONFIG_PATH) as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 def load_signals():
     if not SIGNALS_PATH.exists():
         return {"signals": []}
-    with open(SIGNALS_PATH) as f:
+    with open(SIGNALS_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 def load_trades():
     if not TRADES_PATH.exists():
         return {"trades": [], "stats": {}}
-    with open(TRADES_PATH) as f:
+    with open(TRADES_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 def save_trades(data):
-    with open(TRADES_PATH, "w") as f:
+    with open(TRADES_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 def get_position_value(config):

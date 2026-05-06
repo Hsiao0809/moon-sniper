@@ -2,9 +2,9 @@
 """發送 Telegram 掃描報告"""
 import json, os, urllib.request, urllib.parse
 
-with open("signals.json") as f:
+with open("signals.json", encoding="utf-8") as f:
     signals = json.load(f)
-with open("paper_trades.json") as f:
+with open("paper_trades.json", encoding="utf-8") as f:
     trades = json.load(f)
 
 lines = ["🌙 Moon Sniper 掃描報告"]

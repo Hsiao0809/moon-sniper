@@ -17,7 +17,7 @@ CONFIG_PATH = BASE_DIR / "config.json"
 SIGNALS_PATH = BASE_DIR / "signals.json"
 
 def load_config():
-    with open(CONFIG_PATH) as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 def run_binance_cli(args):
@@ -468,7 +468,7 @@ def scan(config):
     tickers = get_all_tickers()
     if not tickers:
         print("錯誤：無法取得 ticker 資料", file=sys.stderr)
-        return []
+        return None
     
     exchange_info = get_exchange_info()
     config_scan = config["scan"]
@@ -528,7 +528,7 @@ def scan(config):
             continue
         
         # 計算各項分數
-        vol_score, _ = calculate_volume_score(ticker, config)
+        vol_score, quote_vol = calculate_volume_score(ticker, config)
         momentum_score = calculate_momentum_score(ticker)
         
         klines = klines_data.get(symbol, [])
@@ -687,12 +687,15 @@ def scan(config):
 
 def save_signals(signals):
     """儲存 signals.json"""
+    if signals is None:
+        print("未更新 signals.json：本次掃描沒有取得 ticker 資料", file=sys.stderr)
+        return
     output = {
         "scanned_at": datetime.now(timezone.utc).isoformat(),
         "total_scanned": len(signals),
         "signals": signals,
     }
-    with open(BASE_DIR / "signals.json", "w") as f:
+    with open(BASE_DIR / "signals.json", "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
     print(f"已寫入 signals.json（{len(signals)} 筆）")
 
