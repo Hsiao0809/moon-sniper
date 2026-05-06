@@ -1354,11 +1354,13 @@ async function microstructureScan() {
 
   try {
     // 拉 BTC 資料
-    const [depth, ticker, klines, klines1h] = await Promise.all([
+    const [depth, ticker, klines, klines1h, oiData, oiHist] = await Promise.all([
       binanceGet('/api/v3/depth', { symbol: 'BTCUSDT', limit: 50 }),
       binanceGet('/api/v3/ticker/24hr', { symbol: 'BTCUSDT' }),
       binanceGet('/api/v3/klines', { symbol: 'BTCUSDT', interval: '1d', limit: 90 }),
       binanceGet('/api/v3/klines', { symbol: 'BTCUSDT', interval: '1h', limit: 48 }),
+      binanceFapiGet('/fapi/v1/openInterest', { symbol: 'BTCUSDT' }).catch(() => null),
+      binanceFapiGet('/futures/data/openInterestHist', { symbol: 'BTCUSDT', period: '1h', limit: 24 }).catch(() => null),
     ]);
 
     // 計算各層數據
@@ -1404,6 +1406,22 @@ async function microstructureScan() {
     else if (priceVsSma20 < -0.05) { gammaSignal = 'bullish'; gammaDetail = `價格低於 SMA20 ${Math.abs(priceVsSma20*100).toFixed(1)}%，可能正 gamma，有支撐`; }
     else { gammaSignal = 'neutral'; gammaDetail = '在 SMA20 附近，gamma 中性'; }
 
+    // OI 分析
+    let oiSignal, oiDetail;
+    if (oiHist && oiHist.length >= 2) {
+      const oiValues = oiHist.map(o => Number(o.sumOpenInterest) || Number(o.openInterest) || 0);
+      const oiNow = oiValues[oiValues.length - 1];
+      const oiBefore = oiValues[0];
+      const oiChange = oiBefore > 0 ? ((oiNow - oiBefore) / oiBefore) * 100 : 0;
+      if (chg24 > 2 && oiChange > 5) { oiSignal = 'bullish'; oiDetail = `OI +${oiChange.toFixed(1)}%，新資金進場做多，趨勢健康`; }
+      else if (chg24 > 2 && oiChange < -5) { oiSignal = 'bearish_div'; oiDetail = `OI ${oiChange.toFixed(1)}%，多頭在平倉，趨勢可能結束`; }
+      else if (chg24 < -2 && oiChange > 5) { oiSignal = 'bearish'; oiDetail = `OI +${oiChange.toFixed(1)}%，新資金進場做空`; }
+      else if (chg24 < -2 && oiChange < -5) { oiSignal = 'bullish_div'; oiDetail = `OI ${oiChange.toFixed(1)}%，空頭在平倉，底部可能接近`; }
+      else { oiSignal = 'neutral'; oiDetail = `OI 變化 ${oiChange.toFixed(1)}%，無異常`; }
+    } else {
+      oiSignal = 'neutral'; oiDetail = 'OI 數據不可用';
+    }
+
     // 成交量分析
     let volSignal, volDetail;
     if (chg24 > 3 && volRatio1h > 1.3) { volSignal = 'bullish'; volDetail = '價漲量增，健康趨勢'; }
@@ -1426,10 +1444,12 @@ async function microstructureScan() {
 
     // 層級卡片
     const layers = [
+      { icon: '🟢', name: 'Regime', sig: regimeSignal, detail: regimeDetail },
       { icon: '📗', name: '① 訂單簿', sig: bidAskRatio > 1.2 ? 'bullish' : bidAskRatio < 0.8 ? 'bearish' : 'neutral', detail: `Bid/Ask Ratio: ${bidAskRatio.toFixed(2)}。${bidAskRatio > 1.2 ? '買盤強勁，有人在接' : bidAskRatio < 0.8 ? '賣壓較重' : '買賣均衡'}` },
       { icon: '📊', name: '② 成交量', sig: volSignal, detail: volDetail },
       { icon: '🎯', name: '③ CVD 意圖', sig: cvdSignal, detail: cvdDetail },
       { icon: '🔄', name: '④ Gamma', sig: gammaSignal, detail: gammaDetail },
+      { icon: '📐', name: '⑤ OI 未平倉', sig: oiSignal, detail: oiDetail },
     ];
     layersDiv.innerHTML = layers.map(l => {
       const sigClass = l.sig.includes('bullish') ? 'green' : l.sig.includes('bearish') ? 'red' : 'blue';
@@ -1442,9 +1462,9 @@ async function microstructureScan() {
     }).join('');
 
     // 結論
-    const bullishCount = layers.filter(l => l.sig.includes('bullish')).length + (regimeSignal.includes('bullish') ? 1 : 0);
-    const bearishCount = layers.filter(l => l.sig.includes('bearish')).length + (regimeSignal.includes('bearish') ? 1 : 0);
-    const totalCount = 5; // 4 layers + regime
+    const bullishCount = layers.filter(l => l.sig.includes('bullish')).length;
+    const bearishCount = layers.filter(l => l.sig.includes('bearish')).length;
+    const totalCount = layers.length; // 6 層
 
     let conclusionText, conclusionColor, conclusionBg;
     if (bullishCount >= 4) { conclusionText = `✅ 結構偏多（${bullishCount}/${totalCount} 層確認）。可找做多機會，順勢交易。`; conclusionColor = 'var(--green)'; conclusionBg = 'rgba(34,197,94,0.1)'; }
