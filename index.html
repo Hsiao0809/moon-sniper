@@ -882,7 +882,7 @@ function renderTradeItem(t) {
   
   return `<div class="trade-item">
     <div>
-      <a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${t.base}USDT" target="_blank" rel="noopener"><span class="trade-symbol">${t.base}</span> 🔗</a>
+      <a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${t.base}USDT" target="_blank" rel="noopener"><span class="trade-symbol">${t.direction === 'short' ? '🔴' : '🟢'} ${t.base}</span> 🔗</a>
       <span class="trade-status ${statusCls}">${statusText}</span>
     </div>
     <div class="trade-meta-grid">
