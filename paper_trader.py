@@ -45,11 +45,15 @@ def save_trades(data):
 def get_position_value(config):
     """計算每筆交易的部位值（USDT）"""
     tc = config["paper_trade"]
-    max_risk = tc["max_risk_usdt"]
+    # 支援兩種設定方式
+    if "max_risk_usdt" in tc:
+        max_risk = tc["max_risk_usdt"]
+    else:
+        max_risk = tc["account_balance"] * tc["max_risk_per_trade_pct"]
     stop_loss_pct = abs(tc["stop_loss"])
     if stop_loss_pct == 0:
         return 0
-    return max_risk / stop_loss_pct  # 10 / 0.05 = 200 USDT
+    return max_risk / stop_loss_pct  # 30 / 0.05 = 600 USDT
 
 def calc_pnl(current_price, entry_price, position_value):
     """計算損益 USDT 和百分比"""

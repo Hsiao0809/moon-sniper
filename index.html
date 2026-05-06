@@ -593,7 +593,7 @@ function renderTradeItem(t) {
   const realizedPnl = t.realized_pnl_usdt || 0;
   const realizedPnlPct = t.realized_pnl_pct || 0;
 
-  const POSITION_VALUE = 200; // 10U / 5% stop
+  const POSITION_VALUE = 600; // 30U / 5% stop (updated from 200)
 
   // 未實現損益（持有中，一律用即時價格計算）
   const live = t.status === 'open' ? (livePrices[t.symbol] || null) : null;
@@ -664,7 +664,7 @@ function renderTradeItem(t) {
 // 即時更新 stats bar 的未實現損益
 function updateUnrealizedStats(trades) {
   if (!trades || !trades.trades) return;
-  const POSITION_VALUE = 200;
+  const POSITION_VALUE = 600; // 30U / 5% stop
   let totalUnrealized = 0;
   for (const t of trades.trades) {
     if (t.status !== 'open') continue;
