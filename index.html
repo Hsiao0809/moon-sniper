@@ -350,163 +350,89 @@
 
     @media (max-width: 900px) {
       html, body {
-        width: 100%;
-        min-height: 100dvh;
-        height: auto;
-        overflow-x: hidden;
+        height: 100dvh;
         overflow-y: auto;
         overscroll-behavior-y: auto;
       }
-
       .shell {
-        width: 100%;
-        max-width: 100%;
         min-height: 100dvh;
         height: auto;
-        padding: 10px 10px calc(12px + env(safe-area-inset-bottom));
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        overflow: hidden;
-      }
-
-      header {
-        grid-template-columns: 1fr;
-        gap: 10px;
-        min-width: 0;
-      }
-
-      h1 { font-size: clamp(32px, 10vw, 46px); }
-      .subtitle { font-size: 14px; }
-      .actions {
-        align-items: flex-start;
-        justify-content: space-between;
-        white-space: normal;
-      }
-      #lastUpdated { line-height: 1.35; }
-
-      .topbar {
-        width: 100%;
-        grid-template-columns: 1fr;
-        gap: 10px;
-        min-width: 0;
-      }
-
-      .stats {
-        width: 100%;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-      }
-
-      .stat {
-        min-width: 0;
-        min-height: 58px;
-        padding: 9px 10px;
-      }
-
-      .stat .label { font-size: 12px; }
-      .stat .value { font-size: 18px; }
-
-      .tabs {
-        width: 100%;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-      }
-
-      .tabs button,
-      .trade-subtabs button {
-        width: 100%;
-        min-width: 0;
-        min-height: 44px;
-        font-size: 16px;
-      }
-
-      .panel {
-        width: 100%;
-        min-width: 0;
-        overflow: hidden;
-      }
-
-      #signalsTab.panel,
-      #tradesTab.panel {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .toolbar {
-        grid-template-columns: 1fr;
-        gap: 10px;
-        padding: 10px;
-      }
-
-      .filters {
-        width: 100%;
-        align-items: stretch;
-        flex-wrap: wrap;
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+        gap: 6px;
         overflow: visible;
       }
-
-      .tag-filter-list {
-        width: 100%;
-        flex: 1 1 100%;
-      }
-
-      #sortSelect {
-        width: 100%;
-        min-height: 44px;
-      }
-
-      .trade-subtabs {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        padding: 8px 10px;
-      }
-
+      header { grid-template-columns: 1fr; gap: 6px; }
+      .actions { justify-content: space-between; white-space: normal; }
+      .topbar { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .toolbar { grid-template-columns: 1fr; }
+      .tabs { justify-content: stretch; }
+      .tabs button { flex: 1; }
+      .panel,
       .trade-sections,
-      .trade-section { min-width: 0; }
-
-      .section-title {
-        min-height: 38px;
-        padding: 9px 10px;
+      .trade-section {
+        display: block;
+        overflow: visible;
       }
-
+      .trade-subtabs { padding: 6px 8px; }
+      .trade-subtabs button { flex: 1; }
+      .trade-section { border-bottom: 1px solid var(--border); }
       .scroll {
-        width: 100%;
-        max-width: 100%;
         overflow-x: auto;
-        overflow-y: hidden;
+        overflow-y: visible;
         overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+        overscroll-behavior-y: auto;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
       }
 
-      table { min-width: 860px; }
-      .trade-table { min-width: 960px; }
-      th, td { padding: 12px 10px; }
-      .sticky-symbol {
-        min-width: 92px;
-        max-width: 112px;
-      }
+      /* Better touch targets */
+      button, select { min-height: 44px; }
+      .tag-filter { min-height: 36px; }
+      .sort-button { min-height: 0; }
+      .trade-subtabs button { min-height: 36px; }
+
+      /* Hide desktop-only helper text */
+      .desktop-hint { display: none; }
+
+      /* Sort select fills available width */
+      #sortSelect { width: 100%; }
+
+      /* Signals table: hide rank and all sub-score columns */
+      #signalsTab table th:nth-child(1),
+      #signalsTab table td:nth-child(1),
+      #signalsTab table th:nth-child(9),
+      #signalsTab table td:nth-child(9),
+      #signalsTab table th:nth-child(10),
+      #signalsTab table td:nth-child(10),
+      #signalsTab table th:nth-child(11),
+      #signalsTab table td:nth-child(11),
+      #signalsTab table th:nth-child(12),
+      #signalsTab table td:nth-child(12) { display: none; }
+
+      #signalsTab table { min-width: 640px; }
+
+      /* Open trades: hide Status and Max Up/Down */
+      #openTradesSection th:nth-child(2),
+      #openTradesSection td:nth-child(2),
+      #openTradesSection th:nth-child(6),
+      #openTradesSection td:nth-child(6),
+      #openTradesSection th:nth-child(7),
+      #openTradesSection td:nth-child(7) { display: none; }
+
+      #openTradesSection .trade-table { min-width: 760px; }
+
+      /* Closed trades: hide Max Up/Down */
+      #closedTradesSection th:nth-child(6),
+      #closedTradesSection td:nth-child(6),
+      #closedTradesSection th:nth-child(7),
+      #closedTradesSection td:nth-child(7) { display: none; }
+      #closedTradesSection .trade-table { min-width: 820px; }
     }
 
-    @media (max-width: 420px) {
-      .shell { padding-inline: 8px; }
-      .stats { grid-template-columns: 1fr 1fr; }
-      .stat { min-height: 54px; }
-      .stat .value { font-size: 17px; }
-      table { min-width: 780px; }
-      .trade-table { min-width: 900px; }
-      th, td {
-        padding: 10px 8px;
-        font-size: 12px;
-      }
-      .sticky-symbol {
-        min-width: 84px;
-        max-width: 104px;
-      }
+    @media (max-width: 480px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
+
   </style>
 </head>
 <body>
@@ -603,11 +529,11 @@
     <section id="tradesTab" class="panel" hidden>
       <div class="toolbar">
         <span id="tradeSummary">No trades loaded</span>
-        <span>Open trade high/low updates from live price; closed trades stay fixed</span>
+        <span class="desktop-hint">Open trade high/low updates from live price; closed trades stay fixed</span>
       </div>
       <nav class="trade-subtabs" aria-label="Trade record tabs">
-        <button type="button" class="active" data-trade-tab="open">持倉</button>
-        <button type="button" data-trade-tab="closed">已平倉</button>
+        <button type="button" class="active" data-trade-tab="open">Open Positions</button>
+        <button type="button" data-trade-tab="closed">Closed Trades</button>
       </nav>
       <div class="trade-sections">
         <section class="trade-section" id="openTradesSection" data-trade-panel="open">
