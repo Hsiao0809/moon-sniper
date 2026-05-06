@@ -21,17 +21,18 @@
     --purple: #8b5cf6;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { height: 100%; overflow: hidden; }
+  html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding: 12px 20px;
+    padding: 8px 16px;
     max-width: 1400px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
   .header {
     display: flex;
@@ -88,26 +89,26 @@
   /* Stats bar */
   .stats-bar {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: 6px;
-    margin-bottom: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    gap: 4px;
+    margin-bottom: 6px;
     flex-shrink: 0;
   }
   .stat-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px;
+    border-radius: 7px;
+    padding: 5px 6px;
     text-align: center;
   }
   .stat-card .value {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
   }
   .stat-card .label {
-    font-size: 12px;
+    font-size: 10px;
     color: var(--text-dim);
-    margin-top: 4px;
+    margin-top: 2px;
   }
   .stat-card .value.green { color: var(--green); }
   .stat-card .value.red { color: var(--red); }
@@ -146,7 +147,8 @@
   /* Signal table */
   .table-wrap {
     overflow: auto;
-    max-height: calc(100vh - 180px);
+    max-height: calc(100vh - 160px);
+    -webkit-overflow-scrolling: touch;
   }
   table {
     width: 100%;
@@ -158,7 +160,7 @@
   }
   th {
     background: var(--card-hover);
-    padding: 12px 16px;
+    padding: 10px 12px;
     text-align: left;
     font-size: 12px;
     color: var(--text-dim);
@@ -166,9 +168,25 @@
     letter-spacing: 0.5px;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
+    user-select: none;
   }
+  th.sortable { cursor: pointer; }
+  th.sortable:hover { color: var(--text); background: #22304f; }
+  th.sortable .sort-indicator { color: var(--blue); margin-left: 3px; }
+  .sticky-symbol {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: var(--card);
+    box-shadow: 1px 0 0 var(--border);
+  }
+  th.sticky-symbol {
+    z-index: 5;
+    background: var(--card-hover);
+  }
+  tr:hover td.sticky-symbol { background: var(--card-hover); }
   td {
-    padding: 12px 16px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--border);
     font-size: 14px;
   }
@@ -280,10 +298,24 @@
 
   /* Responsive */
   @media (max-width: 768px) {
-    body { padding: 12px; }
-    .header h1 { font-size: 22px; }
-    .stats-bar { grid-template-columns: repeat(2, 1fr); }
-    td, th { padding: 8px 10px; font-size: 13px; }
+    body { padding: 8px; height: auto; min-height: 100dvh; overflow-y: auto; }
+    .header { margin-bottom: 5px; gap: 5px; }
+    .header h1 { font-size: 18px; }
+    .header .subtitle { font-size: 12px; }
+    .header-right { width: 100%; justify-content: space-between; gap: 6px; }
+    .scan-time { font-size: 10px; line-height: 1.25; }
+    .btn { padding: 6px 10px; font-size: 12px; }
+    .stats-bar { grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 5px; }
+    .stat-card { padding: 4px 3px; }
+    .stat-card .value { font-size: 13px; }
+    .stat-card .label { font-size: 9px; }
+    .tabs { margin-bottom: 5px; }
+    .tab { padding: 6px 10px; font-size: 12px; }
+    .table-wrap { max-height: none; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; }
+    table { min-width: 1080px; }
+    td, th { padding: 7px 8px; font-size: 12px; }
+    .symbol-name { font-size: 13px; }
+    .tag { font-size: 10px; padding: 1px 5px; }
   }
 </style>
 </head>
@@ -308,7 +340,6 @@
   <div class="stat-card"><div class="value green" id="statWinRate">—</div><div class="label">勝率</div></div>
   <div class="stat-card"><div class="value" id="statTotalPnl">—</div><div class="label">已實現損益 (USDT)</div></div>
   <div class="stat-card"><div class="value" id="statUnrealizedPnl">—</div><div class="label">未實現損益 (USDT)</div></div>
-  <div class="stat-card"><div class="value red" id="statMaxDD">—</div><div class="label">最大回撤 (USDT)</div></div>
   <div class="stat-card"><div class="value" id="statTotalTrades">—</div><div class="label">總交易次數</div></div>
 </div>
 
@@ -324,20 +355,20 @@
     <table>
       <thead>
         <tr>
-          <th>#</th>
-          <th>幣種</th>
-          <th>掃描價</th>
-          <th>當前價</th>
-          <th>掃描至今</th>
-          <th>24h 漲跌</th>
-          <th>24h 成交量</th>
-          <th>評分</th>
-          <th>量能</th>
-          <th>動能</th>
-          <th>訂單簿</th>
-          <th>聰明錢</th>
-          <th>突破</th>
-          <th>訊號</th>
+          <th class="sortable" data-sort="rank" onclick="sortSignals('rank')">#<span class="sort-indicator" data-sort-indicator="rank"></span></th>
+          <th class="sortable sticky-symbol" data-sort="symbol" onclick="sortSignals('symbol')">幣種<span class="sort-indicator" data-sort-indicator="symbol"></span></th>
+          <th class="sortable" data-sort="scanPrice" onclick="sortSignals('scanPrice')">掃描價<span class="sort-indicator" data-sort-indicator="scanPrice"></span></th>
+          <th class="sortable" data-sort="livePrice" onclick="sortSignals('livePrice')">當前價<span class="sort-indicator" data-sort-indicator="livePrice"></span></th>
+          <th class="sortable" data-sort="fromScan" onclick="sortSignals('fromScan')">掃描至今<span class="sort-indicator" data-sort-indicator="fromScan"></span></th>
+          <th class="sortable" data-sort="change24h" onclick="sortSignals('change24h')">24h 漲跌<span class="sort-indicator" data-sort-indicator="change24h"></span></th>
+          <th class="sortable" data-sort="volume24h" onclick="sortSignals('volume24h')">24h 成交量<span class="sort-indicator" data-sort-indicator="volume24h"></span></th>
+          <th class="sortable" data-sort="score" onclick="sortSignals('score')">評分<span class="sort-indicator" data-sort-indicator="score"></span></th>
+          <th class="sortable" data-sort="volumeScore" onclick="sortSignals('volumeScore')">量能<span class="sort-indicator" data-sort-indicator="volumeScore"></span></th>
+          <th class="sortable" data-sort="momentum" onclick="sortSignals('momentum')">動能<span class="sort-indicator" data-sort-indicator="momentum"></span></th>
+          <th class="sortable" data-sort="orderbook" onclick="sortSignals('orderbook')">訂單簿<span class="sort-indicator" data-sort-indicator="orderbook"></span></th>
+          <th class="sortable" data-sort="smartMoney" onclick="sortSignals('smartMoney')">聰明錢<span class="sort-indicator" data-sort-indicator="smartMoney"></span></th>
+          <th class="sortable" data-sort="breakout" onclick="sortSignals('breakout')">突破<span class="sort-indicator" data-sort-indicator="breakout"></span></th>
+          <th class="sortable" data-sort="tags" onclick="sortSignals('tags')">訊號<span class="sort-indicator" data-sort-indicator="tags"></span></th>
         </tr>
       </thead>
       <tbody id="signalsBody">
@@ -374,6 +405,9 @@
 
 <script>
 let dataCache = null;
+let tradesCache = null;
+let displayedSignals = [];
+let sortState = { key: 'rank', dir: 'asc' };
 
 async function refreshData() {
   try {
@@ -388,6 +422,7 @@ async function refreshData() {
       tradesData = await tresp.json();
     } catch(e) {}
     
+    tradesCache = tradesData;
     render(data, tradesData);
   } catch(e) {
     document.getElementById('signalsBody').innerHTML = 
@@ -411,6 +446,9 @@ function render(data, tradesData) {
   document.getElementById('scanTime').textContent = timeStr;
   
   const signals = data.signals || [];
+  const sortedSignals = getSortedSignals(signals);
+  displayedSignals = sortedSignals;
+  updateSortIndicators();
   const trades = tradesData?.trades || [];
   const stats = tradesData?.stats || {};
   
@@ -441,12 +479,12 @@ function render(data, tradesData) {
   const tbody = document.getElementById('signalsBody');
   const empty = document.getElementById('signalsEmpty');
   
-  if (signals.length === 0) {
+  if (sortedSignals.length === 0) {
     tbody.innerHTML = '';
     empty.style.display = 'block';
   } else {
     empty.style.display = 'none';
-    tbody.innerHTML = signals.map((s, i) => {
+    tbody.innerHTML = sortedSignals.map((s, i) => {
       const scores = s.scores;
       const chg = parseFloat(s.price_change_24h);
       const chgCls = chg >= 0 ? 'positive' : 'negative';
@@ -479,8 +517,8 @@ function render(data, tradesData) {
       }).join('');
       
       return `<tr>
-        <td>${i+1}</td>
-        <td><a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.base}USDT" target="_blank" rel="noopener"><span class="symbol-name">${s.base}</span> 🔗</a></td>
+        <td>${s._rank || i+1}</td>
+        <td class="sticky-symbol"><a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.base}USDT" target="_blank" rel="noopener"><span class="symbol-name">${s.base}</span> 🔗</a></td>
         <td class="price">$${scanPrice.toFixed(scanPrice < 1 ? 6 : scanPrice < 100 ? 4 : 2)}</td>
         <td class="price">$${displayPrice.toFixed(displayPrice < 1 ? 6 : displayPrice < 100 ? 4 : 2)}</td>
         <td class="change ${chgScanCls}">${livePrice ? chgScanSign + chgFromScan.toFixed(2) + '%' : '—'}</td>
@@ -499,6 +537,63 @@ function render(data, tradesData) {
   
   // Trades list
   renderTrades(trades);
+}
+
+
+function getSortedSignals(signals) {
+  const enriched = (signals || []).map((s, i) => ({...s, _rank: i + 1}));
+  const key = sortState.key;
+  const dir = sortState.dir === 'asc' ? 1 : -1;
+  if (key === 'rank') {
+    return enriched.sort((a, b) => (a._rank - b._rank) * dir);
+  }
+  return enriched.sort((a, b) => {
+    const av = getSignalSortValue(a, key);
+    const bv = getSignalSortValue(b, key);
+    if (typeof av === 'string' || typeof bv === 'string') {
+      return String(av).localeCompare(String(bv), 'zh-Hant') * dir;
+    }
+    return ((av || 0) - (bv || 0)) * dir;
+  });
+}
+
+function getSignalSortValue(s, key) {
+  const scanPrice = parseFloat(s.price) || 0;
+  const livePrice = livePrices[s.symbol] || scanPrice;
+  const scores = s.scores || {};
+  switch (key) {
+    case 'symbol': return s.base || s.symbol || '';
+    case 'scanPrice': return scanPrice;
+    case 'livePrice': return livePrice;
+    case 'fromScan': return scanPrice ? ((livePrice - scanPrice) / scanPrice) * 100 : 0;
+    case 'change24h': return parseFloat(s.price_change_24h) || 0;
+    case 'volume24h': return Number(s.volume_24h_usdt) || 0;
+    case 'score': return Number(scores.total) || 0;
+    case 'volumeScore': return Number(scores.volume) || 0;
+    case 'momentum': return Number(scores.momentum) || 0;
+    case 'orderbook': return Number(scores.orderbook) || 0;
+    case 'smartMoney': return Number(scores.smart_money) || 0;
+    case 'breakout': return Number(scores.breakout) || 0;
+    case 'tags': return (s.tags || []).join(' ');
+    default: return s._rank || 0;
+  }
+}
+
+function sortSignals(key) {
+  if (sortState.key === key) {
+    sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortState.key = key;
+    sortState.dir = ['symbol', 'rank'].includes(key) ? 'asc' : 'desc';
+  }
+  if (dataCache) render(dataCache, tradesCache);
+}
+
+function updateSortIndicators() {
+  document.querySelectorAll('[data-sort-indicator]').forEach(el => {
+    const key = el.getAttribute('data-sort-indicator');
+    el.textContent = key === sortState.key ? (sortState.dir === 'asc' ? '▲' : '▼') : '';
+  });
 }
 
 function formatVolume(v) {
@@ -532,7 +627,11 @@ async function fetchLivePrices(signals, trades) {
       data.forEach(d => { livePrices[d.symbol] = parseFloat(d.price); });
     }
     
-    updateLiveDisplay(signals, trades);
+    if (['livePrice', 'fromScan'].includes(sortState.key) && dataCache) {
+      render(dataCache, tradesCache);
+    } else {
+      updateLiveDisplay(signals, trades);
+    }
   } catch(e) {
     console.log('即時價格取得失敗，使用訊號價格');
   }
@@ -547,8 +646,8 @@ function updateLiveDisplay(signals, trades) {
   // 更新信號表價格
   const rows = tbody.querySelectorAll('tr');
   rows.forEach((row, i) => {
-    if (i >= signals.length) return;
-    const s = signals[i];
+    if (i >= displayedSignals.length) return;
+    const s = displayedSignals[i];
     const live = livePrices[s.symbol];
     if (live) {
       const scanPrice = parseFloat(s.price);
@@ -690,11 +789,12 @@ function renderTradeItem(t) {
 
 // 即時更新 stats bar 的未實現損益
 function updateUnrealizedStats(trades) {
-  if (!trades || !trades.trades) return;
+  if (!trades) return;
+  const tradeList = Array.isArray(trades) ? trades : (trades.trades || []);
   const POSITION_VALUE = 600; // 30U / 5% stop
   const FEE_RATE = 0.0004;
   let totalUnrealized = 0;
-  for (const t of trades.trades) {
+  for (const t of tradeList) {
     if (t.status !== 'open') continue;
     const live = livePrices[t.symbol];
     if (live) {
