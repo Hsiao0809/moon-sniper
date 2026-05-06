@@ -149,6 +149,8 @@
       grid-template-rows: auto 1fr;
     }
 
+    #tradesTab.panel { grid-template-rows: auto auto minmax(0, 1fr); }
+
     .toolbar {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -218,6 +220,22 @@
       background: var(--panel-3);
     }
 
+    .sticky-symbol {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      min-width: 104px;
+      max-width: 132px;
+      background: var(--panel);
+      box-shadow: 1px 0 0 var(--border), 10px 0 14px rgba(8, 11, 18, .26);
+      white-space: nowrap;
+    }
+
+    th.sticky-symbol {
+      z-index: 3;
+      background: var(--panel-3);
+    }
+
     .sort-button {
       min-height: 0;
       padding: 0;
@@ -284,11 +302,20 @@
       white-space: nowrap;
     }
 
+    .trade-subtabs {
+      display: flex;
+      gap: 6px;
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-3);
+    }
+
+    .trade-subtabs button { min-height: 30px; }
+
     .trade-sections {
       min-height: 0;
       display: grid;
-      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 0;
+      grid-template-rows: minmax(0, 1fr);
       overflow: hidden;
     }
 
@@ -296,10 +323,7 @@
       min-height: 0;
       display: grid;
       grid-template-rows: auto 1fr;
-      border-bottom: 1px solid var(--border);
     }
-
-    .trade-section:last-child { border-bottom: 0; }
 
     .section-title {
       display: flex;
@@ -344,8 +368,18 @@
       .toolbar { grid-template-columns: 1fr; }
       .tabs { justify-content: stretch; }
       .tabs button { flex: 1; }
-      .trade-sections { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
-      .scroll { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
+      .panel,
+      .trade-sections,
+      .trade-section { overflow: visible; }
+      .trade-subtabs { padding: 6px 8px; }
+      .trade-subtabs button { flex: 1; }
+      .scroll {
+        overflow-x: auto;
+        overflow-y: visible;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      }
     }
   </style>
 </head>
@@ -420,7 +454,7 @@
           <thead>
             <tr>
               <th><button type="button" class="sort-button" data-sort-key="rank">#</button></th>
-              <th><button type="button" class="sort-button" data-sort-key="symbol">Symbol</button></th>
+              <th class="sticky-symbol"><button type="button" class="sort-button" data-sort-key="symbol">Symbol</button></th>
               <th><button type="button" class="sort-button" data-sort-key="scan-price">Scan Price</button></th>
               <th><button type="button" class="sort-button" data-sort-key="live-price">Live Price</button></th>
               <th><button type="button" class="sort-button" data-sort-key="from-scan">From Scan</button></th>
@@ -445,17 +479,21 @@
         <span id="tradeSummary">No trades loaded</span>
         <span>Open trade high/low updates from live price; closed trades stay fixed</span>
       </div>
+      <nav class="trade-subtabs" aria-label="Trade record tabs">
+        <button type="button" class="active" data-trade-tab="open">持倉</button>
+        <button type="button" data-trade-tab="closed">已平倉</button>
+      </nav>
       <div class="trade-sections">
-        <section class="trade-section">
+        <section class="trade-section" id="openTradesSection" data-trade-panel="open">
           <div class="section-title">
-            <strong>Open Positions</strong>
+            <strong>持倉</strong>
             <span id="openTradeCount">0</span>
           </div>
           <div class="scroll">
             <table class="trade-table">
               <thead>
                 <tr>
-                  <th>Symbol</th>
+                  <th class="sticky-symbol">Symbol</th>
                   <th>Status</th>
                   <th>Entry</th>
                   <th>Live</th>
@@ -473,16 +511,16 @@
             <div class="empty" id="openTradesEmpty" hidden>No open positions.</div>
           </div>
         </section>
-        <section class="trade-section">
+        <section class="trade-section" id="closedTradesSection" data-trade-panel="closed" hidden>
           <div class="section-title">
-            <strong>Closed Trades</strong>
+            <strong>已平倉</strong>
             <span id="closedTradeCount">0</span>
           </div>
           <div class="scroll">
             <table class="trade-table">
               <thead>
                 <tr>
-                  <th>Symbol</th>
+                  <th class="sticky-symbol">Symbol</th>
                   <th>Exit Reason</th>
                   <th>Entry</th>
                   <th>Exit</th>
@@ -803,7 +841,7 @@
 
         return `<tr>
           <td>${index + 1}</td>
-          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${signal.base || signal.symbol}" target="_blank" rel="noopener"><span class="symbol">${signal.base || signal.symbol}</span></a></td>
+          <td class="sticky-symbol"><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${signal.base || signal.symbol}" target="_blank" rel="noopener"><span class="symbol">${signal.base || signal.symbol}</span></a></td>
           <td class="money">$${formatPrice(scanPrice)}</td>
           <td class="money">${livePrice ? `$${formatPrice(livePrice)}` : '<span class="muted">Pending</span>'}</td>
           <td class="${fromScan === null ? 'muted' : classForNumber(fromScan)}">${fromScan === null ? "Pending" : formatPct(fromScan)}</td>
@@ -834,7 +872,7 @@
         const live = pnl.live;
         const tags = Array.isArray(trade.tags) ? trade.tags : [];
         return `<tr>
-          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
+          <td class="sticky-symbol"><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
           <td>Open</td>
           <td class="money">$${formatPrice(trade.entry_price)}</td>
           <td class="money">${live ? `$${formatPrice(live)}` : '<span class="muted">Pending</span>'}</td>
@@ -853,7 +891,7 @@
         const pct = asNumber(trade.realized_pnl_pct);
         const tags = Array.isArray(trade.tags) ? trade.tags : [];
         return `<tr>
-          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
+          <td class="sticky-symbol"><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
           <td>${escapeHtml(trade.exit_reason || "Closed")}</td>
           <td class="money">$${formatPrice(trade.entry_price)}</td>
           <td class="money">$${formatPrice(trade.exit_price)}</td>
@@ -885,6 +923,15 @@
         document.querySelectorAll("[data-tab]").forEach((item) => item.classList.toggle("active", item === button));
         $("signalsTab").hidden = button.dataset.tab !== "signals";
         $("tradesTab").hidden = button.dataset.tab !== "trades";
+      });
+    });
+
+    document.querySelectorAll("[data-trade-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-trade-tab]").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll("[data-trade-panel]").forEach((panel) => {
+          panel.hidden = panel.dataset.tradePanel !== button.dataset.tradeTab;
+        });
       });
     });
 
