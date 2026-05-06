@@ -1,9 +1,6 @@
 name: Moon Sniper Scan
 on:
-  schedule:
-    # 每 4 小時執行一次
-    - cron: '0 */4 * * *'
-  workflow_dispatch:  # 手動觸發
+  workflow_dispatch:  # 僅手動觸發
 
 jobs:
   scan:
