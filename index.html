@@ -853,7 +853,8 @@ function renderTradeItem(t) {
     </div>
     <div class="trade-meta-grid">
       <div>入場：$${t.entry_price.toFixed(t.entry_price < 1 ? 6 : t.entry_price < 100 ? 4 : 2)}</div>
-      <div>保證金：${(t.margin || 300).toFixed(0)}U × ${t.leverage || 2}x</div>
+      <div>保證金：${(t.margin || 300).toFixed(0)}U</div>
+      <div>槓桿：${t.leverage || 2}x</div>
       ${t.status === 'open' && livePrices[t.symbol] ? `<div>當前：$${livePrices[t.symbol].toFixed(livePrices[t.symbol] < 1 ? 6 : livePrices[t.symbol] < 100 ? 4 : 2)}</div>` : ''}
       ${t.exit_price ? `<div>出場：$${t.exit_price.toFixed(t.exit_price < 1 ? 6 : t.exit_price < 100 ? 4 : 2)}</div>` : ''}
       <div class="trade-info">${new Date(t.entry_time).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})}</div>
