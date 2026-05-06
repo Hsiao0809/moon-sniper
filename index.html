@@ -218,6 +218,22 @@
       background: var(--panel-3);
     }
 
+    .sticky-symbol {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      min-width: 104px;
+      max-width: 132px;
+      background: var(--panel);
+      box-shadow: 1px 0 0 var(--border), 10px 0 14px rgba(8, 11, 18, .26);
+      white-space: nowrap;
+    }
+
+    th.sticky-symbol {
+      z-index: 3;
+      background: var(--panel-3);
+    }
+
     .sort-button {
       min-height: 0;
       padding: 0;
@@ -344,8 +360,20 @@
       .toolbar { grid-template-columns: 1fr; }
       .tabs { justify-content: stretch; }
       .tabs button { flex: 1; }
-      .trade-sections { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
-      .scroll { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
+      .panel,
+      .trade-sections,
+      .trade-section {
+        display: block;
+        overflow: visible;
+      }
+      .trade-section { border-bottom: 1px solid var(--border); }
+      .scroll {
+        overflow-x: auto;
+        overflow-y: visible;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      }
     }
   </style>
 </head>
@@ -420,7 +448,7 @@
           <thead>
             <tr>
               <th><button type="button" class="sort-button" data-sort-key="rank">#</button></th>
-              <th><button type="button" class="sort-button" data-sort-key="symbol">Symbol</button></th>
+              <th class="sticky-symbol"><button type="button" class="sort-button" data-sort-key="symbol">Symbol</button></th>
               <th><button type="button" class="sort-button" data-sort-key="scan-price">Scan Price</button></th>
               <th><button type="button" class="sort-button" data-sort-key="live-price">Live Price</button></th>
               <th><button type="button" class="sort-button" data-sort-key="from-scan">From Scan</button></th>
@@ -455,7 +483,7 @@
             <table class="trade-table">
               <thead>
                 <tr>
-                  <th>Symbol</th>
+                  <th class="sticky-symbol">Symbol</th>
                   <th>Status</th>
                   <th>Entry</th>
                   <th>Live</th>
@@ -482,7 +510,7 @@
             <table class="trade-table">
               <thead>
                 <tr>
-                  <th>Symbol</th>
+                  <th class="sticky-symbol">Symbol</th>
                   <th>Exit Reason</th>
                   <th>Entry</th>
                   <th>Exit</th>
@@ -803,7 +831,7 @@
 
         return `<tr>
           <td>${index + 1}</td>
-          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${signal.base || signal.symbol}" target="_blank" rel="noopener"><span class="symbol">${signal.base || signal.symbol}</span></a></td>
+          <td class="sticky-symbol"><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${signal.base || signal.symbol}" target="_blank" rel="noopener"><span class="symbol">${signal.base || signal.symbol}</span></a></td>
           <td class="money">$${formatPrice(scanPrice)}</td>
           <td class="money">${livePrice ? `$${formatPrice(livePrice)}` : '<span class="muted">Pending</span>'}</td>
           <td class="${fromScan === null ? 'muted' : classForNumber(fromScan)}">${fromScan === null ? "Pending" : formatPct(fromScan)}</td>
@@ -834,7 +862,7 @@
         const live = pnl.live;
         const tags = Array.isArray(trade.tags) ? trade.tags : [];
         return `<tr>
-          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
+          <td class="sticky-symbol"><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
           <td>Open</td>
           <td class="money">$${formatPrice(trade.entry_price)}</td>
           <td class="money">${live ? `$${formatPrice(live)}` : '<span class="muted">Pending</span>'}</td>
@@ -853,7 +881,7 @@
         const pct = asNumber(trade.realized_pnl_pct);
         const tags = Array.isArray(trade.tags) ? trade.tags : [];
         return `<tr>
-          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
+          <td class="sticky-symbol"><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
           <td>${escapeHtml(trade.exit_reason || "Closed")}</td>
           <td class="money">$${formatPrice(trade.entry_price)}</td>
           <td class="money">$${formatPrice(trade.exit_price)}</td>
