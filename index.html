@@ -1165,7 +1165,7 @@ async function liveScan() {
       const catLabel = TRADFI_CATEGORIES[category].name;
       const catEmoji = TRADFI_CATEGORIES[category].emoji;
       const catTickers = allTickers.filter(t => {
-        if (!trafiSymbols.includes(t.symbol)) return false;
+        if (!tradfiSymbols.includes(t.symbol)) return false;
         const c = classifyTradFi(t.symbol, exchangeInfo);
         return c === category;
       });
