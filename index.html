@@ -9,6 +9,7 @@
       --bg: #080b12;
       --panel: #111827;
       --panel-2: #182033;
+      --panel-3: #0d1422;
       --border: #25324a;
       --text: #e7edf7;
       --muted: #94a3b8;
@@ -16,71 +17,74 @@
       --green: #22c55e;
       --red: #f87171;
       --amber: #f59e0b;
-      --violet: #a78bfa;
     }
 
     * { box-sizing: border-box; }
-    html { color-scheme: dark; }
+    html, body { height: 100%; overflow: hidden; color-scheme: dark; }
     body {
       margin: 0;
-      min-height: 100vh;
       background: var(--bg);
       color: var(--text);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     .shell {
+      height: 100vh;
       width: min(1440px, 100%);
       margin: 0 auto;
-      padding: 20px;
+      padding: 10px 14px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 8px;
+      overflow: hidden;
     }
 
     header {
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 16px;
-      padding-bottom: 16px;
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      min-height: 42px;
       border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(26px, 4vw, 44px);
+      font-size: 22px;
       line-height: 1;
       letter-spacing: 0;
     }
 
     .subtitle {
-      margin-top: 8px;
+      margin-top: 3px;
       color: var(--muted);
-      font-size: 14px;
+      font-size: 12px;
     }
 
     .actions {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       color: var(--muted);
-      font-size: 13px;
-      text-align: right;
+      font-size: 12px;
+      white-space: nowrap;
     }
 
-    button {
+    button, select {
       appearance: none;
       border: 1px solid var(--border);
       border-radius: 8px;
       background: var(--panel-2);
       color: var(--text);
-      min-height: 38px;
-      padding: 0 14px;
+      min-height: 32px;
+      padding: 0 10px;
       font: inherit;
-      cursor: pointer;
     }
 
-    button:hover { border-color: var(--blue); }
+    button { cursor: pointer; }
+    button:hover, select:hover { border-color: var(--blue); }
     button.active {
       background: var(--blue);
       border-color: var(--blue);
@@ -88,160 +92,228 @@
       font-weight: 700;
     }
 
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      min-height: 42px;
+    }
+
     .stats {
       display: grid;
-      grid-template-columns: repeat(6, minmax(130px, 1fr));
-      gap: 10px;
-      margin: 16px 0;
+      grid-template-columns: repeat(6, minmax(96px, 1fr));
+      gap: 6px;
+      min-width: 0;
     }
 
     .stat {
       border: 1px solid var(--border);
       background: var(--panel);
       border-radius: 8px;
-      padding: 12px;
-      min-height: 82px;
+      padding: 7px 9px;
+      min-width: 0;
+      min-height: 40px;
     }
 
     .stat .label {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
+      line-height: 1.1;
     }
 
     .stat .value {
-      margin-top: 8px;
-      font-size: 22px;
+      margin-top: 3px;
+      font-size: 15px;
       font-weight: 800;
+      line-height: 1.1;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .tabs {
       display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 6px;
+      justify-content: flex-end;
     }
 
     .panel {
+      min-height: 0;
       border: 1px solid var(--border);
       background: var(--panel);
       border-radius: 8px;
       overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr;
     }
 
     .toolbar {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
       align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 12px;
+      min-height: 42px;
+      padding: 7px 10px;
       border-bottom: 1px solid var(--border);
       color: var(--muted);
-      font-size: 13px;
+      font-size: 12px;
+    }
+
+    .filters {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .tag-filter-list {
+      display: flex;
+      gap: 5px;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      padding-bottom: 1px;
+    }
+
+    .tag-filter {
+      min-height: 28px;
+      padding: 0 8px;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+
+    .scroll {
+      min-height: 0;
+      overflow: auto;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 980px;
+      min-width: 1060px;
     }
 
     th, td {
-      padding: 12px;
+      padding: 8px 10px;
       border-bottom: 1px solid var(--border);
       text-align: left;
       vertical-align: top;
-      font-size: 14px;
+      font-size: 13px;
+      line-height: 1.25;
     }
 
     th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
       letter-spacing: .04em;
-      background: #0d1422;
+      background: var(--panel-3);
     }
+
+    .sort-button {
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-transform: inherit;
+      letter-spacing: inherit;
+      cursor: pointer;
+    }
+
+    .sort-button::after {
+      content: " ↕";
+      color: var(--muted);
+      opacity: .65;
+    }
+
+    .sort-button.active.asc::after { content: " ↑"; color: var(--blue); opacity: 1; }
+    .sort-button.active.desc::after { content: " ↓"; color: var(--blue); opacity: 1; }
 
     tr:last-child td { border-bottom: 0; }
     a { color: inherit; text-decoration: none; }
     a:hover { color: var(--blue); text-decoration: underline; }
-    .scroll { overflow: auto; }
     .symbol { font-weight: 800; }
     .muted { color: var(--muted); }
     .pos { color: var(--green); }
     .neg { color: var(--red); }
-    .warn { color: var(--amber); }
     .money { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 
     .score {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      min-width: 88px;
+      gap: 7px;
+      min-width: 82px;
       font-weight: 800;
     }
 
     .score i {
       display: block;
-      width: 48px;
+      width: 44px;
       height: 6px;
       border-radius: 999px;
       background: var(--score-color, var(--muted));
-      opacity: .9;
     }
 
     .tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 4px;
       max-width: 360px;
     }
 
     .tag {
       display: inline-flex;
       align-items: center;
-      min-height: 24px;
-      padding: 0 8px;
+      min-height: 22px;
+      padding: 0 7px;
       border-radius: 6px;
       background: #22304a;
       color: #cbd5e1;
-      font-size: 12px;
+      font-size: 11px;
       white-space: nowrap;
     }
 
-    .trade-grid {
+    .trade-sections {
+      min-height: 0;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 10px;
-      padding: 12px;
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 0;
+      overflow: hidden;
     }
 
-    .trade {
-      border: 1px solid var(--border);
-      background: #0d1422;
-      border-radius: 8px;
-      padding: 14px;
+    .trade-section {
+      min-height: 0;
       display: grid;
-      gap: 12px;
+      grid-template-rows: auto 1fr;
+      border-bottom: 1px solid var(--border);
     }
 
-    .trade-head, .trade-row {
+    .trade-section:last-child { border-bottom: 0; }
+
+    .section-title {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-    }
-
-    .pill {
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 4px 8px;
+      gap: 8px;
+      min-height: 34px;
+      padding: 7px 10px;
+      background: var(--panel-3);
       color: var(--muted);
       font-size: 12px;
-      white-space: nowrap;
+      border-bottom: 1px solid var(--border);
     }
 
+    .trade-table { min-width: 1120px; }
     .empty, .error {
-      padding: 48px 20px;
+      padding: 28px 20px;
       text-align: center;
       color: var(--muted);
     }
@@ -250,12 +322,15 @@
     [hidden] { display: none !important; }
 
     @media (max-width: 900px) {
-      .shell { padding: 14px; }
-      header { align-items: start; flex-direction: column; }
-      .actions { justify-content: flex-start; text-align: left; }
-      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .stat .value { font-size: 18px; }
+      .shell { padding: 8px; }
+      header { grid-template-columns: 1fr; gap: 6px; }
+      .actions { justify-content: space-between; white-space: normal; }
+      .topbar { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .toolbar { grid-template-columns: 1fr; }
+      .tabs { justify-content: stretch; }
       .tabs button { flex: 1; }
+      .trade-sections { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
     }
   </style>
 </head>
@@ -264,7 +339,7 @@
     <header>
       <div>
         <h1>Moon Sniper</h1>
-        <div class="subtitle">Binance USDT signal scanner and paper trading dashboard</div>
+        <div class="subtitle">Binance USDT signals and paper trading</div>
       </div>
       <div class="actions">
         <span id="lastUpdated">Loading data...</span>
@@ -272,57 +347,144 @@
       </div>
     </header>
 
-    <section class="stats" aria-label="Portfolio statistics">
-      <div class="stat"><div class="label">Signals</div><div class="value" id="statSignals">0</div></div>
-      <div class="stat"><div class="label">Equity USDT</div><div class="value money" id="statEquity">300.00</div></div>
-      <div class="stat"><div class="label">Open Trades</div><div class="value" id="statOpen">0</div></div>
-      <div class="stat"><div class="label">Win Rate</div><div class="value" id="statWin">0%</div></div>
-      <div class="stat"><div class="label">Realized PnL</div><div class="value money" id="statRealized">0.00</div></div>
-      <div class="stat"><div class="label">Unrealized PnL</div><div class="value money" id="statUnrealized">0.00</div></div>
+    <section class="topbar">
+      <div class="stats" aria-label="Portfolio statistics">
+        <div class="stat"><div class="label">Signals</div><div class="value" id="statSignals">0</div></div>
+        <div class="stat"><div class="label">Equity</div><div class="value money" id="statEquity">300.00</div></div>
+        <div class="stat"><div class="label">Open</div><div class="value" id="statOpen">0</div></div>
+        <div class="stat"><div class="label">Win Rate</div><div class="value" id="statWin">0%</div></div>
+        <div class="stat"><div class="label">Realized</div><div class="value money" id="statRealized">0.00</div></div>
+        <div class="stat"><div class="label">Unrealized</div><div class="value money" id="statUnrealized">0.00</div></div>
+      </div>
+      <nav class="tabs" aria-label="Dashboard tabs">
+        <button type="button" class="active" data-tab="signals">Signals</button>
+        <button type="button" data-tab="trades">Trades</button>
+      </nav>
     </section>
-
-    <nav class="tabs" aria-label="Dashboard tabs">
-      <button type="button" class="active" data-tab="signals">Signals</button>
-      <button type="button" data-tab="trades">Paper Trades</button>
-    </nav>
 
     <section id="signalsTab" class="panel">
       <div class="toolbar">
-        <span id="signalSummary">No signals loaded</span>
-        <span>Live prices refresh every 30 seconds when available</span>
+        <div class="filters">
+          <span id="signalSummary">No signals loaded</span>
+          <div class="tag-filter-list" id="tagFilters"></div>
+        </div>
+        <div class="filters">
+          <select id="sortSelect" aria-label="Sort signals">
+            <option value="rank-asc">Original rank</option>
+            <option value="rank-desc">Original rank reversed</option>
+            <option value="symbol-asc">Symbol A to Z</option>
+            <option value="symbol-desc">Symbol Z to A</option>
+            <option value="scan-price-desc">Scan price high to low</option>
+            <option value="scan-price-asc">Scan price low to high</option>
+            <option value="live-price-desc">Live price high to low</option>
+            <option value="live-price-asc">Live price low to high</option>
+            <option value="score-desc">Score high to low</option>
+            <option value="score-asc">Score low to high</option>
+            <option value="from-scan-desc">From scan high to low</option>
+            <option value="from-scan-asc">From scan low to high</option>
+            <option value="change-desc">24h change high to low</option>
+            <option value="change-asc">24h change low to high</option>
+            <option value="volume-desc">Volume high to low</option>
+            <option value="volume-asc">Volume low to high</option>
+            <option value="volume-score-desc">Volume score high to low</option>
+            <option value="volume-score-asc">Volume score low to high</option>
+            <option value="momentum-desc">Momentum high to low</option>
+            <option value="momentum-asc">Momentum low to high</option>
+            <option value="orderbook-desc">Order book high to low</option>
+            <option value="orderbook-asc">Order book low to high</option>
+            <option value="breakout-desc">Breakout high to low</option>
+            <option value="breakout-asc">Breakout low to high</option>
+            <option value="tags-asc">Tags A to Z</option>
+            <option value="tags-desc">Tags Z to A</option>
+          </select>
+          <span>Live prices refresh every 30s</span>
+        </div>
       </div>
       <div class="scroll">
         <table>
           <thead>
             <tr>
-              <th>#</th>
-              <th>Symbol</th>
-              <th>Scan Price</th>
-              <th>Live Price</th>
-              <th>From Scan</th>
-              <th>24h</th>
-              <th>24h Volume</th>
-              <th>Total</th>
-              <th>Volume</th>
-              <th>Momentum</th>
-              <th>Order Book</th>
-              <th>Breakout</th>
-              <th>Tags</th>
+              <th><button type="button" class="sort-button" data-sort-key="rank">#</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="symbol">Symbol</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="scan-price">Scan Price</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="live-price">Live Price</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="from-scan">From Scan</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="change">24h</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="volume">24h Volume</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="score">Total</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="volume-score">Volume</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="momentum">Momentum</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="orderbook">Order Book</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="breakout">Breakout</button></th>
+              <th><button type="button" class="sort-button" data-sort-key="tags">Tags</button></th>
             </tr>
           </thead>
           <tbody id="signalsBody"></tbody>
         </table>
+        <div class="empty" id="signalsEmpty" hidden>No matching signals.</div>
       </div>
-      <div class="empty" id="signalsEmpty" hidden>No current signals. Trigger the GitHub Action or wait for the next scheduled scan.</div>
     </section>
 
     <section id="tradesTab" class="panel" hidden>
       <div class="toolbar">
         <span id="tradeSummary">No trades loaded</span>
-        <span id="tradeFilterLabel">Open and closed paper trades</span>
+        <span>Open trade high/low updates from live price; closed trades stay fixed</span>
       </div>
-      <div class="trade-grid" id="tradesBody"></div>
-      <div class="empty" id="tradesEmpty" hidden>No paper trades yet.</div>
+      <div class="trade-sections">
+        <section class="trade-section">
+          <div class="section-title">
+            <strong>Open Positions</strong>
+            <span id="openTradeCount">0</span>
+          </div>
+          <div class="scroll">
+            <table class="trade-table">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Status</th>
+                  <th>Entry</th>
+                  <th>Live</th>
+                  <th>PnL</th>
+                  <th>Max Up</th>
+                  <th>Max Down</th>
+                  <th>TP1 / TP2</th>
+                  <th>Stop</th>
+                  <th>Entry Time</th>
+                  <th>Tags</th>
+                </tr>
+              </thead>
+              <tbody id="openTradesBody"></tbody>
+            </table>
+            <div class="empty" id="openTradesEmpty" hidden>No open positions.</div>
+          </div>
+        </section>
+        <section class="trade-section">
+          <div class="section-title">
+            <strong>Closed Trades</strong>
+            <span id="closedTradeCount">0</span>
+          </div>
+          <div class="scroll">
+            <table class="trade-table">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Exit Reason</th>
+                  <th>Entry</th>
+                  <th>Exit</th>
+                  <th>Realized</th>
+                  <th>Max Up</th>
+                  <th>Max Down</th>
+                  <th>Entry Time</th>
+                  <th>Exit Time</th>
+                  <th>Tags</th>
+                </tr>
+              </thead>
+              <tbody id="closedTradesBody"></tbody>
+            </table>
+            <div class="empty" id="closedTradesEmpty" hidden>No closed trades.</div>
+          </div>
+        </section>
+      </div>
     </section>
   </main>
 
@@ -336,6 +498,7 @@
     let tradeStats = {};
     let livePrices = {};
     let liveTimer = null;
+    let activeTag = "all";
 
     const $ = (id) => document.getElementById(id);
 
@@ -389,7 +552,7 @@
       return "var(--red)";
     }
 
-    async function loadJson(path, fallback) {
+    async function loadJson(path) {
       const response = await fetch(`${path}?v=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) throw new Error(`${path} returned ${response.status}`);
       return response.json();
@@ -399,10 +562,10 @@
       $("refreshBtn").disabled = true;
       $("refreshBtn").textContent = "Refreshing";
       try {
-        const signalData = await loadJson("./signals.json", { signals: [] });
+        const signalData = await loadJson("./signals.json");
         let tradeData = { trades: [], stats: {} };
         try {
-          tradeData = await loadJson("./paper_trades.json", { trades: [], stats: {} });
+          tradeData = await loadJson("./paper_trades.json");
         } catch (error) {
           console.warn("paper_trades.json is unavailable", error);
         }
@@ -411,7 +574,8 @@
         trades = Array.isArray(tradeData.trades) ? tradeData.trades : [];
         tradeStats = tradeData.stats || {};
 
-        $("lastUpdated").textContent = `Signals: ${timeText(signalData.scanned_at)} | Trades: ${timeText(tradeStats.last_updated)}`;
+        $("lastUpdated").textContent = `Signals ${timeText(signalData.scanned_at)} | Trades ${timeText(tradeStats.last_updated)}`;
+        renderTagFilters();
         render();
         await refreshLivePrices();
         startLiveTimer();
@@ -445,6 +609,7 @@
             livePrices[item.symbol] = asNumber(item.price);
           });
         }
+        updateOpenTradeExtremes();
         render();
       } catch (error) {
         console.warn("Live price refresh failed", error);
@@ -478,6 +643,22 @@
       return { pnl, pct: (pnl / POSITION_VALUE) * 100, live };
     }
 
+    function updateOpenTradeExtremes() {
+      trades.forEach((trade) => {
+        if (trade.status !== "open") return;
+        const pnl = getOpenTradePnl(trade);
+        if (!pnl.live) return;
+        if (pnl.pnl > asNumber(trade.max_unrealized_pnl_usdt)) {
+          trade.max_unrealized_pnl_usdt = Number(pnl.pnl.toFixed(2));
+          trade.max_unrealized_pnl_pct = Number(pnl.pct.toFixed(2));
+        }
+        if (pnl.pnl < asNumber(trade.min_unrealized_pnl_usdt)) {
+          trade.min_unrealized_pnl_usdt = Number(pnl.pnl.toFixed(2));
+          trade.min_unrealized_pnl_pct = Number(pnl.pct.toFixed(2));
+        }
+      });
+    }
+
     function renderStats() {
       const openTrades = trades.filter((trade) => trade.status === "open");
       const unrealized = openTrades.reduce((sum, trade) => sum + getOpenTradePnl(trade).pnl, 0);
@@ -487,17 +668,116 @@
       $("statSignals").textContent = signals.length;
       $("statEquity").textContent = equity.toFixed(2);
       $("statOpen").textContent = openTrades.length;
-      $("statWin").textContent = `${tradeStats.wins || 0}W / ${tradeStats.losses || 0}L (${asNumber(tradeStats.win_rate).toFixed(0)}%)`;
+      $("statWin").textContent = `${tradeStats.wins || 0}W/${tradeStats.losses || 0}L ${asNumber(tradeStats.win_rate).toFixed(0)}%`;
       $("statRealized").textContent = formatMoney(realized);
       $("statRealized").className = `value money ${classForNumber(realized)}`;
       $("statUnrealized").textContent = formatMoney(unrealized);
       $("statUnrealized").className = `value money ${classForNumber(unrealized)}`;
     }
 
+    function renderTagFilters() {
+      const counts = new Map();
+      signals.forEach((signal) => {
+        (Array.isArray(signal.tags) ? signal.tags : []).forEach((tag) => {
+          counts.set(tag, (counts.get(tag) || 0) + 1);
+        });
+      });
+
+      const buttons = [
+        `<button type="button" class="tag-filter ${activeTag === "all" ? "active" : ""}" data-tag="all">All ${signals.length}</button>`,
+        ...[...counts.entries()]
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .map(([tag, count]) => `<button type="button" class="tag-filter ${activeTag === tag ? "active" : ""}" data-tag="${escapeAttr(tag)}">${escapeHtml(tag)} ${count}</button>`),
+      ];
+
+      $("tagFilters").innerHTML = buttons.join("");
+      $("tagFilters").querySelectorAll("[data-tag]").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeTag = button.dataset.tag;
+          renderTagFilters();
+          renderSignals();
+        });
+      });
+    }
+
+    function getFilteredSignals() {
+      const filtered = activeTag === "all"
+        ? [...signals]
+        : signals.filter((signal) => (signal.tags || []).includes(activeTag));
+
+      const sort = $("sortSelect").value;
+      filtered.sort((a, b) => {
+        if (sort === "rank-desc") return signals.indexOf(b) - signals.indexOf(a);
+        if (sort === "rank-asc") return signals.indexOf(a) - signals.indexOf(b);
+        if (sort === "symbol-desc") return String(b.base || b.symbol).localeCompare(String(a.base || a.symbol));
+        if (sort === "symbol-asc") return String(a.base || a.symbol).localeCompare(String(b.base || b.symbol));
+        if (sort === "scan-price-desc") return asNumber(b.price) - asNumber(a.price);
+        if (sort === "scan-price-asc") return asNumber(a.price) - asNumber(b.price);
+        if (sort === "live-price-desc") return getLivePrice(b) - getLivePrice(a);
+        if (sort === "live-price-asc") return getLivePrice(a) - getLivePrice(b);
+        if (sort === "from-scan-desc") return getFromScanPct(b) - getFromScanPct(a);
+        if (sort === "from-scan-asc") return getFromScanPct(a) - getFromScanPct(b);
+        if (sort === "change-desc") return asNumber(b.price_change_24h) - asNumber(a.price_change_24h);
+        if (sort === "change-asc") return asNumber(a.price_change_24h) - asNumber(b.price_change_24h);
+        if (sort === "volume-desc") return asNumber(b.volume_24h_usdt) - asNumber(a.volume_24h_usdt);
+        if (sort === "volume-asc") return asNumber(a.volume_24h_usdt) - asNumber(b.volume_24h_usdt);
+        if (sort === "score-asc") return asNumber(a.scores?.total) - asNumber(b.scores?.total);
+        if (sort === "volume-score-desc") return asNumber(b.scores?.volume) - asNumber(a.scores?.volume);
+        if (sort === "volume-score-asc") return asNumber(a.scores?.volume) - asNumber(b.scores?.volume);
+        if (sort === "momentum-desc") return asNumber(b.scores?.momentum) - asNumber(a.scores?.momentum);
+        if (sort === "momentum-asc") return asNumber(a.scores?.momentum) - asNumber(b.scores?.momentum);
+        if (sort === "orderbook-desc") return asNumber(b.scores?.orderbook) - asNumber(a.scores?.orderbook);
+        if (sort === "orderbook-asc") return asNumber(a.scores?.orderbook) - asNumber(b.scores?.orderbook);
+        if (sort === "breakout-desc") return asNumber(b.scores?.breakout) - asNumber(a.scores?.breakout);
+        if (sort === "breakout-asc") return asNumber(a.scores?.breakout) - asNumber(b.scores?.breakout);
+        if (sort === "tags-desc") return getTagText(b).localeCompare(getTagText(a));
+        if (sort === "tags-asc") return getTagText(a).localeCompare(getTagText(b));
+        return asNumber(b.scores?.total) - asNumber(a.scores?.total);
+      });
+      return filtered;
+    }
+
+    function getLivePrice(signal) {
+      return livePrices[signal.symbol] || asNumber(signal.price);
+    }
+
+    function getFromScanPct(signal) {
+      const scanPrice = asNumber(signal.price);
+      const livePrice = livePrices[signal.symbol];
+      if (!scanPrice || !livePrice) return 0;
+      return ((livePrice - scanPrice) / scanPrice) * 100;
+    }
+
+    function getTagText(signal) {
+      return (Array.isArray(signal.tags) ? signal.tags : []).join(" ");
+    }
+
+    function setSignalSort(sortKey) {
+      const select = $("sortSelect");
+      const current = select.value;
+      const desc = `${sortKey}-desc`;
+      const asc = `${sortKey}-asc`;
+      select.value = current === desc ? asc : desc;
+      updateSortHeaders();
+      renderSignals();
+    }
+
+    function updateSortHeaders() {
+      const sort = $("sortSelect").value;
+      document.querySelectorAll(".sort-button").forEach((button) => {
+        const key = button.dataset.sortKey;
+        const active = sort.startsWith(`${key}-`);
+        button.classList.toggle("active", active);
+        button.classList.toggle("asc", active && sort.endsWith("-asc"));
+        button.classList.toggle("desc", active && sort.endsWith("-desc"));
+      });
+    }
+
     function renderSignals() {
-      $("signalSummary").textContent = `${signals.length} signals`;
-      $("signalsEmpty").hidden = signals.length !== 0;
-      $("signalsBody").innerHTML = signals.map((signal, index) => {
+      const visibleSignals = getFilteredSignals();
+      $("signalSummary").textContent = `${visibleSignals.length}/${signals.length} signals`;
+      $("signalsEmpty").hidden = visibleSignals.length !== 0;
+      $("signalsBody").innerHTML = visibleSignals.map((signal, index) => {
         const scores = signal.scores || {};
         const scanPrice = asNumber(signal.price);
         const livePrice = livePrices[signal.symbol];
@@ -525,33 +805,50 @@
     }
 
     function renderTrades() {
-      const openCount = trades.filter((trade) => trade.status === "open").length;
-      const closedCount = trades.filter((trade) => trade.status === "closed").length;
-      $("tradeSummary").textContent = `${openCount} open, ${closedCount} closed`;
-      $("tradesEmpty").hidden = trades.length !== 0;
+      updateOpenTradeExtremes();
+      const openTrades = trades.filter((trade) => trade.status === "open").reverse();
+      const closedTrades = trades.filter((trade) => trade.status === "closed").reverse();
+      $("tradeSummary").textContent = `${openTrades.length} open, ${closedTrades.length} closed`;
+      $("openTradeCount").textContent = `${openTrades.length} rows`;
+      $("closedTradeCount").textContent = `${closedTrades.length} rows`;
+      $("openTradesEmpty").hidden = openTrades.length !== 0;
+      $("closedTradesEmpty").hidden = closedTrades.length !== 0;
 
-      $("tradesBody").innerHTML = [...trades].reverse().map((trade) => {
-        const isOpen = trade.status === "open";
-        const openPnl = getOpenTradePnl(trade);
-        const pnl = isOpen ? openPnl.pnl : asNumber(trade.realized_pnl_usdt);
-        const pct = isOpen ? openPnl.pct : asNumber(trade.realized_pnl_pct);
-        const live = openPnl.live;
-        const status = isOpen ? "Open" : (trade.exit_reason || "Closed");
+      $("openTradesBody").innerHTML = openTrades.map((trade) => {
+        const pnl = getOpenTradePnl(trade);
+        const live = pnl.live;
         const tags = Array.isArray(trade.tags) ? trade.tags : [];
+        return `<tr>
+          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
+          <td>Open</td>
+          <td class="money">$${formatPrice(trade.entry_price)}</td>
+          <td class="money">${live ? `$${formatPrice(live)}` : '<span class="muted">Pending</span>'}</td>
+          <td class="${classForNumber(pnl.pnl)}"><strong>${formatMoney(pnl.pnl)} USDT</strong><br><span>${formatPct(pnl.pct)}</span></td>
+          <td class="pos">${formatMoney(trade.max_unrealized_pnl_usdt)}<br>${formatPct(trade.max_unrealized_pnl_pct)}</td>
+          <td class="neg">${formatMoney(trade.min_unrealized_pnl_usdt)}<br>${formatPct(trade.min_unrealized_pnl_pct)}</td>
+          <td class="money">$${formatPrice(trade.tp1_price)} / $${formatPrice(trade.tp2_price)}</td>
+          <td class="money">$${formatPrice(trade.stop_loss_price)}</td>
+          <td>${timeText(trade.entry_time)}</td>
+          <td><div class="tags">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div></td>
+        </tr>`;
+      }).join("");
 
-        return `<article class="trade">
-          <div class="trade-head">
-            <a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a>
-            <span class="pill">${status}</span>
-          </div>
-          <div class="trade-row"><span class="muted">Entry</span><span class="money">$${formatPrice(trade.entry_price)}</span></div>
-          ${live ? `<div class="trade-row"><span class="muted">Live</span><span class="money">$${formatPrice(live)}</span></div>` : ""}
-          ${trade.exit_price ? `<div class="trade-row"><span class="muted">Exit</span><span class="money">$${formatPrice(trade.exit_price)}</span></div>` : ""}
-          <div class="trade-row"><span class="muted">Score</span><span>${asNumber(trade.score).toFixed(1)}</span></div>
-          <div class="trade-row"><span class="muted">PnL</span><strong class="${classForNumber(pnl)}">${formatMoney(pnl)} USDT (${formatPct(pct)})</strong></div>
-          <div class="muted">${timeText(trade.entry_time)}</div>
-          <div class="tags">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
-        </article>`;
+      $("closedTradesBody").innerHTML = closedTrades.map((trade) => {
+        const pnl = asNumber(trade.realized_pnl_usdt);
+        const pct = asNumber(trade.realized_pnl_pct);
+        const tags = Array.isArray(trade.tags) ? trade.tags : [];
+        return `<tr>
+          <td><a href="https://www.tradingview.com/chart/?symbol=BINANCE:${trade.base || trade.symbol}" target="_blank" rel="noopener"><span class="symbol">${trade.base || trade.symbol}</span></a></td>
+          <td>${escapeHtml(trade.exit_reason || "Closed")}</td>
+          <td class="money">$${formatPrice(trade.entry_price)}</td>
+          <td class="money">$${formatPrice(trade.exit_price)}</td>
+          <td class="${classForNumber(pnl)}"><strong>${formatMoney(pnl)} USDT</strong><br><span>${formatPct(pct)}</span></td>
+          <td class="pos">${formatMoney(trade.max_unrealized_pnl_usdt)}<br>${formatPct(trade.max_unrealized_pnl_pct)}</td>
+          <td class="neg">${formatMoney(trade.min_unrealized_pnl_usdt)}<br>${formatPct(trade.min_unrealized_pnl_pct)}</td>
+          <td>${timeText(trade.entry_time)}</td>
+          <td>${timeText(trade.exit_time)}</td>
+          <td><div class="tags">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div></td>
+        </tr>`;
       }).join("");
     }
 
@@ -564,6 +861,10 @@
         .replaceAll("'", "&#039;");
     }
 
+    function escapeAttr(value) {
+      return escapeHtml(value).replaceAll("`", "&#096;");
+    }
+
     document.querySelectorAll("[data-tab]").forEach((button) => {
       button.addEventListener("click", () => {
         document.querySelectorAll("[data-tab]").forEach((item) => item.classList.toggle("active", item === button));
@@ -572,7 +873,15 @@
       });
     });
 
+    document.querySelectorAll(".sort-button").forEach((button) => {
+      button.addEventListener("click", () => setSignalSort(button.dataset.sortKey));
+    });
+    $("sortSelect").addEventListener("change", () => {
+      updateSortHeaders();
+      renderSignals();
+    });
     $("refreshBtn").addEventListener("click", refreshAll);
+    updateSortHeaders();
     refreshAll();
   </script>
 </body>
