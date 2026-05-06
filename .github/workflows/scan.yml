@@ -1,6 +1,8 @@
 name: Moon Sniper Scan
 on:
-  workflow_dispatch:  # 僅手動觸發
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
 
 jobs:
   scan:
@@ -15,7 +17,10 @@ jobs:
           python-version: '3.11'
       
       - name: Run scanner
-        run: python scanner.py
+        run: |
+          python scanner.py 2>&1
+          echo "=== signals.json 內容 ==="
+          python3 -c "import json; d=json.load(open('signals.json')); print(f'訊號數: {len(d[\"signals\"])}')"
         env:
           BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
           BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
