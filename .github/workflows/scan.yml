@@ -23,6 +23,7 @@ jobs:
       
       - name: Run scanner
         run: |
+          set -o pipefail
           python scanner.py 2>&1 | tee scanner_debug.log
           echo "=== signals.json ==="
           python3 -c "import json; d=json.load(open('signals.json')); print(f'訊號數: {len(d[\"signals\"])}')"
@@ -31,7 +32,21 @@ jobs:
         env:
           BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
           BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
-      
+
+      - name: Verify scanner freshness
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+          from datetime import datetime, timezone, timedelta
+          d = json.load(open('signals.json'))
+          scanned_at = datetime.fromisoformat(d['scanned_at'])
+          age = datetime.now(timezone.utc) - scanned_at
+          if age > timedelta(hours=2):
+              print(f"FAIL: signals.json 已 {age} 未更新 (scanned_at={d['scanned_at']})", file=sys.stderr)
+              sys.exit(1)
+          print(f"OK: signals.json 新鮮度 {age} ({len(d['signals'])} 訊號)")
+          EOF
+
       - name: Run paper trader
         run: python paper_trader.py
         env:

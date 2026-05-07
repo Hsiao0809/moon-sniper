@@ -13,6 +13,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
+
+BINANCE_HOSTS = [
+    "https://api.binance.com",
+    "https://data-api.binance.vision",
+    "https://api1.binance.com",
+    "https://api2.binance.com",
+    "https://api3.binance.com",
+    "https://api-gcp.binance.com",
+]
 CONFIG_PATH = BASE_DIR / "config.json"
 SIGNALS_PATH = BASE_DIR / "signals.json"
 
@@ -101,30 +110,31 @@ def call_binance_api(args):
 def get_all_tickers():
     """取得所有 USDT 交易對的 24hr 行情 — 用 urllib（相容性最高）"""
     import urllib.request
-    try:
-        resp = urllib.request.urlopen("https://api.binance.com/api/v3/ticker/24hr", timeout=30)
-        data = json.loads(resp.read())
-        if isinstance(data, dict):
-            data = [data]
-        usdt_pairs = [t for t in data if t.get("symbol", "").endswith("USDT")]
-        return usdt_pairs
-    except Exception as e:
-        print(f"get_all_tickers error: {e}", file=sys.stderr)
-        return []
+    for host in BINANCE_HOSTS:
+        try:
+            resp = urllib.request.urlopen(f"{host}/api/v3/ticker/24hr", timeout=30)
+            data = json.loads(resp.read())
+            if isinstance(data, dict):
+                data = [data]
+            usdt_pairs = [t for t in data if t.get("symbol", "").endswith("USDT")]
+            if usdt_pairs:
+                return usdt_pairs
+        except Exception as e:
+            print(f"get_all_tickers({host}) error: {e}", file=sys.stderr)
+    return []
 
 def http_get(path, params=None):
     """直接 HTTP GET Binance API"""
     import urllib.request
-    url = f"https://api.binance.com{path}"
-    if params:
-        query = "&".join(f"{k}={v}" for k, v in params.items())
-        url += f"?{query}"
-    try:
-        resp = urllib.request.urlopen(url, timeout=30)
-        return json.loads(resp.read())
-    except Exception as e:
-        print(f"HTTP error {path}: {e}", file=sys.stderr)
-        return None
+    query = "&".join(f"{k}={v}" for k, v in params.items()) if params else ""
+    for host in BINANCE_HOSTS:
+        url = f"{host}{path}" + (f"?{query}" if query else "")
+        try:
+            resp = urllib.request.urlopen(url, timeout=30)
+            return json.loads(resp.read())
+        except Exception as e:
+            print(f"HTTP error {host}{path}: {e}", file=sys.stderr)
+    return None
 
 def get_exchange_info():
     """取得交易對資訊"""
@@ -912,4 +922,6 @@ def save_signals(signals):
 if __name__ == "__main__":
     config = load_config()
     signals = scan(config)
+    if signals is None:
+        sys.exit(1)
     save_signals(signals)
