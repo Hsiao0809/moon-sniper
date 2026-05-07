@@ -712,6 +712,14 @@ def scan(config):
         elif change_pct > 5:
             short_score += 8
         
+        # 放量創高：24h 漲幅大 + 量比 > 1.2（回測：69.2% 機率 5 天內回跌）
+        if len(closes) >= 5 and len(volumes) >= 5:
+            latest_vol = volumes[-1]
+            avg_vol = sum(volumes[-5:-1]) / 4 if len(volumes) >= 5 else latest_vol
+            vol_ratio = latest_vol / avg_vol if avg_vol > 0 else 1
+            if change_pct > 5 and vol_ratio > 1.2:
+                short_score += 15  # 放量創高＝動能高潮，容易反轉
+        
         # 雙頂型態（反轉空最強訊號）
         if "double_top" in patterns:
             short_score += 25
