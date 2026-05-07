@@ -74,11 +74,14 @@ def get_position_value(config, trades=None):
     position_value = margin_per_trade * leverage
     return position_value, margin_per_trade, leverage, max_risk, total_equity
 
-def calc_pnl(current_price, entry_price, position_value):
-    """計算損益 USDT 和百分比"""
+def calc_pnl(current_price, entry_price, position_value, direction="long"):
+    """計算損益 USDT 和百分比（支援多空方向）"""
     if entry_price == 0:
         return 0, 0
-    pnl_pct = (current_price - entry_price) / entry_price
+    if direction == "short":
+        pnl_pct = (entry_price - current_price) / entry_price
+    else:
+        pnl_pct = (current_price - entry_price) / entry_price
     pnl_usdt = pnl_pct * position_value
     return round(pnl_usdt, 2), round(pnl_pct * 100, 2)
 
@@ -109,6 +112,21 @@ def check_new_trades(signals, trades, config):
 
         if not is_long and not is_short:
             continue
+
+        # 空方過濾器：不要亂空的狀況
+        if is_short:
+            change_pct = float(s.get("price_change_24h", 0))
+            # 過濾 1：跌勢中不要空（順勢空才要，但已經跌太多不追）
+            if change_pct < -15:
+                continue
+            # 過濾 2：低成交量不要空（流動性不足容易被軋）
+            if float(s.get("volume_24h_usdt", 0)) < 50000:
+                continue
+            # 過濾 3：盤整中不要空（等突破方向確認）
+            consolidation_days = s.get("consolidation_days", 0)
+            consolidation_range = s.get("consolidation_range_pct", 0)
+            if consolidation_days >= 2 and consolidation_range <= 8:
+                continue
 
         entry_price = float(s["price"])
         now = datetime.now(timezone.utc)
@@ -175,19 +193,22 @@ def update_open_trades(trades, signals, config):
 
         symbol = trade["symbol"]
         entry = trade["entry_price"]
+        direction = trade.get("direction", "long")
 
         # 從 signals 取得最新價格
         current_price = None
         high_24h = None
+        low_24h = None
         if symbol in signal_map:
             current_price = float(signal_map[symbol]["price"])
             high_24h = float(signal_map[symbol].get("high_24h", current_price))
+            low_24h = float(signal_map[symbol].get("low_24h", current_price))
 
         if current_price is None:
             continue
 
-        # 計算浮動損益
-        unrealized_u, unrealized_pct = calc_pnl(current_price, entry, position_value)
+        # 計算浮動損益（傳入方向）
+        unrealized_u, unrealized_pct = calc_pnl(current_price, entry, position_value, direction)
         trade["unrealized_pnl_usdt"] = unrealized_u
         trade["unrealized_pnl_pct"] = unrealized_pct
 
@@ -201,9 +222,22 @@ def update_open_trades(trades, signals, config):
             trade["min_unrealized_pnl_usdt"] = unrealized_u
             trade["min_unrealized_pnl_pct"] = unrealized_pct
 
-        # 檢查 TP2（+20% 全出）— 用當前價或 24h 高點判斷
-        price_for_tp = max(current_price, high_24h) if high_24h else current_price
-        if not trade["take_profit_2_hit"] and price_for_tp >= trade["tp2_price"]:
+        # 根據方向檢查 TP/SL
+        if direction == "short":
+            # 做空：價格下跌是賺錢
+            price_for_tp = min(current_price, low_24h) if low_24h else current_price
+            tp2_hit = not trade["take_profit_2_hit"] and price_for_tp <= trade["tp2_price"]
+            tp1_hit = not trade["take_profit_1_hit"] and current_price <= trade["tp1_price"]
+            sl_hit = current_price >= trade["stop_loss_price"]
+        else:
+            # 做多：價格上漲是賺錢（原邏輯）
+            price_for_tp = max(current_price, high_24h) if high_24h else current_price
+            tp2_hit = not trade["take_profit_2_hit"] and price_for_tp >= trade["tp2_price"]
+            tp1_hit = not trade["take_profit_1_hit"] and current_price >= trade["tp1_price"]
+            sl_hit = current_price <= trade["stop_loss_price"]
+
+        # 檢查 TP2（全出）
+        if tp2_hit:
             trade["status"] = "closed"
             trade["exit_price"] = current_price
             trade["exit_time"] = now.isoformat()
@@ -216,14 +250,14 @@ def update_open_trades(trades, signals, config):
             updated += 1
             continue
 
-        # 檢查 TP1（+10% 出一半）— 只標記，不全出
-        if not trade["take_profit_1_hit"] and current_price >= trade["tp1_price"]:
+        # 檢查 TP1（出一半，只標記）
+        if tp1_hit:
             trade["take_profit_1_hit"] = True
             trade["take_profit_1_exit_price"] = current_price
             updated += 1
 
         # 檢查停損
-        if current_price <= trade["stop_loss_price"]:
+        if sl_hit:
             trade["status"] = "closed"
             trade["exit_price"] = current_price
             trade["exit_time"] = now.isoformat()

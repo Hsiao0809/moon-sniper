@@ -697,25 +697,71 @@ def scan(config):
             smart_money_score * config_score["smart_money_weight"]
         ) - overbought_penalty
 
-        # 做空評分：動能過高反轉 + 雙頂 + 賣壓
+        # 做空評分：反轉空 + 順勢空（多維度）
         short_score = 0
         change_pct = float(ticker.get("priceChangePercent", 0))
-        # 漲太多（>15%）且動能可能衰竭
+        closes = [float(k[4]) for k in klines] if klines else []
+        volumes = [float(k[5]) for k in klines] if klines else []
+        current_price = float(ticker.get("lastPrice", 0))
+        
+        # === 反轉做空條件（漲太多 → 回調預期）===
         if change_pct > 15:
-            short_score += 30
+            short_score += 15
         elif change_pct > 10:
-            short_score += 20
+            short_score += 12
         elif change_pct > 5:
-            short_score += 10
-        # 雙頂型態
+            short_score += 8
+        
+        # 雙頂型態（反轉空最強訊號）
         if "double_top" in patterns:
-            short_score += 30
-        # 賣壓沉重（訂單簿）
+            short_score += 25
+        
+        # RSI 超買（短線過熱）
+        if len(closes) >= 14:
+            gains = sum(closes[i] - closes[i-1] for i in range(-13, 0) if closes[i] > closes[i-1])
+            losses = sum(closes[i-1] - closes[i] for i in range(-13, 0) if closes[i] <= closes[i-1])
+            avg_gain = gains / 14 if gains > 0 else 0.001
+            avg_loss = losses / 14 if losses > 0 else 0.001
+            rs = avg_gain / avg_loss if avg_loss > 0 else 99
+            rsi = 100 - 100 / (1 + rs)
+            if rsi > 70:
+                short_score += 15
+        
+        # === 順勢做空條件（空頭趨勢已確立）===
+        # 放量下跌：最近一根 K 線下跌且量放大
+        if len(closes) >= 5 and len(volumes) >= 5:
+            last_change = (closes[-1] - closes[-2]) / closes[-2] if closes[-2] > 0 else 0
+            latest_vol = volumes[-1]
+            avg_vol = sum(volumes[-5:-1]) / 4 if len(volumes) >= 5 else latest_vol
+            vol_ratio = latest_vol / avg_vol if avg_vol > 0 else 1
+            if last_change < -0.02 and vol_ratio > 2.5:
+                short_score += 25  # 放量下跌：強勢空
+        
+        # 空頭排列（EMA8 < EMA21 < EMA50）
+        if len(closes) >= 50:
+            ema8 = sum(closes[-8:]) / 8
+            ema21 = sum(closes[-21:]) / 21
+            ema50 = sum(closes[-50:]) / 50
+            if ema8 < ema21 < ema50:
+                short_score += 20  # 完全空頭排列
+            elif ema8 < ema21:
+                short_score += 10  # 短空頭
+        
+        # 跌破近期支撐
+        if len(closes) >= 20:
+            lows = [float(k[3]) for k in klines[-20:]]
+            support = min(lows[:-1])
+            if current_price < support:
+                short_score += 20
+        
+        # 訂單簿賣壓
         if ob_summary.get("bid_ask_ratio", 1) < 0.6:
-            short_score += 20
-        # 量價背離
+            short_score += 12
+        
+        # 量價背離（空方）
         if "volume_divergence" in patterns and "bearish" in patterns["volume_divergence"].get("type", ""):
-            short_score += 20
+            short_score += 15
+        
         short_score = min(short_score, 100)
 
         signals.append({
@@ -823,10 +869,18 @@ def scan(config):
                 tags.append("✅ 量價健康")
         
         # 做空標籤
-        if s["scores"].get("short", 0) >= 60:
+        short_score = s["scores"].get("short", 0)
+        if short_score >= 60:
             tags.append("📉 做空訊號")
-        elif s["scores"].get("short", 0) >= 40:
+        elif short_score >= 40:
             tags.append("⚠️ 可能做空")
+        
+        # 順勢做空細項標籤（來自 new_short_score 的維度）
+        # 注意：new_short_score 不代表單一維度，而是多維度疊加
+        # 這裡用 patterns 補細項
+        if "volume_divergence" in pat and "bearish" in pat.get("volume_divergence", {}).get("type", ""):
+            if "🔻 量價背離" not in tags:
+                tags.append("🔻 空方背離")
         
         s["tags"] = tags
     
