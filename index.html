@@ -176,6 +176,7 @@
     position: sticky;
     left: 0;
     z-index: 3;
+    min-width: 120px;
     background: var(--card);
     box-shadow: 1px 0 0 var(--border);
   }
@@ -184,6 +185,18 @@
     background: var(--card-hover);
   }
   tr:hover td.sticky-symbol { background: var(--card-hover); }
+  .sticky-price {
+    position: sticky;
+    left: 120px;
+    z-index: 3;
+    background: var(--card);
+    box-shadow: 1px 0 0 var(--border);
+  }
+  th.sticky-price {
+    z-index: 5;
+    background: var(--card-hover);
+  }
+  tr:hover td.sticky-price { background: var(--card-hover); }
   td {
     padding: 10px 12px;
     border-bottom: 1px solid var(--border);
@@ -396,7 +409,7 @@
           <th class="sortable" data-sort="rank" onclick="sortSignals('rank')">#<span class="sort-indicator" data-sort-indicator="rank"></span></th>
           <th class="sortable sticky-symbol" data-sort="symbol" onclick="sortSignals('symbol')">幣種<span class="sort-indicator" data-sort-indicator="symbol"></span></th>
           <th class="sortable" data-sort="scanPrice" onclick="sortSignals('scanPrice')">掃描價<span class="sort-indicator" data-sort-indicator="scanPrice"></span></th>
-          <th class="sortable" data-sort="livePrice" onclick="sortSignals('livePrice')">當前價<span class="sort-indicator" data-sort-indicator="livePrice"></span></th>
+          <th class="sortable sticky-price" data-sort="livePrice" onclick="sortSignals('livePrice')">當前價<span class="sort-indicator" data-sort-indicator="livePrice"></span></th>
           <th class="sortable" data-sort="fromScan" onclick="sortSignals('fromScan')">掃描至今<span class="sort-indicator" data-sort-indicator="fromScan"></span></th>
           <th class="sortable" data-sort="change24h" onclick="sortSignals('change24h')">24h 漲跌<span class="sort-indicator" data-sort-indicator="change24h"></span></th>
           <th class="sortable" data-sort="volume24h" onclick="sortSignals('volume24h')">24h 成交量<span class="sort-indicator" data-sort-indicator="volume24h"></span></th>
@@ -631,7 +644,7 @@ function render(data, tradesData) {
         <td>${s._rank || i+1}</td>
         <td class="sticky-symbol"><a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.base}USDT" target="_blank" rel="noopener"><span class="symbol-name">${s.base}</span> 🔗</a></td>
         <td class="price">$${scanPrice.toFixed(scanPrice < 1 ? 6 : scanPrice < 100 ? 4 : 2)}</td>
-        <td class="price">$${displayPrice.toFixed(displayPrice < 1 ? 6 : displayPrice < 100 ? 4 : 2)}</td>
+        <td class="price sticky-price">$${displayPrice.toFixed(displayPrice < 1 ? 6 : displayPrice < 100 ? 4 : 2)}</td>
         <td class="change ${chgScanCls}">${livePrice ? chgScanSign + chgFromScan.toFixed(2) + '%' : '—'}</td>
         <td class="change ${chgCls}">${chgSign}${chg.toFixed(2)}%</td>
         <td>${vol}</td>
