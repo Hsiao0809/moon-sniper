@@ -104,6 +104,23 @@ def test_scanner_uses_url_encoding_for_non_ascii_symbols():
     assert '.isascii()' not in scanner, 'scanner must not exclude Chinese/MEME symbols by character set'
 
 
+def test_scanner_uses_enough_kline_history_for_filters():
+    scanner = Path('scanner.py').read_text(encoding='utf-8')
+    assert 'limit=96' in scanner, 'scanner needs >=72 1h klines for 3-day swing consolidation and ADX period=14'
+
+
+def test_scanner_excludes_modern_stablecoins():
+    scanner = Path('scanner.py').read_text(encoding='utf-8')
+    for stable in ('RLUSD', 'USD1', 'BFUSD', 'XUSD'):
+        assert stable in scanner, f'{stable} should be excluded as stablecoin-like quote asset noise'
+
+
+def test_scanner_adjusts_partial_kline_volume():
+    scanner = Path('scanner.py').read_text(encoding='utf-8')
+    assert 'elapsed_frac' in scanner, 'volume ratio should adjust unfinished current kline volume by elapsed time'
+    assert 'latest_vol = latest_vol / elapsed_frac' in scanner, 'partial kline volume should be projected to full interval'
+
+
 def test_mobile_allows_page_scroll_and_pull_refresh():
     assert_contains(HTML, 'overflow-y: auto', 'page must allow vertical scrolling for mobile/pull refresh')
     assert_not_contains(HTML, 'html, body { height: 100%; overflow: hidden; }', 'global overflow hidden blocks mobile pull-to-refresh')

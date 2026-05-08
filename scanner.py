@@ -154,8 +154,14 @@ def get_exchange_info():
         }
     return symbols
 
-def get_klines_batch(symbols, interval="1h", limit=12):
-    """平行取得多個幣種的 K 線資料"""
+def get_klines_batch(symbols, interval="1h", limit=96):
+    """平行取得多個幣種的 K 線資料。
+
+    96 根 1h K 線 = 4 天：
+    - Swing 需要判斷盤整 >= 3 天，12 根 1h K 線永遠不可能通過。
+    - ADX(period=14) 至少需要 15 根以上，12 根會讓 ADX 固定回 0。
+    - Scalp 仍可使用最後幾根計算量比/動能，不會因更長窗口失真。
+    """
     import concurrent.futures
     result = {}
 
@@ -474,17 +480,35 @@ def calculate_liquidity_score(ticker):
 
 def calculate_volume_ratio_score(klines):
     """
-    量比評分：最後一根 K 線量 vs 前 3 根 / 前 10 根均量
-    核心邏輯來自 TON 案例：量爆 3x-5x 是初爆訊號
+    量比評分：最新 1h K 線量 vs 前 3 根 / 前 10 根均量。
+
+    Binance 回傳的最後一根 K 線通常是「未收完的當前小時」。
+    如果直接拿未收 K 線 volume 比較，剛開小時時 volume 會被嚴重低估，導致所有標的被 volume_ratio<2 錯殺。
+    解法：若最後一根尚未收完，依已經過時間比例將 volume 年化/校正到完整 1h 預估量。
     """
     if not klines or len(klines) < 12:
         return 0, 1.0, 1.0
-    
+
+    import time
     volumes = [float(k[5]) for k in klines]
     latest_vol = volumes[-1]
-    
-    short_vols = volumes[-4:-1]  # 前 3 根
-    long_vols = volumes[-11:-1]  # 前 10 根
+
+    # 若最後一根 K 線尚未收完，將 partial volume 校正成完整週期預估量。
+    # kline: [open_time, open, high, low, close, volume, close_time, ...]，時間單位 ms。
+    try:
+        open_ms = int(klines[-1][0])
+        close_ms = int(klines[-1][6])
+        now_ms = int(time.time() * 1000)
+        if now_ms < close_ms and close_ms > open_ms:
+            elapsed = max(now_ms - open_ms, 1)
+            full = close_ms - open_ms + 1
+            elapsed_frac = min(max(elapsed / full, 0.05), 1.0)
+            latest_vol = latest_vol / elapsed_frac
+    except Exception:
+        pass
+
+    short_vols = volumes[-4:-1]  # 前 3 根已收 K
+    long_vols = volumes[-11:-1]  # 前 10 根已收 K
     
     short_avg = sum(short_vols) / len(short_vols) if short_vols else 1
     long_avg = sum(long_vols) / len(long_vols) if long_vols else 1
@@ -734,7 +758,10 @@ def scan(config, mode="swing"):
         # 過濾穩定幣
         if config_scan["exclude_stablecoins"]:
             base = symbol.replace("USDT", "")
-            stables = {"USDC", "BUSD", "TUSD", "DAI", "FDUSD", "USDP", "GUSD", "PAX", "SUSD", "LUSD", "FRAX"}
+            stables = {
+                "USDC", "BUSD", "TUSD", "DAI", "FDUSD", "USDP", "GUSD", "PAX", "SUSD", "LUSD", "FRAX",
+                "RLUSD", "USD1", "BFUSD", "XUSD", "USDE", "USDS", "USDD", "PYUSD"
+            }
             if base in stables:
                 continue
         
