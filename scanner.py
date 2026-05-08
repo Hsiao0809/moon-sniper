@@ -813,28 +813,31 @@ def scan(config, mode="swing"):
         vol_ratio_score, short_ratio, long_ratio = calculate_volume_ratio_score(klines)
         consolidation_score, consolidation_days, consolidation_range = calculate_consolidation_score(klines)
 
+        filter_reasons = []
         if mode == "swing":
-            # Swing 篩選：盤整 ≥3 天 + 量比 ≥2x + OBI > 0 + 非強趨勢
+            # Swing 交易資格：盤整 ≥3 天 + 量比 ≥2x + OBI > 0 + 非強趨勢。
+            # 注意：這裡只標記 trade_eligible，不再 continue；dashboard 應顯示候選池，不能只顯示可交易標的。
             if consolidation_days < filters.get("min_consolidation_days", 3):
-                continue
+                filter_reasons.append("盤整不足")
             if short_ratio < filters.get("min_volume_ratio", 2.0):
-                continue
+                filter_reasons.append("量比不足")
             if obi < filters.get("obi_min", 0.0):
-                continue
-            # 如果 ADX 太高（強趨勢），不算盤整，跳過
+                filter_reasons.append("OBI偏弱")
             if adx > filters.get("adx_max", 25):
-                continue
+                filter_reasons.append("ADX過高非盤整")
         elif mode == "scalp":
-            # Scalp 篩選：動能 ≥3% + 量比 ≥2x + OBI ≥ 0.3 + 有動能市場
+            # Scalp 交易資格：動能 ≥3% + 量比 ≥2x + OBI ≥0.3 + 有動能市場。
+            # 未通過者仍保留為觀察訊號，交由 filter_reasons 說明為何不可交易。
             if change_pct < filters.get("min_momentum_pct", 3.0):
-                continue
+                filter_reasons.append("24h動能不足")
             if short_ratio < filters.get("min_volume_ratio", 2.0):
-                continue
+                filter_reasons.append("量比不足")
             if obi < filters.get("obi_min", 0.3):
-                continue
-            # ADX 太低（無趨勢），SCalp 不適合
+                filter_reasons.append("OBI偏弱")
             if adx > 0 and adx < filters.get("adx_min", 20):
-                continue
+                filter_reasons.append("ADX不足")
+
+        trade_eligible = len(filter_reasons) == 0
 
         # 技術型態分析
         patterns = detect_patterns(klines, ticker)
@@ -984,6 +987,8 @@ def scan(config, mode="swing"):
                 "total": round(total_score, 1),
                 "short": round(short_score, 1),
             },
+            "trade_eligible": trade_eligible,
+            "filter_reasons": filter_reasons,
             "orderbook": ob_summary,
             "smart_money": sm if sm else {},
             "patterns": patterns,
@@ -1000,6 +1005,13 @@ def scan(config, mode="swing"):
     # 加上標籤
     for s in signals:
         tags = []
+        if not s.get("trade_eligible", False):
+            tags.append("👀 觀察")
+            reasons = s.get("filter_reasons", [])[:2]
+            if reasons:
+                tags.append("未交易:" + "/".join(reasons))
+        else:
+            tags.append("✅ 可交易")
         # 新維度：量比和盤整
         vol_ratio = s.get("volume_short_ratio", 0)
         if vol_ratio >= 5:

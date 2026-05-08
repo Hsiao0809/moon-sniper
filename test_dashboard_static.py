@@ -121,6 +121,21 @@ def test_scanner_adjusts_partial_kline_volume():
     assert 'latest_vol = latest_vol / elapsed_frac' in scanner, 'partial kline volume should be projected to full interval'
 
 
+def test_scanner_separates_display_candidates_from_trade_eligibility():
+    scanner = Path('scanner.py').read_text(encoding='utf-8')
+    assert 'filter_reasons' in scanner, 'scanner should explain why a candidate is not trade-eligible'
+    assert 'trade_eligible' in scanner, 'scanner should separate display candidates from trade eligibility'
+    assert 'dashboard 應顯示候選池' in scanner, 'hard filters should not hide all dashboard candidates'
+
+
+def test_paper_trading_can_be_paused_and_requires_trade_eligible():
+    config = json.loads(Path('config.json').read_text(encoding='utf-8'))
+    trader = Path('paper_trader.py').read_text(encoding='utf-8')
+    assert config.get('paper_trading', {}).get('enabled') is False, 'paper trading should be paused until project review completes'
+    assert 'paper_trading_enabled' in trader, 'paper trader should persist pause status in stats'
+    assert 's.get("trade_eligible", False)' in trader, 'paper trader must only trade explicitly eligible signals'
+
+
 def test_mobile_allows_page_scroll_and_pull_refresh():
     assert_contains(HTML, 'overflow-y: auto', 'page must allow vertical scrolling for mobile/pull refresh')
     assert_not_contains(HTML, 'html, body { height: 100%; overflow: hidden; }', 'global overflow hidden blocks mobile pull-to-refresh')

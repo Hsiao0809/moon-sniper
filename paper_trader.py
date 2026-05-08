@@ -137,6 +137,9 @@ def check_new_trades(signals_data, trades, config, pool):
         total_score = s["scores"]["total"]
         short_score = s["scores"].get("short", 0)
 
+        if not s.get("trade_eligible", False):
+            continue
+
         if symbol in existing_symbols:
             continue
         if len(existing_symbols) + len(new_trades) >= max_open:
@@ -428,6 +431,17 @@ def run():
     swing_signals = load_signals("swing").get("signals", [])
     scalp_signals = load_signals("scalp").get("signals", [])
     trades = load_trades()
+
+    trading_cfg = config.get("paper_trading", {})
+    trading_enabled = trading_cfg.get("enabled", True)
+    if not trading_enabled:
+        print(f"紙交易暫停：{trading_cfg.get('reason', 'paper_trading.enabled=false')}")
+        calculate_stats(trades, config)
+        trades["stats"]["paper_trading_enabled"] = False
+        trades["stats"]["paper_trading_pause_reason"] = trading_cfg.get("reason", "paper_trading.enabled=false")
+        save_trades(trades)
+        print(f"紙交易狀態：{trades['stats']['total_trades']} 筆總計，{trades['stats']['open_count']} 筆進行中")
+        return
 
     # 更新既有持倉（不分 pool，用訊號價格更新）
     updated = update_open_trades(trades, config)
