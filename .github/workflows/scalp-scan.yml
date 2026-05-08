@@ -1,0 +1,55 @@
+name: Moon Sniper Scalp Scan
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: moon-sniper-scalp
+  cancel-in-progress: true
+
+jobs:
+  scalp-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run scanner (scalp mode)
+        run: |
+          python scanner.py --mode scalp 2>&1 | tee scanner_scalp_debug.log
+          echo "=== scalp_signals.json ==="
+          python3 -c "import json; d=json.load(open('scalp_signals.json')); print(f'訊號數: {len(d.get(\"signals\",[]))}')" 2>/dev/null || echo "scalp_signals.json not found"
+        env:
+          BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
+          BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
+
+      - name: Run paper trader
+        run: python paper_trader.py
+        env:
+          BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
+          BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
+
+      - name: Commit results
+        run: |
+          git config user.name "moon-sniper-bot"
+          git config user.email "bot@moon-sniper"
+          git add scalp_signals.json paper_trades.json
+          if git diff --staged --quiet; then
+            echo "No data changes to commit."
+          else
+            git commit -m "scalp: update $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
+
+      - name: Send Telegram notification
+        run: python notify.py
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
