@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
 moon-sniper scanner.py
-掃描 Binance USDT 交易對，評分找出有暴漲潛力的幣種。
-輸出 signals.json 供 index.html 和 paper_trader.py 使用。
+掃描 Binance USDT 交易對，雙 mode（swing / scalp）評分找出暴漲潛力幣種。
+- swing mode（長線）：盤整+量比為主，輸出 swing_signals.json
+- scalp mode（短線）：動能+OBI為主，輸出 scalp_signals.json
 """
 
+import argparse
 import json
 import os
 import subprocess
@@ -243,6 +245,96 @@ def calculate_orderbook_score(bids, asks, last_price):
     }
     
     return final_score, summary, {"bids": bids[:5], "asks": asks[:5]}
+
+def calculate_obi(bids, asks, depth=10):
+    """
+    計算 Orderbook Imbalance（OBI）
+    OBI = (bid_volume - ask_volume) / (bid_volume + ask_volume)
+    範圍：-1.0 (全賣壓) 到 +1.0 (全買壓)
+    使用前 depth 檔訂單，避免深層無意義資料
+    """
+    if not bids or not asks:
+        return 0.0
+
+    bid_vol = sum(float(b[1]) for b in bids[:depth])
+    ask_vol = sum(float(a[1]) for a in asks[:depth])
+    total = bid_vol + ask_vol
+
+    if total == 0:
+        return 0.0
+
+    obi = (bid_vol - ask_vol) / total
+    return round(obi, 4)
+
+
+def calculate_adx(klines, period=14):
+    """
+    計算 ADX（Average Directional Index）
+    ADX > 25 = 趨勢市場，ADX < 20 = 盤整市場
+    回傳 (adx, plus_di, minus_di)
+    """
+    if not klines or len(klines) < period + 1:
+        return 0, 0, 0
+
+    highs = [float(k[2]) for k in klines]
+    lows = [float(k[3]) for k in klines]
+    closes = [float(k[4]) for k in klines]
+
+    tr_list = []
+    plus_dm_list = []
+    minus_dm_list = []
+
+    for i in range(1, len(klines)):
+        high_diff = highs[i] - highs[i-1]
+        low_diff = lows[i-1] - lows[i]
+
+        tr = max(highs[i] - lows[i],
+                 abs(highs[i] - closes[i-1]),
+                 abs(lows[i] - closes[i-1]))
+        tr_list.append(tr)
+
+        plus_dm = high_diff if high_diff > 0 and high_diff > low_diff else 0
+        minus_dm = low_diff if low_diff > 0 and low_diff > high_diff else 0
+        plus_dm_list.append(plus_dm)
+        minus_dm_list.append(minus_dm)
+
+    if len(tr_list) < period:
+        return 0, 0, 0
+
+    # EMA smooth
+    def ema(values, period):
+        k = 2 / (period + 1)
+        result = [values[0]]
+        for v in values[1:]:
+            result.append(v * k + result[-1] * (1 - k))
+        return result
+
+    tr_ema = ema(tr_list, period)
+    plus_dm_ema = ema(plus_dm_list, period)
+    minus_dm_ema = ema(minus_dm_list, period)
+
+    plus_di = (plus_dm_ema[-1] / tr_ema[-1] * 100) if tr_ema[-1] > 0 else 0
+    minus_di = (minus_dm_ema[-1] / tr_ema[-1] * 100) if tr_ema[-1] > 0 else 0
+
+    dx = abs(plus_di - minus_di) / (plus_di + minus_di) * 100 if (plus_di + minus_di) > 0 else 0
+    adx = dx  # 簡化版：一根 dx 當作 ADX（多根 EMA 需要更多數據）
+
+    return round(adx, 2), round(plus_di, 2), round(minus_di, 2)
+
+
+def get_funding_rate(symbol):
+    """
+    從 Binance 取得 Funding Rate
+    回傳 funding_rate (float)，失敗回傳 None
+    """
+    try:
+        import urllib.request
+        url = f"https://fapi.binance.com/fapi/v1/premiumIndex?symbol={symbol}"
+        resp = urllib.request.urlopen(url, timeout=10)
+        data = json.loads(resp.read())
+        return float(data.get("lastFundingRate", 0))
+    except Exception as e:
+        return None
 
 def get_smart_money_signals():
     """從 Binance Web3 API 取得聰明錢買入訊號"""
@@ -590,10 +682,13 @@ def detect_patterns(klines, ticker):
 
     return patterns
 
-def scan(config):
-    """主掃描邏輯"""
-    print(f"[{datetime.now(timezone.utc).isoformat()}] 開始掃描...")
-    
+def scan(config, mode="swing"):
+    """主掃描邏輯 — 支援雙 mode
+    - swing（長線）：盤整+量比為主，用 swing_trader.scoring 權重
+    - scalp（短線）：動能+OBI為主，用 scalp_trader.scoring 權重
+    """
+    print(f"[{datetime.now(timezone.utc).isoformat()}] 開始掃描... mode={mode}")
+
     tickers = get_all_tickers()
     if not tickers:
         print("錯誤：無法取得 ticker 資料", file=sys.stderr)
@@ -601,9 +696,20 @@ def scan(config):
     
     exchange_info = get_exchange_info()
     config_scan = config["scan"]
-    config_score = config["scoring"]
-    
+
+    # 根據 mode 選擇不同的 config 區塊和權重
+    trader_key = "swing_trader" if mode == "swing" else "scalp_trader"
+    trader_config = config[trader_key]
+    config_score = trader_config["scoring"]
+    filters = trader_config.get("filters", {})
+
     signals = []
+
+    # Swing mode 用大成交量候選；Scalp 更寬鬆找量小但動能強的
+    if mode == "swing":
+        top_n = 50
+    else:
+        top_n = 80
     
     # 限制掃描數量：先按成交量排序，只掃成交量最高的 50 個（排除 BTC/ETH 等大幣）
     tickers.sort(key=lambda x: float(x.get("quoteVolume", 0)), reverse=True)
@@ -611,9 +717,8 @@ def scan(config):
     # 排除 BTC、ETH、BNB、SOL、XRP 等超大市值（暴漲空間有限）
     mega_caps = {"BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT", "MATICUSDT", "UNIUSDT"}
     tickers = [t for t in tickers if t["symbol"] not in mega_caps]
-    tickers = tickers[:50]
-    
-    # 批次取得 klines（只抓前 20 個最有潛力的）
+    tickers = tickers[:top_n]
+
     # 先用 24hr 資料做初步篩選
     candidate_tickers = []
     for ticker in tickers:
@@ -655,24 +760,56 @@ def scan(config):
         spread_pct = (ask_price - bid_price) / last_price * 100 if ask_price > 0 and bid_price > 0 else 0
         if spread_pct > 0.5:  # 價差大於 0.5% 直接排除
             continue
-        
+
         # 計算各項分數
         vol_score, quote_vol, vol_ratio_score, vol_ratio = calculate_volume_score(ticker, config)
         momentum_score = calculate_momentum_score(ticker)
-        
+
         klines = klines_data.get(symbol, [])
         breakout_score = calculate_breakout_score(ticker, klines)
-        
-        # 訂單簿評分
+
+        # 訂單簿評分 + OBI 計算
         ob = orderbook_data.get(symbol, {})
         bids = ob.get("bids", [])
         asks = ob.get("asks", [])
         last_price = float(ticker.get("lastPrice", 0))
         ob_score, ob_summary, ob_detail = calculate_orderbook_score(bids, asks, last_price)
+        obi = calculate_obi(bids, asks, depth=10)
+
+        # ADX 計算（regime 判斷）
+        adx, plus_di, minus_di = calculate_adx(klines, period=14)
+
+        # === Mode-specific 篩選（第一層過濾）===
+        change_pct = float(ticker.get("priceChangePercent", 0))
+        vol_ratio_score, short_ratio, long_ratio = calculate_volume_ratio_score(klines)
+        consolidation_score, consolidation_days, consolidation_range = calculate_consolidation_score(klines)
+
+        if mode == "swing":
+            # Swing 篩選：盤整 ≥3 天 + 量比 ≥2x + OBI > 0 + 非強趨勢
+            if consolidation_days < filters.get("min_consolidation_days", 3):
+                continue
+            if short_ratio < filters.get("min_volume_ratio", 2.0):
+                continue
+            if obi < filters.get("obi_min", 0.0):
+                continue
+            # 如果 ADX 太高（強趨勢），不算盤整，跳過
+            if adx > filters.get("adx_max", 25):
+                continue
+        elif mode == "scalp":
+            # Scalp 篩選：動能 ≥3% + 量比 ≥2x + OBI ≥ 0.3 + 有動能市場
+            if change_pct < filters.get("min_momentum_pct", 3.0):
+                continue
+            if short_ratio < filters.get("min_volume_ratio", 2.0):
+                continue
+            if obi < filters.get("obi_min", 0.3):
+                continue
+            # ADX 太低（無趨勢），SCalp 不適合
+            if adx > 0 and adx < filters.get("adx_min", 20):
+                continue
 
         # 技術型態分析
         patterns = detect_patterns(klines, ticker)
-        
+
         # Smart Money 評分
         base = symbol.replace("USDT", "")
         sm = smart_money_signals.get(base, smart_money_signals.get(symbol, {}))
@@ -691,21 +828,30 @@ def scan(config):
                 smart_money_score = min(smart_money_score + 10, 100)
         else:
             smart_money_score = 0
-        
-        # ----- 新維度：量比、盤整、已漲幅懲罰 -----
-        vol_ratio_score, short_ratio, long_ratio = calculate_volume_ratio_score(klines)
-        consolidation_score, consolidation_days, consolidation_range = calculate_consolidation_score(klines)
+
+        # 已漲幅懲罰（兩 mode 共用）
         overbought_penalty = calculate_overbought_penalty(ticker, klines)
-        
-        # 加權總分
-        total_score = (
-            vol_score * config_score["volume_weight"] +
-            vol_ratio_score * config_score["volume_ratio_weight"] +
-            momentum_score * config_score["momentum_weight"] +
-            breakout_score * config_score["breakout_weight"] +
-            ob_score * config_score["orderbook_weight"] +
-            smart_money_score * config_score["smart_money_weight"]
-        ) - overbought_penalty
+
+        # 加權總分（根據 mode 使用不同的權重配置）
+        if mode == "swing":
+            total_score = (
+                consolidation_score * config_score.get("consolidation_weight", 0.30) +
+                vol_ratio_score * config_score.get("volume_ratio_weight", 0.25) +
+                obi * 100 * config_score.get("obi_weight", 0.15) +  # OBI 轉 0-100 分
+                ob_score * config_score.get("orderbook_weight", 0.15) +
+                momentum_score * config_score.get("momentum_weight", 0.10) +
+                smart_money_score * config_score.get("funding_rate_weight", 0.05)
+            )
+        else:
+            total_score = (
+                momentum_score * config_score.get("momentum_weight", 0.30) +
+                obi * 100 * config_score.get("obi_weight", 0.30) +  # OBI 轉 0-100 分
+                vol_ratio_score * config_score.get("volume_ratio_weight", 0.20) +
+                calculate_liquidity_score(ticker) * config_score.get("liquidity_weight", 0.10) +
+                ob_score * config_score.get("orderbook_weight", 0.10)
+            )
+
+        total_score -= overbought_penalty
 
         # 做空評分：反轉空 + 順勢空（多維度）
         short_score = 0
@@ -795,6 +941,9 @@ def scan(config):
             "consolidation_days": consolidation_days,
             "consolidation_range_pct": consolidation_range,
             "overbought_penalty": round(overbought_penalty, 1),
+            "mode": mode,
+            "obi": obi,
+            "adx": adx,
             "scores": {
                 "volume": round(vol_score, 1),
                 "volume_ratio": round(vol_ratio_score, 1),
@@ -905,23 +1054,30 @@ def scan(config):
     print(f"掃描完成：{len(signals)} 個潛力幣種")
     return signals
 
-def save_signals(signals):
-    """儲存 signals.json"""
+def save_signals(signals, mode="swing"):
+    """儲存 signals.json（mode 決定輸出檔案）"""
     if signals is None:
-        print("未更新 signals.json：本次掃描沒有取得 ticker 資料", file=sys.stderr)
+        fname = f"{mode}_signals.json"
+        print(f"未更新 {fname}：本次掃描沒有取得 ticker 資料", file=sys.stderr)
         return
     output = {
         "scanned_at": datetime.now(timezone.utc).isoformat(),
         "total_scanned": len(signals),
+        "mode": mode,
         "signals": signals,
     }
-    with open(BASE_DIR / "signals.json", "w", encoding="utf-8") as f:
+    fname = f"{mode}_signals.json"
+    with open(BASE_DIR / fname, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
-    print(f"已寫入 signals.json（{len(signals)} 筆）")
+    print(f"已寫入 {fname}（{len(signals)} 筆）")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Moon Sniper Scanner")
+    parser.add_argument("--mode", choices=["swing", "scalp"], default="swing",
+                        help="掃描模式：swing（長線）/ scalp（短線）")
+    args = parser.parse_args()
     config = load_config()
-    signals = scan(config)
+    signals = scan(config, mode=args.mode)
     if signals is None:
         sys.exit(1)
-    save_signals(signals)
+    save_signals(signals, mode=args.mode)

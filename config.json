@@ -6,26 +6,65 @@
     "exclude_stablecoins": true,
     "quote_asset": "USDT"
   },
-  "scoring": {
-    "volume_weight": 0.30,
-    "volume_ratio_weight": 0.20,
-    "momentum_weight": 0.15,
-    "orderbook_weight": 0.15,
-    "smart_money_weight": 0.05,
-    "breakout_weight": 0.15
-  },
-  "paper_trade": {
+  "swing_trader": {
     "account_balance": 300,
-    "max_risk_per_trade_pct": 0.10,
-    "max_risk_usdt": 30,
+    "pool_allocation": 0.60,
+    "max_open_trades": 4,
     "default_leverage": 2,
-    "take_profit_1": 0.10,
-    "take_profit_1_exit_ratio": 0.5,
-    "take_profit_2": 0.20,
+    "take_profit_1": 0.15,
+    "take_profit_1_exit_ratio": 0.33,
+    "take_profit_2": 0.30,
     "stop_loss": -0.05,
-    "max_hold_days": 3,
+    "max_hold_days": 10,
     "min_score_to_trade": 65,
     "short_min_score": 50,
-    "max_open_trades": 8
+    "scoring": {
+      "consolidation_weight": 0.30,
+      "volume_ratio_weight": 0.25,
+      "obi_weight": 0.15,
+      "orderbook_weight": 0.15,
+      "momentum_weight": 0.10,
+      "funding_rate_weight": 0.05
+    },
+    "filters": {
+      "min_consolidation_days": 3,
+      "min_volume_ratio": 2.0,
+      "obi_min": 0.0,
+      "bandwidth_max": 8.0,
+      "adx_max": 25
+    },
+    "funding_rate_adjust": {
+      "fr_high": 0.001,
+      "pool_reduction_pct": 0.33
+    }
+  },
+  "scalp_trader": {
+    "account_balance": 300,
+    "pool_allocation": 0.30,
+    "max_open_trades": 4,
+    "default_leverage": 2,
+    "take_profit_1": 0.05,
+    "take_profit_1_exit_ratio": 0.5,
+    "take_profit_2": 0.08,
+    "stop_loss": -0.03,
+    "max_hold_hours": 4,
+    "min_score_to_trade": 70,
+    "scoring": {
+      "momentum_weight": 0.30,
+      "obi_weight": 0.30,
+      "volume_ratio_weight": 0.20,
+      "liquidity_weight": 0.10,
+      "orderbook_weight": 0.10
+    },
+    "filters": {
+      "min_momentum_pct": 3.0,
+      "min_volume_ratio": 2.0,
+      "obi_min": 0.3,
+      "adx_min": 20
+    },
+    "funding_rate_adjust": {
+      "fr_high": 0.001,
+      "pool_reduction_pct": 0.50
+    }
   }
 }

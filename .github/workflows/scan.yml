@@ -13,39 +13,45 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: write  # 允許 push
+      contents: write
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
-      - name: Run scanner
+
+      - name: Run scanner (swing mode)
         run: |
-          set -o pipefail
-          python scanner.py 2>&1 | tee scanner_debug.log
-          echo "=== signals.json ==="
-          python3 -c "import json; d=json.load(open('signals.json')); print(f'訊號數: {len(d[\"signals\"])}')"
-          echo "=== DEBUG ==="
-          cat scanner_debug.log | tail -20
+          python scanner.py --mode swing 2>&1 | tee scanner_swing_debug.log
+          echo "=== swing_signals.json ==="
+          python3 -c "import json; d=json.load(open('swing_signals.json')); print(f'訊號數: {len(d.get(\"signals\",[]))}')"
         env:
           BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
           BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
 
-      - name: Verify scanner freshness
+      - name: Verify swing scanner freshness
         run: |
           python3 - <<'EOF'
           import json, sys
           from datetime import datetime, timezone, timedelta
-          d = json.load(open('signals.json'))
+          d = json.load(open('swing_signals.json'))
           scanned_at = datetime.fromisoformat(d['scanned_at'])
           age = datetime.now(timezone.utc) - scanned_at
           if age > timedelta(hours=2):
-              print(f"FAIL: signals.json 已 {age} 未更新 (scanned_at={d['scanned_at']})", file=sys.stderr)
+              print(f"FAIL: swing_signals.json 已 {age} 未更新", file=sys.stderr)
               sys.exit(1)
-          print(f"OK: signals.json 新鮮度 {age} ({len(d['signals'])} 訊號)")
+          print(f"OK: swing {age} ({len(d.get('signals',[]))} 訊號)")
           EOF
+
+      - name: Run scanner (scalp mode)
+        run: |
+          python scanner.py --mode scalp 2>&1 | tee scanner_scalp_debug.log
+          echo "=== scalp_signals.json ==="
+          python3 -c "import json; d=json.load(open('scalp_signals.json')); print(f'訊號數: {len(d.get(\"signals\",[]))}')"
+        env:
+          BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
+          BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
 
       - name: Run paper trader
         run: python paper_trader.py
@@ -55,19 +61,19 @@ jobs:
 
       - name: Run dashboard regression checks
         run: python test_dashboard_static.py
-      
+
       - name: Commit results
         run: |
           git config user.name "moon-sniper-bot"
           git config user.email "bot@moon-sniper"
-          git add signals.json paper_trades.json
+          git add swing_signals.json scalp_signals.json paper_trades.json signals.json
           if git diff --staged --quiet; then
             echo "No data changes to commit."
           else
             git commit -m "auto: scan update $(date -u '+%Y-%m-%d %H:%M UTC')"
             git push
           fi
-      
+
       - name: Send Telegram notification
         run: python notify.py
         env:

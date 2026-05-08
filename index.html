@@ -384,24 +384,27 @@
 <!-- Stats -->
 <div class="stats-bar" id="statsBar">
   <div class="stat-card"><div class="value blue" id="statTotal">—</div><div class="label">潛力幣種</div></div>
-  <div class="stat-card"><div class="value" id="statBalance">300</div><div class="label">帳戶餘額 (USDT)</div></div>
+  <div class="stat-card"><div class="value" id="statBalance">300</div><div class="label">帳戶權益 (USDT)</div></div>
   <div class="stat-card"><div class="value" id="statOpenTrades">—</div><div class="label">進行中紙交易</div></div>
   <div class="stat-card"><div class="value green" id="statWinRate">—</div><div class="label">勝率</div></div>
   <div class="stat-card"><div class="value" id="statTotalPnl">—</div><div class="label">已實現損益 (USDT)</div></div>
   <div class="stat-card"><div class="value" id="statUnrealizedPnl">—</div><div class="label">未實現損益 (USDT)</div></div>
   <div class="stat-card"><div class="value" id="statTotalTrades">—</div><div class="label">總交易次數</div></div>
+  <div class="stat-card" style="border-color:rgba(34,197,94,0.3)"><div class="value green" id="statSwingEquity">—</div><div class="label">🟢 Swing Pool</div></div>
+  <div class="stat-card" style="border-color:rgba(59,130,246,0.3)"><div class="value blue" id="statScalpEquity">—</div><div class="label">🔵 Scalp Pool</div></div>
 </div>
 
 <!-- Tabs -->
 <div class="tabs">
-  <button class="tab active" data-tab="signals" onclick="switchTab('signals')">📡 潛力幣種</button>
-  <button class="tab" data-tab="livescan" onclick="switchTab('livescan')">⚡ 即時掃描</button>
-    <button class="tab" data-tab="trades" onclick="switchTab('trades')">📊 紙交易</button>
-    <button class="tab" data-tab="microstructure" onclick="switchTab('microstructure')">🔬 微結構</button>
-  </div>
+  <button class="tab active" data-tab="signals-swing" onclick="switchTab('signals-swing')">📡 Swing 長線</button>
+  <button class="tab" data-tab="signals-scalp" onclick="switchTab('signals-scalp')">⚡ Scalp 短線</button>
+  <button class="tab" data-tab="livescan" onclick="switchTab('livescan')">🔍 即時</button>
+  <button class="tab" data-tab="trades" onclick="switchTab('trades')">📊 交易持倉</button>
+  <button class="tab" data-tab="microstructure" onclick="switchTab('microstructure')">🔬 微結構</button>
+</div>
 
-<!-- Signals Tab -->
-<div id="tab-signals" class="tab-content">
+<!-- Signals Tab: Swing -->
+<div id="tab-signals-swing" class="tab-content">
   <div class="table-wrap">
     <table>
       <thead>
@@ -423,15 +426,39 @@
           <th class="sortable" data-sort="tags" onclick="sortSignals('tags')">訊號<span class="sort-indicator" data-sort-indicator="tags"></span></th>
         </tr>
       </thead>
-      <tbody id="signalsBody">
+      <tbody id="signalsBodySwing">
       </tbody>
     </table>
-    <div id="signalsEmpty" style="display:none; padding:16px; color:var(--text-dim); text-align:center;">還沒有掃描訊號，等待自動掃描或<button class="btn" onclick="fetchData()">手動刷新</button></div>
+    <div id="signalsEmptySwing" style="display:none; padding:16px; color:var(--text-dim); text-align:center;">還沒有 Swing 訊號，等待自動掃描或<button class="btn" onclick="fetchData()">手動刷新</button></div>
   </div>
-  
-  <!-- 紙交表格 -->
-    <div class="emoji">🔭</div>
-    <div>正在等待第一次掃描...<br>請等待 GitHub Actions 執行或手動執行 scanner.py</div>
+</div>
+
+<!-- Signals Tab: Scalp -->
+<div id="tab-signals-scalp" class="tab-content" style="display:none">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="sortable" data-sort="rank" onclick="sortSignals('rank')">#<span class="sort-indicator" data-sort-indicator="rank"></span></th>
+          <th class="sortable sticky-symbol" data-sort="symbol" onclick="sortSignals('symbol')">幣種<span class="sort-indicator" data-sort-indicator="symbol"></span></th>
+          <th class="sortable" data-sort="scanPrice" onclick="sortSignals('scanPrice')">掃描價<span class="sort-indicator" data-sort-indicator="scanPrice"></span></th>
+          <th class="sortable" data-sort="livePrice" onclick="sortSignals('livePrice')">當前價<span class="sort-indicator" data-sort-indicator="livePrice"></span></th>
+          <th class="sortable" data-sort="fromScan" onclick="sortSignals('fromScan')">掃描至今<span class="sort-indicator" data-sort-indicator="fromScan"></span></th>
+          <th class="sortable" data-sort="change24h" onclick="sortSignals('change24h')">24h 漲跌<span class="sort-indicator" data-sort-indicator="change24h"></span></th>
+          <th class="sortable" data-sort="volume24h" onclick="sortSignals('volume24h')">24h 成交量<span class="sort-indicator" data-sort-indicator="volume24h"></span></th>
+          <th class="sortable" data-sort="score" onclick="sortSignals('score')">評分<span class="sort-indicator" data-sort-indicator="score"></span></th>
+          <th class="sortable" data-sort="volumeScore" onclick="sortSignals('volumeScore')">量能<span class="sort-indicator" data-sort-indicator="volumeScore"></span></th>
+          <th class="sortable" data-sort="volumeRatio" onclick="sortSignals('volumeRatio')">量比<span class="sort-indicator" data-sort-indicator="volumeRatio"></span></th>
+          <th class="sortable" data-sort="momentum" onclick="sortSignals('momentum')">動能<span class="sort-indicator" data-sort-indicator="momentum"></span></th>
+          <th class="sortable" data-sort="obi" onclick="sortSignals('obi')">OBI<span class="sort-indicator" data-sort-indicator="obi"></span></th>
+          <th class="sortable" data-sort="adx" onclick="sortSignals('adx')">ADX<span class="sort-indicator" data-sort-indicator="adx"></span></th>
+          <th class="sortable" data-sort="tags" onclick="sortSignals('tags')">訊號<span class="sort-indicator" data-sort-indicator="tags"></span></th>
+        </tr>
+      </thead>
+      <tbody id="signalsBodyScalp">
+      </tbody>
+    </table>
+    <div id="signalsEmptyScalp" style="display:none; padding:16px; color:var(--text-dim); text-align:center;">還沒有 Scalp 訊號，等待自動掃描或<button class="btn" onclick="fetchData()">手動刷新</button></div>
   </div>
 </div>
 
@@ -444,6 +471,11 @@
       <span>掃描中...</span>
     </div>
     <span id="liveScanIdle" style="color:var(--text-dim);font-size:13px">點擊開始從 Binance 即時拉取資料掃描（約 15 秒）</span>
+    <!-- 掃描模式切換 -->
+    <div style="display:flex;gap:4px;margin-left:auto" id="scanModeToggle">
+      <button class="tab active" data-scan-mode="swing" onclick="liveScan('swing')" style="font-size:11px;padding:4px 10px">📡 Swing</button>
+      <button class="tab" data-scan-mode="scalp" onclick="liveScan('scalp')" style="font-size:11px;padding:4px 10px">⚡ Scalp</button>
+    </div>
   </div>
   <!-- 市場類別選擇 -->
   <div class="tabs" style="margin-bottom:8px">
@@ -527,70 +559,102 @@
 </div>
 
 <script>
-let dataCache = null;
+// ===== 雙軌資料 ====
+let swingSignals = [];
+let scalpSignals = [];
 let tradesCache = null;
+let currentSignalMode = 'swing'; // 'swing' or 'scalp'
 let displayedSignals = [];
 let sortState = { key: 'rank', dir: 'asc' };
 
 async function refreshData() {
   try {
-    const resp = await fetch('./signals.json?_=' + Date.now());
-    const data = await resp.json();
-    dataCache = data;
+    // 同時載入兩個 signals 來源
+    const [swingResp, scalpResp] = await Promise.all([
+      fetch('./swing_signals.json?_=' + Date.now()),
+      fetch('./scalp_signals.json?_=' + Date.now())
+    ]);
+    const swingData = await swingResp.json();
+    const scalpData = await scalpResp.json();
     
-    // Try to load trades
+    // Load trades
     let tradesData = null;
     try {
       const tresp = await fetch('./paper_trades.json?_=' + Date.now());
       tradesData = await tresp.json();
     } catch(e) {}
     
+    swingSignals = swingData.signals || [];
+    scalpSignals = scalpData.signals || [];
     tradesCache = tradesData;
-    render(data, tradesData);
+    renderAll(swingData, scalpData, tradesData);
   } catch(e) {
-    document.getElementById('signalsBody').innerHTML = 
+    document.getElementById('signalsBodySwing').innerHTML = 
       `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-dim)">
         ⚠️ 無法載入資料：${e.message}<br>
-        <small>請確認 signals.json 已產生且 GitHub Pages 已部署</small>
+        <small>請確認 signals JSON 已產生且 GitHub Pages 已部署</small>
+      </td></tr>`;
+    document.getElementById('signalsBodyScalp').innerHTML = 
+      `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-dim)">
+        ⚠️ 無法載入資料：${e.message}<br>
+        <small>請確認 signals JSON 已產生且 GitHub Pages 已部署</small>
       </td></tr>`;
   }
 }
 
-function render(data, tradesData) {
+function renderAll(swingData, scalpData, tradesData) {
   // 更新時間
-  const scanTime = data.scanned_at 
-    ? '評分更新：' + new Date(data.scanned_at).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})
-    : '—';
-  let timeStr = scanTime;
+  const swingTime = swingData.scanned_at 
+    ? 'Swing：' + new Date(swingData.scanned_at).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})
+    : '';
+  const scalpTime = scalpData.scanned_at 
+    ? 'Scalp：' + new Date(scalpData.scanned_at).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})
+    : '';
+  let timeStr = [swingTime, scalpTime].filter(Boolean).join(' | ');
   if (tradesData?.stats?.last_updated) {
-    timeStr += ' | 交易更新：' + new Date(tradesData.stats.last_updated).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'});
+    timeStr += ' | 交易：' + new Date(tradesData.stats.last_updated).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'});
   }
   timeStr += ' | 即時價格每 30 秒刷新';
-  document.getElementById('scanTime').textContent = timeStr;
+  document.getElementById('scanTime').textContent = timeStr || '—';
   
-  const signals = data.signals || [];
-  const sortedSignals = getSortedSignals(signals);
-  displayedSignals = sortedSignals;
-  updateSortIndicators();
+  const swing = swingData.signals || [];
+  const scalp = scalpData.signals || [];
   const trades = tradesData?.trades || [];
   const stats = tradesData?.stats || {};
+  const pools = stats?.pools || {};
   
   // 載入即時價格
-  fetchLivePrices(signals, trades);
+  fetchLivePrices(swing.concat(scalp), trades);
   
-  // Stats
-  document.getElementById('statTotal').textContent = signals.length;
-  document.getElementById('statBalance').textContent = ((stats.total_equity || stats.account_balance || 300) + (stats.total_unrealized_pnl_usdt || 0)).toFixed(2);
+  // Stats — 使用當前顯示的 signals 數量
+  const totalSignals = swing.length + scalp.length;
+  document.getElementById('statTotal').textContent = totalSignals;
+  
+  // 帳戶總權益（含 unrealized）
+  let totalEquity = 0;
+  let totalRealized = 0;
+  let totalUnrealized = 0;
+  if (pools.swing) {
+    totalEquity += pools.swing.pool_equity || 0;
+  }
+  if (pools.scalp) {
+    totalEquity += pools.scalp.pool_equity || 0;
+  }
+  // Fallback to top-level stats if no pools
+  if (!pools.swing && !pools.scalp) {
+    totalEquity = stats.total_equity || stats.account_balance || 300;
+  }
+  document.getElementById('statBalance').textContent = totalEquity.toFixed(2);
+  
   document.getElementById('statOpenTrades').textContent = stats.open_count || 0;
   document.getElementById('statWinRate').textContent = (stats.win_rate || 0) + '%';
   document.getElementById('statWinRate').className = 'value ' + ((stats.win_rate || 0) >= 50 ? 'green' : 'red');
-  const totalPnl = stats.total_realized_pnl_usdt || 0;
-  const totalUnrealized = stats.total_unrealized_pnl_usdt || 0;
-  document.getElementById('statTotalPnl').textContent = (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(2);
-  document.getElementById('statTotalPnl').className = 'value ' + (totalPnl >= 0 ? 'green' : 'red');
+  totalRealized = stats.total_realized_pnl_usdt || 0;
+  totalUnrealized = stats.total_unrealized_pnl_usdt || 0;
+  document.getElementById('statTotalPnl').textContent = (totalRealized >= 0 ? '+' : '') + totalRealized.toFixed(2);
+  document.getElementById('statTotalPnl').className = 'value ' + (totalRealized >= 0 ? 'green' : 'red');
   document.getElementById('statUnrealizedPnl').textContent = (totalUnrealized >= 0 ? '+' : '') + totalUnrealized.toFixed(2);
   document.getElementById('statUnrealizedPnl').className = 'value ' + (totalUnrealized >= 0 ? 'green' : 'red');
-  // 勝率顯示盈/虧
   const wins = stats.wins || 0;
   const losses = stats.losses || 0;
   const closed = stats.closed_count || 0;
@@ -598,47 +662,81 @@ function render(data, tradesData) {
   document.getElementById('statWinRate').className = 'value ' + ((stats.win_rate || 0) >= 50 ? 'green' : 'red');
   document.getElementById('statTotalTrades').textContent = stats.total_trades || 0;
   
-  // Signals table
-  const tbody = document.getElementById('signalsBody');
-  const empty = document.getElementById('signalsEmpty');
-  
-  if (sortedSignals.length === 0) {
-    tbody.innerHTML = '';
-    empty.textContent = 'No current signals.';
-    empty.style.display = 'block';
+  // Pool equity stats
+  const swingPool = pools.swing;
+  const scalpPool = pools.scalp;
+  if (swingPool) {
+    const marginUsed = swingPool.used_margin || 0;
+    const equity = swingPool.pool_equity || swingPool.pool_initial || 0;
+    document.getElementById('statSwingEquity').textContent = `${equity.toFixed(1)} / ${marginUsed.toFixed(1)}`;
+    document.getElementById('statSwingEquity').className = 'value green';
   } else {
-    empty.style.display = 'none';
-    tbody.innerHTML = sortedSignals.map((s, i) => {
-      const scores = s.scores;
-      const chg = parseFloat(s.price_change_24h);
+    document.getElementById('statSwingEquity').textContent = '—';
+  }
+  if (scalpPool) {
+    const marginUsed = scalpPool.used_margin || 0;
+    const equity = scalpPool.pool_equity || scalpPool.pool_initial || 0;
+    document.getElementById('statScalpEquity').textContent = `${equity.toFixed(1)} / ${marginUsed.toFixed(1)}`;
+    document.getElementById('statScalpEquity').className = 'value blue';
+  } else {
+    document.getElementById('statScalpEquity').textContent = '—';
+  }
+  
+  // Render signals for both modes
+  const swingSorted = getSortedSignals(swing);
+  const scalpSorted = getSortedSignals(scalp);
+  
+  // 根據當前 tab 決定哪個 signal sets 用於排序指示器
+  if (currentSignalMode === 'swing') {
+    displayedSignals = swingSorted;
+  } else {
+    displayedSignals = scalpSorted;
+  }
+  updateSortIndicators();
+  
+  // 渲染兩個表格
+  renderSignals(swingSorted, 'swing');
+  renderSignals(scalpSorted, 'scalp');
+  
+  // Trades
+  renderTrades(trades, pools);
+}
+
+// 渲染單一 signals 表格
+function renderSignals(signals, mode) {
+  const isSwing = mode === 'swing';
+  const tbodyId = isSwing ? 'signalsBodySwing' : 'signalsBodyScalp';
+  const emptyId = isSwing ? 'signalsEmptySwing' : 'signalsEmptyScalp';
+  const tbody = document.getElementById(tbodyId);
+  const empty = document.getElementById(emptyId);
+  
+  if (!tbody) return;
+  
+  if (signals.length === 0) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  
+  if (isSwing) {
+    // Swing 完整表格（含 consolidation / penalty / breakout 欄位）
+    tbody.innerHTML = signals.map((s, i) => {
+      const scores = s.scores || {};
+      const chg = parseFloat(s.price_change_24h) || 0;
       const chgCls = chg >= 0 ? 'positive' : 'negative';
       const chgSign = chg >= 0 ? '+' : '';
       const vol = formatVolume(s.volume_24h_usdt);
       const scoreCls = scores.total >= 70 ? 'score-high' : scores.total >= 50 ? 'score-mid' : 'score-low';
       
-      // 掃描價格與即時價格
-      const scanPrice = parseFloat(s.price);
+      const scanPrice = parseFloat(s.price) || 0;
       const livePrice = livePrices[s.symbol];
       const displayPrice = livePrice || scanPrice;
       const chgFromScan = livePrice ? ((livePrice - scanPrice) / scanPrice) * 100 : 0;
       const chgScanCls = chgFromScan >= 0 ? 'positive' : 'negative';
       const chgScanSign = chgFromScan >= 0 ? '+' : '';
       
-      const tags = (s.tags || []).map(t => {
-        const cls = t.includes('突破') ? 'tag-breakout' 
-          : t.includes('強勢') ? 'tag-strong'
-          : t.includes('上漲') ? 'tag-rising'
-          : t.includes('量') ? 'tag-volume'
-          : t.includes('反轉') ? 'tag-reversal'
-          : t.includes('雙底') || t.includes('雙頂') ? 'tag-breakout'
-          : t.includes('壓縮') ? 'tag-volume'
-          : t.includes('背離') ? 'tag-strong'
-          : t.includes('買盤') || t.includes('支撐') ? 'tag-breakout'
-          : t.includes('賣壓') ? 'tag-strong'
-          : t.includes('聰明') ? 'tag-volume'
-          : 'tag-default';
-        return `<span class="tag ${cls}">${t}</span>`;
-      }).join('');
+      const tags = renderTags(s.tags);
       
       return `<tr>
         <td>${s._rank || i+1}</td>
@@ -658,10 +756,64 @@ function render(data, tradesData) {
         <td><div class="tags">${tags || '<span class="tag tag-default">觀察中</span>'}</div></td>
       </tr>`;
     }).join('');
+  } else {
+    // Scalp 精簡表格（含 OBI / ADX）
+    tbody.innerHTML = signals.map((s, i) => {
+      const scores = s.scores || {};
+      const chg = parseFloat(s.price_change_24h) || 0;
+      const chgCls = chg >= 0 ? 'positive' : 'negative';
+      const chgSign = chg >= 0 ? '+' : '';
+      const vol = formatVolume(s.volume_24h_usdt);
+      const scoreCls = scores.total >= 70 ? 'score-high' : scores.total >= 50 ? 'score-mid' : 'score-low';
+      
+      const scanPrice = parseFloat(s.price) || 0;
+      const livePrice = livePrices[s.symbol];
+      const displayPrice = livePrice || scanPrice;
+      const chgFromScan = livePrice ? ((livePrice - scanPrice) / scanPrice) * 100 : 0;
+      const chgScanCls = chgFromScan >= 0 ? 'positive' : 'negative';
+      const chgScanSign = chgFromScan >= 0 ? '+' : '';
+      
+      const tags = renderTags(s.tags);
+      const obi = s.obi != null ? s.obi.toFixed(1) : '—';
+      const adx = s.adx != null ? s.adx.toFixed(1) : '—';
+      
+      return `<tr>
+        <td>${s._rank || i+1}</td>
+        <td class="sticky-symbol"><a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${s.base}USDT" target="_blank" rel="noopener"><span class="symbol-name">${s.base}</span> 🔗</a></td>
+        <td class="price">$${scanPrice.toFixed(scanPrice < 1 ? 6 : scanPrice < 100 ? 4 : 2)}</td>
+        <td class="price">$${displayPrice.toFixed(displayPrice < 1 ? 6 : displayPrice < 100 ? 4 : 2)}</td>
+        <td class="change ${chgScanCls}">${livePrice ? chgScanSign + chgFromScan.toFixed(2) + '%' : '—'}</td>
+        <td class="change ${chgCls}">${chgSign}${chg.toFixed(2)}%</td>
+        <td>${vol}</td>
+        <td><span class="score-text ${scoreCls}">${scores.total}</span></td>
+        <td>${scores.volume}</td>
+        <td>${s.volume_short_ratio ? s.volume_short_ratio.toFixed(1) + 'x' : '—'}</td>
+        <td>${scores.momentum}</td>
+        <td>${obi}</td>
+        <td>${adx}</td>
+        <td><div class="tags">${tags || '<span class="tag tag-default">觀察中</span>'}</div></td>
+      </tr>`;
+    }).join('');
   }
-  
-  // Trades list
-  renderTrades(trades);
+}
+
+function renderTags(tags) {
+  if (!tags || !Array.isArray(tags)) return '';
+  return tags.map(t => {
+    const cls = t.includes('突破') ? 'tag-breakout' 
+      : t.includes('強勢') ? 'tag-strong'
+      : t.includes('上漲') ? 'tag-rising'
+      : t.includes('量') ? 'tag-volume'
+      : t.includes('反轉') ? 'tag-reversal'
+      : t.includes('雙底') || t.includes('雙頂') ? 'tag-breakout'
+      : t.includes('壓縮') ? 'tag-volume'
+      : t.includes('背離') ? 'tag-strong'
+      : t.includes('買盤') || t.includes('支撐') ? 'tag-breakout'
+      : t.includes('賣壓') ? 'tag-strong'
+      : t.includes('聰明') ? 'tag-volume'
+      : 'tag-default';
+    return `<span class="tag ${cls}">${t}</span>`;
+  }).join('');
 }
 
 
@@ -701,6 +853,8 @@ function getSignalSortValue(s, key) {
     case 'penalty': return Number(s.overbought_penalty) || 0;
     case 'breakout': return Number(scores.breakout) || 0;
     case 'tags': return (s.tags || []).join(' ');
+    case 'obi': return Number(s.obi) || 0;
+    case 'adx': return Number(s.adx) || 0;
     default: return s._rank || 0;
   }
 }
@@ -712,7 +866,18 @@ function sortSignals(key) {
     sortState.key = key;
     sortState.dir = ['symbol', 'rank'].includes(key) ? 'asc' : 'desc';
   }
-  if (dataCache) render(dataCache, tradesCache);
+  // 重新渲染兩個表格（用快取的 signals 資料）
+  const swingSorted = getSortedSignals(swingSignals);
+  const scalpSorted = getSortedSignals(scalpSignals);
+  
+  if (currentSignalMode === 'swing') {
+    displayedSignals = swingSorted;
+  } else {
+    displayedSignals = scalpSorted;
+  }
+  updateSortIndicators();
+  renderSignals(swingSorted, 'swing');
+  renderSignals(scalpSorted, 'scalp');
 }
 
 function updateSortIndicators() {
@@ -753,8 +918,20 @@ async function fetchLivePrices(signals, trades) {
       data.forEach(d => { livePrices[d.symbol] = parseFloat(d.price); });
     }
     
-    if (['livePrice', 'fromScan'].includes(sortState.key) && dataCache) {
-      render(dataCache, tradesCache);
+    if (['livePrice', 'fromScan'].includes(sortState.key)) {
+      // Re-render both tables fully
+      const swingSorted = getSortedSignals(swingSignals);
+      const scalpSorted = getSortedSignals(scalpSignals);
+      if (currentSignalMode === 'swing') {
+        displayedSignals = swingSorted;
+      } else {
+        displayedSignals = scalpSorted;
+      }
+      renderSignals(swingSorted, 'swing');
+      renderSignals(scalpSorted, 'scalp');
+      const pooledTrades = tradesCache?.trades || trades || [];
+      const poolStats = tradesCache?.stats?.pools || {};
+      renderTrades(pooledTrades, poolStats);
     } else {
       updateLiveDisplay(signals, trades);
     }
@@ -766,35 +943,35 @@ async function fetchLivePrices(signals, trades) {
 function updateLiveDisplay(signals, trades) {
   // 記住 scroll 位置
   const scrollY = window.scrollY;
-  const tbody = document.getElementById('signalsBody');
-  if (!tbody) return;
   
-  // 更新信號表價格
-  const rows = tbody.querySelectorAll('tr');
-  rows.forEach((row, i) => {
-    if (i >= displayedSignals.length) return;
-    const s = displayedSignals[i];
-    const live = livePrices[s.symbol];
-    if (live) {
-      const scanPrice = parseFloat(s.price);
-      const chgFromScan = ((live - scanPrice) / scanPrice) * 100;
-      const chgSign = chgFromScan >= 0 ? '+' : '';
-      const priceCells = row.querySelectorAll('.price');
-      // .price cells: [0]=掃描價, [1]=當前價
-      if (priceCells.length >= 2) {
-        priceCells[1].innerHTML = `$${live.toFixed(live < 1 ? 6 : live < 100 ? 4 : 2)}`;
-      }
-      // 掃描至今變化（第 5 個 td，index=4）
-      const changeCells = row.querySelectorAll('.change');
-      if (changeCells.length >= 1) {
-        changeCells[0].innerHTML = chgSign + chgFromScan.toFixed(2) + '%';
-        changeCells[0].className = 'change ' + (chgFromScan >= 0 ? 'positive' : 'negative');
-      }
-    }
-  });
+  // 更新 Swing 表
+  const swingBody = document.getElementById('signalsBodySwing');
+  if (swingBody) {
+    const swingRows = swingBody.querySelectorAll('tr');
+    swingRows.forEach((row, i) => {
+      if (i >= swingSignals.length) return;
+      const s = swingSignals[i] || displayedSignals[i];
+      if (!s) return;
+      updateSignalRowPrice(row, s);
+    });
+  }
+  
+  // 更新 Scalp 表
+  const scalpBody = document.getElementById('signalsBodyScalp');
+  if (scalpBody) {
+    const scalpRows = scalpBody.querySelectorAll('tr');
+    scalpRows.forEach((row, i) => {
+      if (i >= scalpSignals.length) return;
+      const s = scalpSignals[i] || displayedSignals[i];
+      if (!s) return;
+      updateSignalRowPrice(row, s);
+    });
+  }
   
   // 更新紙交易列表
-  renderTrades(trades);
+  const pooledTrades = tradesCache?.trades || trades || [];
+  const poolStats = tradesCache?.stats?.pools || {};
+  renderTrades(pooledTrades, poolStats);
   
   // 更新 stats bar 未實現損益
   updateUnrealizedStats(trades);
@@ -803,35 +980,104 @@ function updateLiveDisplay(signals, trades) {
   window.scrollTo(0, scrollY);
 }
 
+function updateSignalRowPrice(row, s) {
+  const live = livePrices[s.symbol];
+  if (!live) return;
+  const scanPrice = parseFloat(s.price) || 0;
+  if (!scanPrice) return;
+  const chgFromScan = ((live - scanPrice) / scanPrice) * 100;
+  const chgSign = chgFromScan >= 0 ? '+' : '';
+  const priceCells = row.querySelectorAll('.price');
+  if (priceCells.length >= 2) {
+    priceCells[1].innerHTML = `$${live.toFixed(live < 1 ? 6 : live < 100 ? 4 : 2)}`;
+  }
+  const changeCells = row.querySelectorAll('.change');
+  if (changeCells.length >= 1) {
+    changeCells[0].innerHTML = chgSign + chgFromScan.toFixed(2) + '%';
+    changeCells[0].className = 'change ' + (chgFromScan >= 0 ? 'positive' : 'negative');
+  }
+}
+
 // 獨立渲染紙交易，讓即時更新可以重複呼叫
-function renderTrades(trades) {
+function renderTrades(trades, pools) {
   if (!trades) return;
+  pools = pools || {};
   
-  const openTrades = trades.filter(t => t.status === 'open');
-  const closedTrades = trades.filter(t => t.status === 'closed');
+  const swingTrades = trades.filter(t => t.pool === 'swing' || !t.pool);
+  const scalpTrades = trades.filter(t => t.pool === 'scalp');
   
-  // 持倉中
+  const swingOpen = swingTrades.filter(t => t.status === 'open');
+  const scalpOpen = scalpTrades.filter(t => t.status === 'open');
+  const swingClosed = swingTrades.filter(t => t.status === 'closed');
+  const scalpClosed = scalpTrades.filter(t => t.status === 'closed');
+  
+  const allOpen = swingOpen.concat(scalpOpen);
+  const allClosed = swingClosed.concat(scalpClosed);
+  
+  // Swing pool equity info
+  const swingPool = pools.swing;
+  const scalpPool = pools.scalp;
+  let swingEquityHtml = '';
+  let scalpEquityHtml = '';
+  if (swingPool) {
+    swingEquityHtml = `<div style="display:flex;gap:8px;margin-bottom:6px;font-size:12px;color:var(--green)">
+      <span>🟢 Swing Pool</span>
+      <span>權益: ${(swingPool.pool_equity || 0).toFixed(1)}U</span>
+      <span>Margin: ${(swingPool.used_margin || 0).toFixed(1)}U</span>
+      <span>持倉: ${swingPool.open_count || 0}</span>
+    </div>`;
+  }
+  if (scalpPool) {
+    scalpEquityHtml = `<div style="display:flex;gap:8px;margin-bottom:6px;font-size:12px;color:var(--blue)">
+      <span>🔵 Scalp Pool</span>
+      <span>權益: ${(scalpPool.pool_equity || 0).toFixed(1)}U</span>
+      <span>Margin: ${(scalpPool.used_margin || 0).toFixed(1)}U</span>
+      <span>持倉: ${scalpPool.open_count || 0}</span>
+    </div>`;
+  }
+  
+  // 持倉中 — 分 Swing / Scalp 區
   const openBody = document.getElementById('openTradesBody');
   const openEmpty = document.getElementById('openTradesEmpty');
-  if (openTrades.length === 0) {
+  
+  if (allOpen.length === 0) {
     openBody.innerHTML = '';
     openEmpty.style.display = 'block';
   } else {
     openEmpty.style.display = 'none';
-    const sorted = [...openTrades].reverse();
-    openBody.innerHTML = sorted.map(t => renderTradeItem(t)).join('');
+    let html = '';
+    if (swingOpen.length > 0) {
+      html += swingEquityHtml;
+      html += `<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;font-weight:600">Swing 持倉 (${swingOpen.length})</div>`;
+      html += [...swingOpen].reverse().map(t => renderTradeItem(t)).join('');
+    }
+    if (scalpOpen.length > 0) {
+      html += scalpEquityHtml;
+      html += `<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;font-weight:600">Scalp 持倉 (${scalpOpen.length})</div>`;
+      html += [...scalpOpen].reverse().map(t => renderTradeItem(t)).join('');
+    }
+    openBody.innerHTML = html;
   }
   
-  // 已平倉
+  // 已平倉 — 分 Swing / Scalp 區
   const closedBody = document.getElementById('closedTradesBody');
   const closedEmpty = document.getElementById('closedTradesEmpty');
-  if (closedTrades.length === 0) {
+  
+  if (allClosed.length === 0) {
     closedBody.innerHTML = '';
     closedEmpty.style.display = 'block';
   } else {
     closedEmpty.style.display = 'none';
-    const sorted = [...closedTrades].reverse();
-    closedBody.innerHTML = sorted.map(t => renderTradeItem(t)).join('');
+    let html = '';
+    if (swingClosed.length > 0) {
+      html += `<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;font-weight:600">Swing 已平倉 (${swingClosed.length})</div>`;
+      html += [...swingClosed].reverse().map(t => renderTradeItem(t)).join('');
+    }
+    if (scalpClosed.length > 0) {
+      html += `<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;font-weight:600">Scalp 已平倉 (${scalpClosed.length})</div>`;
+      html += [...scalpClosed].reverse().map(t => renderTradeItem(t)).join('');
+    }
+    closedBody.innerHTML = html;
   }
 }
 
@@ -896,6 +1142,7 @@ function renderTradeItem(t) {
   return `<div class="trade-item">
     <div>
       <a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${t.base}USDT" target="_blank" rel="noopener"><span class="trade-symbol">${t.direction === 'short' ? '🔴' : '🟢'} ${t.base}</span> 🔗</a>
+      ${t.pool ? `<span class="tag ${t.pool === 'swing' ? 'tag-rising' : 'tag-breakout'}" style="font-size:10px;padding:1px 5px;margin-left:4px">${t.pool === 'swing' ? 'SWING' : 'SCALP'}</span>` : ''}
       <span class="trade-status ${statusCls}">${statusText}</span>
     </div>
     <div class="trade-meta-grid">
@@ -933,11 +1180,16 @@ function updateUnrealizedStats(trades) {
       }
     }
   }
-  // 讀取 equity（從資料或從 DOM）
-  const statsEl = document.getElementById('statBalance');
-  const currentEquityText = statsEl?.textContent?.replace(/[^0-9.-]/g, '') || '300';
-  totalEquity = parseFloat(currentEquityText) - totalUnrealized;
-  if (isNaN(totalEquity) || totalEquity < 1) totalEquity = 300;
+  // 讀取 equity（從資料或從 DOM）— 改用 pool equity 和
+  let swingEquity = 0;
+  let scalpEquity = 0;
+  if (tradesCache?.stats?.pools?.swing) {
+    swingEquity = tradesCache.stats.pools.swing.pool_equity || 0;
+  }
+  if (tradesCache?.stats?.pools?.scalp) {
+    scalpEquity = tradesCache.stats.pools.scalp.pool_equity || 0;
+  }
+  totalEquity = (swingEquity + scalpEquity) || 300;
   const el = document.getElementById('statUnrealizedPnl');
   if (el) {
     el.textContent = (totalUnrealized >= 0 ? '+' : '') + totalUnrealized.toFixed(2);
@@ -962,6 +1214,17 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
   document.querySelector(`.tabs > .tab[data-tab="${tab}"]`).classList.add('active');
   document.getElementById(`tab-${tab}`).style.display = 'block';
+  
+  // Track signal mode for sort indicator
+  if (tab === 'signals-swing') {
+    currentSignalMode = 'swing';
+    displayedSignals = getSortedSignals(swingSignals);
+    updateSortIndicators();
+  } else if (tab === 'signals-scalp') {
+    currentSignalMode = 'scalp';
+    displayedSignals = getSortedSignals(scalpSignals);
+    updateSortIndicators();
+  }
 }
 
 function switchSubTab(subtab) {
@@ -972,32 +1235,22 @@ function switchSubTab(subtab) {
 }
 
 // Auto refresh on load
-let cachedSignals = [];
 let cachedTrades = [];
-let currentTab = 'signals';
+let currentTab = 'signals-swing';
 
 async function refreshAll() {
-  currentTab = localStorage.getItem('hermes_tab') || 'signals';
+  currentTab = localStorage.getItem('hermes_tab') || 'signals-swing';
   await refreshData();
   // 如果有資料，啟動即時更新
-  if (cachedSignals.length > 0) {
-    startLiveUpdates(cachedSignals, cachedTrades);
+  const allSignals = swingSignals.concat(scalpSignals);
+  if (allSignals.length > 0) {
+    startLiveUpdates(allSignals, cachedTrades);
   }
   // 恢復 tab
   switchTab(currentTab);
 }
 
-// 覆蓋原來的 refreshData 來 cache 資料
-const originalRender = render;
-render = function(data, tradesData) {
-  cachedSignals = data?.signals || [];
-  cachedTrades = tradesData?.trades || [];
-  originalRender(data, tradesData);
-};
-
 refreshAll();
-
-// ===== 即時掃描（全前端 Binance API）=====
 
 // 當前選中的掃描類別
 let liveScanCategory = 'crypto';
@@ -1012,8 +1265,12 @@ function switchLiveScanCategory(cat) {
   document.getElementById('liveScanEmpty').style.display = 'block';
   document.getElementById('liveScanBody').innerHTML = '';
   document.getElementById('liveScanInfo').style.display = 'none';
-  document.getElementById('liveScanIdle').textContent = `🔍 點擊開始掃描 ${cat === 'crypto' ? '加密貨幣' : cat === 'us_stocks' ? '美股' : cat === 'etf' ? 'ETF' : '商品'}...`;
+  document.getElementById('liveScanIdle').textContent = `🔍 點擊開始掃描 ${cat === 'crypto' ? '加密貨幣' : cat === 'us_stocks' ? '美股' : cat === 'etf' ? 'ETF' : '商品'}...（預設 Swing 權重）`;
   document.getElementById('liveScanBtn').textContent = '🔍 開始即時掃描';
+  // 重置掃描模式高亮
+  document.querySelectorAll('[data-scan-mode]').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('data-scan-mode') === 'swing');
+  });
 }
 
 // Binance API helpers
@@ -1052,41 +1309,46 @@ const TRADFI_CATEGORIES = {
   commodities: { name: '商品', emoji: '🛢️' }
 };
 
-// 計算評分（支援 TradFi 不同權重）
-function calcScores(ticker, klines, depth, category) {
+// 計算評分（支援 TradFi 不同權重 + Swing/Scalp 模式）
+function calcScores(ticker, klines, depth, category, mode) {
   const scores = { volume: 0, momentum: 0, orderbook: 50, smart_money: 0, breakout: 0 };
   const tags = [];
   const chg24 = Number(ticker.priceChangePercent);
   const vol = Number(ticker.quoteVolume);
+  
+  const isScalp = mode === 'scalp';
 
   if (category === 'crypto') {
-    // Crypto 評分（原邏輯）
+    // Crypto 評分
     const volNorm = Math.min(vol / 5000000, 1);
-    scores.volume = Math.round(volNorm * 30);
+    scores.volume = Math.round(volNorm * (isScalp ? 25 : 30)); // Scalp 略低權重
     if (volNorm > 0.5) tags.push('📊 量爆增');
 
-    if (chg24 >= 3 && chg24 < 5) { scores.momentum = 10; tags.push('📈 微漲'); }
-    else if (chg24 >= 5 && chg24 < 10) { scores.momentum = 18; tags.push('⚡ 上漲中'); }
-    else if (chg24 >= 10 && chg24 < 15) { scores.momentum = 22; tags.push('🔥 強勢'); }
-    else if (chg24 >= 15 && chg24 < 20) { scores.momentum = 25; tags.push('🚀 暴漲'); }
+    if (chg24 >= 3 && chg24 < 5) { scores.momentum = isScalp ? 15 : 10; tags.push('📈 微漲'); }
+    else if (chg24 >= 5 && chg24 < 10) { scores.momentum = isScalp ? 22 : 18; tags.push('⚡ 上漲中'); }
+    else if (chg24 >= 10 && chg24 < 15) { scores.momentum = isScalp ? 28 : 22; tags.push('🔥 強勢'); }
+    else if (chg24 >= 15 && chg24 < 20) { scores.momentum = isScalp ? 30 : 25; tags.push('🚀 暴漲'); }
+    
+    // Scalp 模式：額外考量 OBI 相關（orderbook 權重更高）
+    if (isScalp) {
+      scores.volume = Math.round(volNorm * 20); // 量能權重降低
+    }
   } else {
     // TradFi 評分（權重調整）
-    const volNorm = Math.min(vol / 50000000, 1); // TradFi 成交量較大
-    scores.volume = Math.round(volNorm * 25);
+    const volNorm = Math.min(vol / 50000000, 1);
+    scores.volume = Math.round(volNorm * (isScalp ? 20 : 25));
     if (volNorm > 0.6) tags.push('📊 量大');
 
-    // 股票/ETF 波動較小，1% 以上就算有動能；商品稍微放寬
     if (category === 'commodities') {
-      if (chg24 >= 2 && chg24 < 4) { scores.momentum = 15; tags.push('📈 上漲'); }
-      else if (chg24 >= 4 && chg24 < 7) { scores.momentum = 22; tags.push('⚡ 強勢'); }
-      else if (chg24 >= 7 && chg24 < 12) { scores.momentum = 28; tags.push('🔥 大漲'); }
-      else if (chg24 >= 12) { scores.momentum = 30; tags.push('🚀 暴漲'); }
+      if (chg24 >= 2 && chg24 < 4) { scores.momentum = isScalp ? 20 : 15; tags.push('📈 上漲'); }
+      else if (chg24 >= 4 && chg24 < 7) { scores.momentum = isScalp ? 28 : 22; tags.push('⚡ 強勢'); }
+      else if (chg24 >= 7 && chg24 < 12) { scores.momentum = isScalp ? 32 : 28; tags.push('🔥 大漲'); }
+      else if (chg24 >= 12) { scores.momentum = isScalp ? 35 : 30; tags.push('🚀 暴漲'); }
     } else {
-      // 美股/ETF
-      if (chg24 >= 1 && chg24 < 2) { scores.momentum = 10; tags.push('📈 微漲'); }
-      else if (chg24 >= 2 && chg24 < 4) { scores.momentum = 18; tags.push('⚡ 上漲中'); }
-      else if (chg24 >= 4 && chg24 < 7) { scores.momentum = 25; tags.push('🔥 強勢'); }
-      else if (chg24 >= 7) { scores.momentum = 30; tags.push('🚀 大漲'); }
+      if (chg24 >= 1 && chg24 < 2) { scores.momentum = isScalp ? 15 : 10; tags.push('📈 微漲'); }
+      else if (chg24 >= 2 && chg24 < 4) { scores.momentum = isScalp ? 22 : 18; tags.push('⚡ 上漲中'); }
+      else if (chg24 >= 4 && chg24 < 7) { scores.momentum = isScalp ? 30 : 25; tags.push('🔥 強勢'); }
+      else if (chg24 >= 7) { scores.momentum = isScalp ? 35 : 30; tags.push('🚀 大漲'); }
     }
   }
 
@@ -1149,7 +1411,12 @@ function classifyTradFi(symbolName, exchangeInfo) {
 }
 
 // 主要掃描函數
-async function liveScan() {
+async function liveScan(mode) {
+  mode = mode || 'swing'; // Default to swing weights
+  // 切換掃描模式按鈕高亮
+  document.querySelectorAll('[data-scan-mode]').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('data-scan-mode') === mode);
+  });
   const category = liveScanCategory;
   const btn = document.getElementById('liveScanBtn');
   const statusDiv = document.getElementById('liveScanStatus');
@@ -1193,7 +1460,7 @@ async function liveScan() {
               binanceGet('/api/v3/klines', { symbol: ticker.symbol, interval: '1h', limit: 24 }),
               binanceGet('/api/v3/depth', { symbol: ticker.symbol, limit: 20 })
             ]);
-            const scores = calcScores(ticker, klines, depth, 'crypto');
+            const scores = calcScores(ticker, klines, depth, 'crypto', mode);
             return { symbol: ticker.symbol, base: ticker.symbol.replace('USDT', ''), price: Number(ticker.lastPrice), scores, volume: Number(ticker.quoteVolume), chg24: Number(ticker.priceChangePercent) };
           } catch(e) { return null; }
         });
@@ -1276,7 +1543,7 @@ async function liveScan() {
             ]);
             const klines = klinesData.data || [];
             const depth = depthData.data ? { bids: depthData.data[0].bids, asks: depthData.data[0].asks } : null;
-            const scores = calcScores(ticker, klines, depth, category);
+            const scores = calcScores(ticker, klines, depth, category, mode);
             return { symbol: ticker.symbol, base: ticker.base, price: ticker.lastPrice, scores, volume: ticker.quoteVolume, chg24: ticker.priceChangePercent };
           } catch(e) { return null; }
         });
