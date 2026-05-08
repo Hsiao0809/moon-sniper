@@ -1,0 +1,78 @@
+name: Moon Sniper — Trading Control
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '操作：enable / disable / reset'
+        required: true
+        default: 'enable'
+        type: choice
+        options:
+          - enable
+          - disable
+          - reset
+      reason:
+        description: '原因（選擇性）'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  trading-control:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable / Disable paper trading
+        if: inputs.action == 'enable' || inputs.action == 'disable'
+        run: |
+          ENABLED=${{ inputs.action == 'enable' && 'true' || 'false' }}
+          REASON="${{ inputs.reason || (inputs.action == 'enable' && 'Activated via dashboard' || 'Paused via dashboard') }}"
+          python3 -c "
+import json
+with open('config.json') as f:
+    cfg = json.load(f)
+cfg['paper_trading']['enabled'] = $ENABLED
+cfg['paper_trading']['reason'] = '$REASON'
+with open('config.json', 'w') as f:
+    json.dump(cfg, f, indent=2, ensure_ascii=False)
+print(f'paper_trading.enabled = $ENABLED')
+print(f'reason = $REASON')
+"
+          git config user.name "moon-sniper-bot"
+          git config user.email "bot@moon-sniper.local"
+          git add config.json
+          git diff --staged --quiet || git commit -m "trading: ${{ inputs.action }} paper trading"
+          git push
+
+      - name: Reset all trades
+        if: inputs.action == 'reset'
+        run: |
+          python3 -c "
+import json
+reset = {
+    'trades': [],
+    'stats': {
+        'total_trades': 0, 'open_count': 0, 'closed_count': 0,
+        'wins': 0, 'losses': 0, 'win_rate': 0,
+        'total_realized_pnl_usdt': 0, 'total_unrealized_pnl_usdt': 0,
+        'avg_win_usdt': 0, 'avg_loss_usdt': 0, 'max_drawdown_usdt': 0,
+        'total_equity': 300, 'account_balance': 300,
+        'last_updated': __import__('datetime').datetime.now().isoformat(),
+        'pools': {
+            'swing': {'pool_initial': 180.0, 'pool_equity': 180.0, 'open_count': 0, 'closed_count': 0, 'wins': 0, 'losses': 0, 'win_rate': 0, 'total_realized_pnl_usdt': 0, 'total_unrealized_pnl_usdt': 0, 'used_margin': 0},
+            'scalp': {'pool_initial': 90.0, 'pool_equity': 90.0, 'open_count': 0, 'closed_count': 0, 'wins': 0, 'losses': 0, 'win_rate': 0, 'total_realized_pnl_usdt': 0, 'total_unrealized_pnl_usdt': 0, 'used_margin': 0}
+        }
+    }
+}
+with open('paper_trades.json', 'w') as f:
+    json.dump(reset, f, indent=2, ensure_ascii=False)
+print('paper_trades.json reset to empty')
+"
+          git config user.name "moon-sniper-bot"
+          git config user.email "bot@moon-sniper.local"
+          git add paper_trades.json
+          git diff --staged --quiet || git commit -m "reset: clear all paper trades via dashboard"
+          git push

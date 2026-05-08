@@ -85,6 +85,30 @@
   .btn-primary:hover {
     opacity: 0.9;
   }
+  .btn-success {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+  }
+  .btn-success:hover {
+    opacity: 0.9;
+  }
+  .btn-danger {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+  }
+  .btn-danger:hover {
+    opacity: 0.9;
+  }
+  .btn-reset {
+    background: var(--yellow);
+    border-color: var(--yellow);
+    color: #000;
+  }
+  .btn-reset:hover {
+    opacity: 0.85;
+  }
 
   /* Stats bar */
   .stats-bar {
@@ -377,6 +401,9 @@
   </div>
   <div class="header-right">
     <span class="scan-time" id="scanTime">—</span>
+    <button class="btn btn-success" id="btnStartTrading" onclick="toggleTrading(true)" style="display:none">▶️ 啟動紙交易</button>
+    <button class="btn btn-danger" id="btnStopTrading" onclick="toggleTrading(false)" style="display:none">⏸️ 暫停紙交易</button>
+    <button class="btn btn-reset" id="btnResetTrading" onclick="resetTrading()" style="display:none">🔄 重置交易</button>
     <button class="btn btn-primary" onclick="refreshAll()">🔄 重新整理</button>
   </div>
 </div>
@@ -701,6 +728,47 @@ function renderAll(swingData, scalpData, tradesData) {
   
   // Trades
   renderTrades(trades, pools);
+  
+  // 交易啟動/重置按鈕顯示
+  updateTradingButtons(stats);
+}
+
+function updateTradingButtons(stats) {
+  const isEnabled = stats.paper_trading_enabled !== false;
+  const btnStart = document.getElementById('btnStartTrading');
+  const btnStop = document.getElementById('btnStopTrading');
+  const btnReset = document.getElementById('btnResetTrading');
+  if (!btnStart || !btnStop || !btnReset) return;
+  
+  if (isEnabled) {
+    btnStart.style.display = 'none';
+    btnStop.style.display = 'inline-block';
+  } else {
+    btnStart.style.display = 'inline-block';
+    btnStop.style.display = 'none';
+  }
+  // 重置按鈕始終顯示（只有有交易時才亮，但先顯示）
+  btnReset.style.display = 'inline-block';
+}
+
+async function toggleTrading(enable) {
+  const action = enable ? '啟動' : '暫停';
+  if (!confirm(`確定要${action}紙交易嗎？`)) return;
+  
+  // 直接開啟 GitHub Actions workflow_dispatch 頁面
+  const url = `https://github.com/Hsiao0809/moon-sniper/actions/workflows/trading-control.yml`;
+  window.open(url, '_blank');
+  alert(`請在開啟的頁面中：\n1. 選擇「${enable ? 'enable' : 'disable'}」\n2. 點擊「Run workflow」\n\n完成後約 1 分鐘生效，點擊重新整理查看。`);
+}
+
+async function resetTrading() {
+  if (!confirm('⚠️ 確定要重置所有交易紀錄？\n這會清空 paper_trades.json，不可復原。')) return;
+  if (!confirm('再次確認：所有交易資料將被清空。確定？')) return;
+  
+  // 直接開啟 GitHub Actions workflow_dispatch 頁面
+  const url = `https://github.com/Hsiao0809/moon-sniper/actions/workflows/trading-control.yml`;
+  window.open(url, '_blank');
+  alert('請在開啟的頁面中：\n1. 選擇「reset」\n2. 點擊「Run workflow」\n\n完成後約 1 分鐘生效，點擊重新整理查看。');
 }
 
 // 渲染單一 signals 表格
