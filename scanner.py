@@ -97,7 +97,8 @@ def call_binance_api(args):
     if not api_path:
         return None
     
-    query = "&".join(f"{k}={v}" for k, v in params.items())
+    from urllib.parse import urlencode
+    query = urlencode(params)
     url = f"https://api.binance.com{api_path}"
     if query:
         url += f"?{query}"
@@ -128,7 +129,8 @@ def get_all_tickers():
 def http_get(path, params=None):
     """直接 HTTP GET Binance API"""
     import urllib.request
-    query = "&".join(f"{k}={v}" for k, v in params.items()) if params else ""
+    from urllib.parse import urlencode
+    query = urlencode(params) if params else ""
     for host in BINANCE_HOSTS:
         url = f"{host}{path}" + (f"?{query}" if query else "")
         try:
