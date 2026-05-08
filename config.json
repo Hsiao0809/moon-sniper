@@ -3,6 +3,13 @@
     "enabled": false,
     "reason": "Paused by user: clear trade records and review whole project before allowing new paper trades"
   },
+  "market_halt": {
+    "enabled": true,
+    "max_daily_change_pct": 10,
+    "max_avg_change_pct": 6,
+    "btc_daily_avg_volume": 1500000000,
+    "btc_volume_mult_threshold": 4.0
+  },
   "scan": {
     "interval_hours": 4,
     "max_signals": 20,
@@ -37,9 +44,16 @@
       "bandwidth_max": 8.0,
       "adx_max": 25
     },
+    "short_filters": {
+      "max_24h_drop_pct": -15,
+      "min_volume_usdt": 50000,
+      "skip_consolidation_min_days": 2,
+      "skip_consolidation_max_range_pct": 8
+    },
     "funding_rate_adjust": {
       "fr_high": 0.001,
-      "pool_reduction_pct": 0.33
+      "pool_reduction_pct": 0.33,
+      "fr_freeze": 0.002
     }
   },
   "scalp_trader": {
@@ -66,9 +80,16 @@
       "obi_min": 0.3,
       "adx_min": 20
     },
+    "short_filters": {
+      "max_24h_drop_pct": -15,
+      "min_volume_usdt": 50000,
+      "skip_consolidation_min_days": 2,
+      "skip_consolidation_max_range_pct": 8
+    },
     "funding_rate_adjust": {
       "fr_high": 0.001,
-      "pool_reduction_pct": 0.50
+      "pool_reduction_pct": 0.50,
+      "fr_freeze": 0.002
     }
   }
 }

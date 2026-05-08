@@ -91,12 +91,6 @@ def get_position_value(config, trades, pool):
     if slots_left <= 0 or available <= 0:
         return 0, 0, 0, 0, pool_equity, leverage
 
-    # 根據 FR 調整 pool（如果 config 有 fr adjust）
-    fr_adjust = pool_cfg.get("funding_rate_adjust", {})
-    fr_high = fr_adjust.get("fr_high", 0.001)
-    pool_reduction = fr_adjust.get("pool_reduction_pct", 0)
-    # 實際 FR 載入會由外部決定，這裡先不縮減，讓外部調用時調整
-
     margin_per_trade = available / slots_left
     sl_pct = abs(pool_cfg.get("stop_loss", 0.05))
     max_risk = margin_per_trade * sl_pct
@@ -128,6 +122,31 @@ def check_new_trades(signals_data, trades, config, pool):
     position_value, margin, leverage, max_risk, pool_equity, _ = \
         get_position_value(config, trades, pool)
 
+    # Funding Rate 動態調整
+    fr_adjust = pool_cfg.get("funding_rate_adjust", {})
+    fr_high = fr_adjust.get("fr_high", 0.001)
+    fr_reduction = fr_adjust.get("pool_reduction_pct", 0)
+    # 從 signals 找最高 FR（先預設 0）
+    current_fr = 0
+    for s in signals:
+        fr = s.get("funding_rate", 0)
+        if isinstance(fr, (int, float)) and abs(fr) > abs(current_fr):
+            current_fr = fr
+    
+    fr_multiplier = 1.0
+    if current_fr > fr_high:
+        fr_multiplier = 1.0 - fr_reduction
+        print(f"  ⚠️  FR={current_fr*100:.4f}% 超過門檻 {fr_high*100:.3f}%，pool 縮減 {fr_reduction*100:.0f}%")
+    elif current_fr < -fr_high:
+        fr_multiplier = 1.0 - fr_reduction * 0.5  # 空頭擁擠時縮減較少
+        print(f"  ⚠️  FR={current_fr*100:.4f}%（空頭擁擠），pool 縮減 {fr_reduction*50:.0f}%")
+    
+    # 如果 FR 極高，凍結新開單
+    fr_freeze = fr_adjust.get("fr_freeze", 0.002)
+    if current_fr > fr_freeze:
+        print(f"  🛑  FR={current_fr*100:.4f}% 超過凍結門檻 {fr_freeze*100:.3f}%，不開新單")
+        return []
+
     existing_symbols = {t["symbol"] for t in trades["trades"]
                         if t["status"] == "open" and t.get("pool") == pool}
 
@@ -152,16 +171,22 @@ def check_new_trades(signals_data, trades, config, pool):
         if not is_long and not is_short:
             continue
 
-        # 空方過濾
+        # 空方過濾（從 config 讀取）
         if is_short:
+            short_filters = pool_cfg.get("short_filters", {})
+            max_drop_pct = short_filters.get("max_24h_drop_pct", -15)
+            min_volume = short_filters.get("min_volume_usdt", 50000)
+            skip_consolidation_days = short_filters.get("skip_consolidation_min_days", 2)
+            skip_consolidation_range = short_filters.get("skip_consolidation_max_range_pct", 8)
+
             change_pct = float(s.get("price_change_24h", 0))
-            if change_pct < -15:
+            if change_pct < max_drop_pct:
                 continue
-            if float(s.get("volume_24h_usdt", 0)) < 50000:
+            if float(s.get("volume_24h_usdt", 0)) < min_volume:
                 continue
             consolidation_days = s.get("consolidation_days", 0)
             consolidation_range = s.get("consolidation_range_pct", 0)
-            if consolidation_days >= 2 and consolidation_range <= 8:
+            if consolidation_days >= skip_consolidation_days and consolidation_range <= skip_consolidation_range:
                 continue
 
         # 根據 pool 設定 TP/SL
@@ -199,10 +224,10 @@ def check_new_trades(signals_data, trades, config, pool):
             "tags": s.get("tags", []),
             "obi": s.get("obi", 0),
             "adx": s.get("adx", 0),
-            # 保證金與槓桿
+            # 保證金與槓桿（含 FR 調整）
             "leverage": leverage,
-            "margin": round(margin, 2),
-            "position_value": round(position_value, 2),
+            "margin": round(margin * fr_multiplier, 2),
+            "position_value": round(position_value * fr_multiplier, 2),
             # TP/SL 價格
             "stop_loss_price": round(entry_price * (1 + sl_pct * multiplier), 8),
             "tp1_price": round(entry_price * (1 + tp1_pct * multiplier), 8),

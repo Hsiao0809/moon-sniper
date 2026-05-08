@@ -708,6 +708,47 @@ def detect_patterns(klines, ticker):
 
     return patterns
 
+def should_halt_trading(config, tickers):
+    """檢查市場狀態是否適合交易。回傳 (halt, reason)
+    - halt=True: 所有新交易都暫停
+    - reason: 原因字串，加入 signals 的 halt_reason 欄位
+    """
+    halt_config = config.get("market_halt", {})
+    if not halt_config.get("enabled", True):
+        return False, ""
+
+    # 1. 檢查 BTC 24h 波動率
+    btc_ticker = None
+    for t in tickers:
+        if t["symbol"] == "BTCUSDT":
+            btc_ticker = t
+            break
+    if btc_ticker:
+        btc_change = abs(float(btc_ticker.get("priceChangePercent", 0)))
+        max_daily_change = halt_config.get("max_daily_change_pct", 10)
+        if btc_change > max_daily_change:
+            return True, f"BTC 24h 波動率 {btc_change:.1f}% 超過門檻 {max_daily_change}%，市場極端暫停交易"
+
+    # 2. 檢查全市場平均波動率
+    changes = [abs(float(t.get("priceChangePercent", 0))) for t in tickers[:50] if t.get("priceChangePercent")]
+    if changes:
+        avg_change = sum(changes) / len(changes)
+        max_avg_change = halt_config.get("max_avg_change_pct", 6)
+        if avg_change > max_avg_change:
+            return True, f"全市場平均波動 {avg_change:.1f}% 超過門檻 {max_avg_change}%，異常波動暫停交易"
+
+    # 3. 檢查恐慌/極端情緒（BTC 成交量暴增 vs 正常）
+    btc_volume = float(btc_ticker.get("quoteVolume", 0)) if btc_ticker else 0
+    if btc_volume > 0:
+        vol_mult = halt_config.get("btc_volume_mult_threshold", 4.0)
+        # 對比歷史均量（直接用 config 設定的參考值）
+        ref_volume = halt_config.get("btc_daily_avg_volume", 1500000000)  # ~1.5B USDT
+        if btc_volume > ref_volume * vol_mult:
+            return True, f"BTC 成交量 {btc_volume:.0f} 異常（{vol_mult}x 正常值），可能黑天鵝事件"
+
+    return False, ""
+
+
 def scan(config, mode="swing"):
     """主掃描邏輯 — 支援雙 mode
     - swing（長線）：盤整+量比為主，用 swing_trader.scoring 權重
@@ -722,6 +763,13 @@ def scan(config, mode="swing"):
     
     exchange_info = get_exchange_info()
     config_scan = config["scan"]
+
+    # 市場暫停檢查
+    halt, halt_reason = should_halt_trading(config, tickers)
+    if halt:
+        print(f"⚠️  市場暫停：{halt_reason}")
+        print(f"回傳空 signals，保留上次資料。原因：{halt_reason}")
+        return {"signals": [], "halt": True, "halt_reason": halt_reason, "total_scanned": 0, "mode": mode, "scanned_at": datetime.now(timezone.utc).isoformat()}
 
     # 根據 mode 選擇不同的 config 區塊和權重
     trader_key = "swing_trader" if mode == "swing" else "scalp_trader"
@@ -1095,7 +1143,7 @@ def scan(config, mode="swing"):
     print(f"掃描完成：{len(signals)} 個潛力幣種")
     return signals
 
-def save_signals(signals, mode="swing"):
+def save_signals(signals, mode="swing", halt_reason=None):
     """儲存 signals.json（mode 決定輸出檔案）"""
     if signals is None:
         fname = f"{mode}_signals.json"
@@ -1107,6 +1155,9 @@ def save_signals(signals, mode="swing"):
         "mode": mode,
         "signals": signals,
     }
+    if halt_reason:
+        output["halt"] = True
+        output["halt_reason"] = halt_reason
     fname = f"{mode}_signals.json"
     with open(BASE_DIR / fname, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
@@ -1118,7 +1169,14 @@ if __name__ == "__main__":
                         help="掃描模式：swing（長線）/ scalp（短線）")
     args = parser.parse_args()
     config = load_config()
-    signals = scan(config, mode=args.mode)
-    if signals is None:
+    result = scan(config, mode=args.mode)
+    if result is None:
         sys.exit(1)
-    save_signals(signals, mode=args.mode)
+    # 如果是 halt 狀態，result 已經是完整的 output dict
+    if isinstance(result, dict) and result.get("halt"):
+        fname = f"{args.mode}_signals.json"
+        with open(BASE_DIR / fname, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
+        print(f"已寫入 {fname}（暫停狀態：{result.get('halt_reason', '')}）")
+    else:
+        save_signals(result, mode=args.mode)
