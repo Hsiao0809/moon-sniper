@@ -384,7 +384,7 @@
 <!-- Stats -->
 <div class="stats-bar" id="statsBar">
   <div class="stat-card"><div class="value blue" id="statTotal">—</div><div class="label">潛力幣種</div></div>
-  <div class="stat-card"><div class="value" id="statBalance">300</div><div class="label">帳戶權益 (USDT)</div></div>
+  <div class="stat-card"><div class="value" id="statBalance">300</div><div class="label">帳戶總資金 (USDT)</div></div>
   <div class="stat-card"><div class="value" id="statOpenTrades">—</div><div class="label">進行中紙交易</div></div>
   <div class="stat-card"><div class="value green" id="statWinRate">—</div><div class="label">勝率</div></div>
   <div class="stat-card"><div class="value" id="statTotalPnl">—</div><div class="label">已實現損益 (USDT)</div></div>
@@ -392,6 +392,7 @@
   <div class="stat-card"><div class="value" id="statTotalTrades">—</div><div class="label">總交易次數</div></div>
   <div class="stat-card" style="border-color:rgba(34,197,94,0.3)"><div class="value green" id="statSwingEquity">—</div><div class="label">🟢 Swing Pool</div></div>
   <div class="stat-card" style="border-color:rgba(59,130,246,0.3)"><div class="value blue" id="statScalpEquity">—</div><div class="label">🔵 Scalp Pool</div></div>
+  <div class="stat-card" style="border-color:rgba(245,158,11,0.3)"><div class="value" id="statReserveEquity">—</div><div class="label">🟡 Reserve</div></div>
 </div>
 
 <!-- Tabs -->
@@ -630,21 +631,16 @@ function renderAll(swingData, scalpData, tradesData) {
   const totalSignals = swing.length + scalp.length;
   document.getElementById('statTotal').textContent = totalSignals;
   
-  // 帳戶總權益（含 unrealized）
-  let totalEquity = 0;
+  // 帳戶總資金：必須包含 reserve，不能只加總 Swing/Scalp 已分配 pool。
   let totalRealized = 0;
   let totalUnrealized = 0;
-  if (pools.swing) {
-    totalEquity += pools.swing.pool_equity || 0;
-  }
-  if (pools.scalp) {
-    totalEquity += pools.scalp.pool_equity || 0;
-  }
-  // Fallback to top-level stats if no pools
-  if (!pools.swing && !pools.scalp) {
-    totalEquity = stats.total_equity || stats.account_balance || 300;
-  }
-  document.getElementById('statBalance').textContent = totalEquity.toFixed(2);
+  const accountBalance = stats.account_balance || 300;
+  const swingInitial = pools.swing ? (pools.swing.pool_initial || 0) : 0;
+  const scalpInitial = pools.scalp ? (pools.scalp.pool_initial || 0) : 0;
+  const allocatedInitial = swingInitial + scalpInitial;
+  const reserveEquity = Math.max(accountBalance - allocatedInitial, 0);
+  const totalAccountEquity = stats.total_equity || accountBalance;
+  document.getElementById('statBalance').textContent = totalAccountEquity.toFixed(2);
   
   document.getElementById('statOpenTrades').textContent = stats.open_count || 0;
   document.getElementById('statWinRate').textContent = (stats.win_rate || 0) + '%';
@@ -680,6 +676,11 @@ function renderAll(swingData, scalpData, tradesData) {
     document.getElementById('statScalpEquity').className = 'value blue';
   } else {
     document.getElementById('statScalpEquity').textContent = '—';
+  }
+  const reserveEl = document.getElementById('statReserveEquity');
+  if (reserveEl) {
+    reserveEl.textContent = reserveEquity.toFixed(1);
+    reserveEl.className = 'value';
   }
   
   // Render signals for both modes

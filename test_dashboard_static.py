@@ -136,6 +136,13 @@ def test_paper_trading_can_be_paused_and_requires_trade_eligible():
     assert 's.get("trade_eligible", False)' in trader, 'paper trader must only trade explicitly eligible signals'
 
 
+def test_dashboard_shows_total_account_and_reserve():
+    assert_contains(HTML, '帳戶總資金 (USDT)', 'stats bar should label total account capital, not allocated-only equity')
+    assert_contains(HTML, 'statReserveEquity', 'stats bar should show reserve capital separately')
+    assert_contains(HTML, 'const reserveEquity = Math.max(accountBalance - allocatedInitial, 0);', 'reserve should be computed from 300U account minus allocated pools')
+    assert_not_contains(HTML, 'totalEquity += pools.swing.pool_equity', 'total account display must not omit reserve by summing pools only')
+
+
 def test_mobile_allows_page_scroll_and_pull_refresh():
     assert_contains(HTML, 'overflow-y: auto', 'page must allow vertical scrolling for mobile/pull refresh')
     assert_not_contains(HTML, 'html, body { height: 100%; overflow: hidden; }', 'global overflow hidden blocks mobile pull-to-refresh')
