@@ -141,6 +141,8 @@ def test_dashboard_shows_total_account_and_reserve():
     assert_contains(HTML, 'statReserveEquity', 'stats bar should show reserve capital separately')
     assert_contains(HTML, 'const reserveEquity = Math.max(accountBalance - allocatedInitial, 0);', 'reserve should be computed from 300U account minus allocated pools')
     assert_not_contains(HTML, 'totalEquity += pools.swing.pool_equity', 'total account display must not omit reserve by summing pools only')
+    assert_not_contains(HTML, 'totalEquity = (swingEquity + scalpEquity) || 300', 'live unrealized updater must not overwrite total capital with allocated pools only')
+    assert_contains(HTML, 'const accountEquity = tradesCache?.stats?.total_equity || tradesCache?.stats?.account_balance || 300;', 'live unrealized updater should preserve total account equity including reserve')
 
 
 def test_mobile_allows_page_scroll_and_pull_refresh():

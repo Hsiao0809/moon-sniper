@@ -1181,16 +1181,9 @@ function updateUnrealizedStats(trades) {
       }
     }
   }
-  // 讀取 equity（從資料或從 DOM）— 改用 pool equity 和
-  let swingEquity = 0;
-  let scalpEquity = 0;
-  if (tradesCache?.stats?.pools?.swing) {
-    swingEquity = tradesCache.stats.pools.swing.pool_equity || 0;
-  }
-  if (tradesCache?.stats?.pools?.scalp) {
-    scalpEquity = tradesCache.stats.pools.scalp.pool_equity || 0;
-  }
-  totalEquity = (swingEquity + scalpEquity) || 300;
+  // 讀取帳戶總資金：必須包含 Reserve，不能只用 Swing+Scalp pool 覆蓋。
+  const accountEquity = tradesCache?.stats?.total_equity || tradesCache?.stats?.account_balance || 300;
+  totalEquity = accountEquity;
   const el = document.getElementById('statUnrealizedPnl');
   if (el) {
     el.textContent = (totalUnrealized >= 0 ? '+' : '') + totalUnrealized.toFixed(2);
