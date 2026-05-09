@@ -1,43 +1,44 @@
 {
-  "scanned_at": "2026-05-08T23:09:23.846012+00:00",
+  "scanned_at": "2026-05-09T00:08:37.302518+00:00",
   "total_scanned": 20,
   "mode": "swing",
   "signals": [
     {
       "symbol": "AAVEUSDT",
       "base": "AAVE",
-      "price": "95.77000000",
-      "price_change_24h": "3.748",
+      "price": "95.98000000",
+      "price_change_24h": "3.661",
       "high_24h": "96.54000000",
       "low_24h": "91.91000000",
-      "volume_24h_usdt": 14115075.0,
-      "volume_short_ratio": 2.19,
-      "volume_long_ratio": 1.02,
+      "volume_24h_usdt": 14256441.0,
+      "volume_short_ratio": 1.59,
+      "volume_long_ratio": 0.76,
       "consolidation_days": 4.0,
       "consolidation_range_pct": 5.28,
       "overbought_penalty": 0,
       "mode": "swing",
-      "obi": 0.3934,
-      "adx": 80.48,
+      "obi": 0.483,
+      "adx": 59.29,
       "scores": {
         "volume": 100.0,
-        "volume_ratio": 35.6,
+        "volume_ratio": 13.7,
         "consolidation": 70.0,
-        "momentum": 80.9,
+        "momentum": 80.8,
         "breakout": 70,
         "smart_money": 0,
-        "orderbook": 85.0,
-        "total": 56.6,
+        "orderbook": 84.4,
+        "total": 52.4,
         "short": 30
       },
       "trade_eligible": false,
       "filter_reasons": [
+        "量比不足",
         "ADX過高非盤整"
       ],
       "orderbook": {
-        "bid_vol_usdt": 87049.0,
-        "ask_vol_usdt": 49757.0,
-        "bid_ask_ratio": 1.75,
+        "bid_vol_usdt": 91184.0,
+        "ask_vol_usdt": 52965.0,
+        "bid_ask_ratio": 1.72,
         "support_score": 0,
         "resistance_score": 0
       },
@@ -53,57 +54,452 @@
         },
         "volume_divergence": {
           "type": "bearish_divergence",
-          "detail": "價格上漲但量比僅 0.59x",
-          "vol_ratio": 0.59
+          "detail": "價格上漲但量比僅 0.53x",
+          "vol_ratio": 0.53
         }
       },
       "tags": [
         "👀 觀察",
-        "未交易:ADX過高非盤整",
-        "💤 盤整4.0天",
+        "未交易:量比不足/ADX過高非盤整",
         "📊 量爆增",
         "📗 買盤強勁",
         "🔄 潛在雙底",
         "🔻 量價背離"
       ],
-      "scanned_at": "2026-05-08T23:09:23.835693+00:00"
+      "scanned_at": "2026-05-09T00:08:37.295028+00:00"
     },
     {
-      "symbol": "PEPEUSDT",
-      "base": "PEPE",
-      "price": "0.00000431",
-      "price_change_24h": "3.855",
-      "high_24h": "0.00000437",
-      "low_24h": "0.00000408",
-      "volume_24h_usdt": 45679623.0,
-      "volume_short_ratio": 2.67,
-      "volume_long_ratio": 1.17,
-      "consolidation_days": 4.0,
-      "consolidation_range_pct": 7.37,
+      "symbol": "PENGUUSDT",
+      "base": "PENGU",
+      "price": "0.01049900",
+      "price_change_24h": "1.705",
+      "high_24h": "0.01057900",
+      "low_24h": "0.01006300",
+      "volume_24h_usdt": 21882951.0,
+      "volume_short_ratio": 3.4,
+      "volume_long_ratio": 2.29,
+      "consolidation_days": 2.3,
+      "consolidation_range_pct": 6.5,
       "overbought_penalty": 0,
       "mode": "swing",
-      "obi": -0.0484,
-      "adx": 58.7,
+      "obi": 0.1023,
+      "adx": 48.18,
       "scores": {
         "volume": 100.0,
-        "volume_ratio": 50.0,
-        "consolidation": 70.0,
-        "momentum": 81.0,
-        "breakout": 70,
+        "volume_ratio": 66.0,
+        "consolidation": 49.8,
+        "momentum": 39.8,
+        "breakout": 10,
         "smart_money": 0,
-        "orderbook": 63.5,
-        "total": 50.4,
+        "orderbook": 98.4,
+        "total": 51.7,
         "short": 15
       },
       "trade_eligible": false,
       "filter_reasons": [
+        "盤整不足",
+        "ADX過高非盤整"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 66163.0,
+        "ask_vol_usdt": 27321.0,
+        "bid_ask_ratio": 2.42,
+        "support_score": 0,
+        "resistance_score": 0
+      },
+      "smart_money": {},
+      "patterns": {
+        "double_bottom": {
+          "left_low": 0.01,
+          "right_low": 0.01,
+          "neckline": 0.01,
+          "distance_pct": 0.3,
+          "broken": false,
+          "signal": "potential_bullish"
+        },
+        "bollinger_squeeze": {
+          "bandwidth_pct": 3.55,
+          "sma20": 0.0104,
+          "upper": 0.0106,
+          "lower": 0.0102,
+          "signal": "breakout_imminent"
+        },
+        "volume_divergence": {
+          "type": "bearish_divergence",
+          "detail": "價格上漲但量比僅 0.74x",
+          "vol_ratio": 0.74
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:盤整不足/ADX過高非盤整",
+        "📊 量增3.4x",
+        "📊 量爆增",
+        "📗 買盤強勁",
+        "🔄 潛在雙底",
+        "📦 壓縮待突破",
+        "🔻 量價背離"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.290767+00:00"
+    },
+    {
+      "symbol": "BONKUSDT",
+      "base": "BONK",
+      "price": "0.00000725",
+      "price_change_24h": "6.305",
+      "high_24h": "0.00000743",
+      "low_24h": "0.00000673",
+      "volume_24h_usdt": 11710164.0,
+      "volume_short_ratio": 4.09,
+      "volume_long_ratio": 2.96,
+      "consolidation_days": 0,
+      "consolidation_range_pct": 11.9,
+      "overbought_penalty": 0,
+      "mode": "swing",
+      "obi": 0.6087,
+      "adx": 55.93,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 76.4,
+        "consolidation": 0,
+        "momentum": 83.9,
+        "breakout": 40,
+        "smart_money": 0,
+        "orderbook": 100,
+        "total": 51.6,
+        "short": 23
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "盤整不足",
+        "ADX過高非盤整"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 539090.0,
+        "ask_vol_usdt": 166868.0,
+        "bid_ask_ratio": 3.23,
+        "support_score": 30,
+        "resistance_score": 0
+      },
+      "smart_money": {},
+      "patterns": {
+        "double_bottom": {
+          "left_low": 0.0,
+          "right_low": 0.0,
+          "neckline": 0.0,
+          "distance_pct": 1.02,
+          "broken": false,
+          "signal": "potential_bullish"
+        },
+        "volume_divergence": {
+          "type": "bearish_divergence",
+          "detail": "價格上漲但量比僅 0.77x",
+          "vol_ratio": 0.77
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:盤整不足/ADX過高非盤整",
+        "📊 量增4.09x",
+        "⚡ 上漲中",
+        "📊 量爆增",
+        "📗 買盤強勁",
+        "🛡️ 有支撐",
+        "🔄 潛在雙底",
+        "🔻 量價背離"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.297501+00:00"
+    },
+    {
+      "symbol": "TRUMPUSDT",
+      "base": "TRUMP",
+      "price": "2.46800000",
+      "price_change_24h": "3.480",
+      "high_24h": "2.49300000",
+      "low_24h": "2.34700000",
+      "volume_24h_usdt": 13149404.0,
+      "volume_short_ratio": 1.82,
+      "volume_long_ratio": 0.77,
+      "consolidation_days": 4.0,
+      "consolidation_range_pct": 7.6,
+      "overbought_penalty": 0,
+      "mode": "swing",
+      "obi": 0.2462,
+      "adx": 41.97,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 22.9,
+        "consolidation": 70.0,
+        "momentum": 80.6,
+        "breakout": 70,
+        "smart_money": 0,
+        "orderbook": 50,
+        "total": 46.0,
+        "short": 55
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "量比不足",
+        "ADX過高非盤整"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 283533.0,
+        "ask_vol_usdt": 252133.0,
+        "bid_ask_ratio": 1.12,
+        "support_score": 0,
+        "resistance_score": 0
+      },
+      "smart_money": {},
+      "patterns": {
+        "double_bottom": {
+          "left_low": 2.37,
+          "right_low": 2.38,
+          "neckline": 2.48,
+          "distance_pct": 0.55,
+          "broken": false,
+          "signal": "potential_bullish"
+        },
+        "double_top": {
+          "left_high": 2.49,
+          "right_high": 2.48,
+          "neckline": 2.37,
+          "distance_pct": 0.44,
+          "broken": false,
+          "signal": "potential_bearish"
+        },
+        "volume_divergence": {
+          "type": "bearish_divergence",
+          "detail": "價格上漲但量比僅 0.61x",
+          "vol_ratio": 0.61
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:量比不足/ADX過高非盤整",
+        "📊 量爆增",
+        "🔄 潛在雙底",
+        "⚠️ 潛在雙頂",
+        "🔻 量價背離",
+        "⚠️ 可能做空"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.296126+00:00"
+    },
+    {
+      "symbol": "ICPUSDT",
+      "base": "ICP",
+      "price": "3.59400000",
+      "price_change_24h": "16.992",
+      "high_24h": "3.71500000",
+      "low_24h": "2.97000000",
+      "volume_24h_usdt": 46184908.0,
+      "volume_short_ratio": 2.71,
+      "volume_long_ratio": 2.31,
+      "consolidation_days": 0,
+      "consolidation_range_pct": 27.93,
+      "overbought_penalty": 4.0,
+      "mode": "swing",
+      "obi": 0.47,
+      "adx": 89.7,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 51.4,
+        "consolidation": 0,
+        "momentum": 96.5,
+        "breakout": 40,
+        "smart_money": 0,
+        "orderbook": 100,
+        "total": 40.6,
+        "short": 30
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "盤整不足",
+        "ADX過高非盤整"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 121044.0,
+        "ask_vol_usdt": 43125.0,
+        "bid_ask_ratio": 2.81,
+        "support_score": 0,
+        "resistance_score": 0
+      },
+      "smart_money": {},
+      "patterns": {
+        "double_bottom": {
+          "left_low": 3.09,
+          "right_low": 3.09,
+          "neckline": 3.62,
+          "distance_pct": 0.0,
+          "broken": false,
+          "signal": "potential_bullish"
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:盤整不足/ADX過高非盤整",
+        "🔥 強勢",
+        "📊 量爆增",
+        "📗 買盤強勁",
+        "🔄 潛在雙底"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.287337+00:00"
+    },
+    {
+      "symbol": "ASTERUSDT",
+      "base": "ASTER",
+      "price": "0.69500000",
+      "price_change_24h": "4.985",
+      "high_24h": "0.69900000",
+      "low_24h": "0.65800000",
+      "volume_24h_usdt": 12015670.0,
+      "volume_short_ratio": 0.81,
+      "volume_long_ratio": 1.39,
+      "consolidation_days": 4.0,
+      "consolidation_range_pct": 6.72,
+      "overbought_penalty": 0,
+      "mode": "swing",
+      "obi": 0.049,
+      "adx": 83.64,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 5,
+        "consolidation": 70.0,
+        "momentum": 82.3,
+        "breakout": 70,
+        "smart_money": 0,
+        "orderbook": 50,
+        "total": 38.7,
+        "short": 15
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "量比不足",
+        "ADX過高非盤整"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 421188.0,
+        "ask_vol_usdt": 457965.0,
+        "bid_ask_ratio": 0.92,
+        "support_score": 0,
+        "resistance_score": 0
+      },
+      "smart_money": {},
+      "patterns": {
+        "double_bottom": {
+          "left_low": 0.66,
+          "right_low": 0.66,
+          "neckline": 0.69,
+          "distance_pct": 0.15,
+          "broken": true,
+          "signal": "bullish_reversal"
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:量比不足/ADX過高非盤整",
+        "📊 量爆增",
+        "📈 雙底突破"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.296953+00:00"
+    },
+    {
+      "symbol": "BIOUSDT",
+      "base": "BIO",
+      "price": "0.05290000",
+      "price_change_24h": "17.295",
+      "high_24h": "0.05550000",
+      "low_24h": "0.04450000",
+      "volume_24h_usdt": 15223700.0,
+      "volume_short_ratio": 3.0,
+      "volume_long_ratio": 3.39,
+      "consolidation_days": 0,
+      "consolidation_range_pct": 25.57,
+      "overbought_penalty": 4.6,
+      "mode": "swing",
+      "obi": 0.2262,
+      "adx": 80.36,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 60.0,
+        "consolidation": 0,
+        "momentum": 96.8,
+        "breakout": 10,
+        "smart_money": 0,
+        "orderbook": 86.2,
+        "total": 36.4,
+        "short": 30
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "盤整不足",
+        "ADX過高非盤整"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 151025.0,
+        "ask_vol_usdt": 83503.0,
+        "bid_ask_ratio": 1.81,
+        "support_score": 0,
+        "resistance_score": 0
+      },
+      "smart_money": {},
+      "patterns": {
+        "double_bottom": {
+          "left_low": 0.05,
+          "right_low": 0.05,
+          "neckline": 0.05,
+          "distance_pct": 0.88,
+          "broken": false,
+          "signal": "potential_bullish"
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:盤整不足/ADX過高非盤整",
+        "📊 量增3.0x",
+        "🔥 強勢",
+        "📊 量爆增",
+        "📗 買盤強勁",
+        "🔄 潛在雙底"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.293913+00:00"
+    },
+    {
+      "symbol": "PEPEUSDT",
+      "base": "PEPE",
+      "price": "0.00000432",
+      "price_change_24h": "3.597",
+      "high_24h": "0.00000437",
+      "low_24h": "0.00000408",
+      "volume_24h_usdt": 45951526.0,
+      "volume_short_ratio": 0.78,
+      "volume_long_ratio": 0.39,
+      "consolidation_days": 4.0,
+      "consolidation_range_pct": 7.37,
+      "overbought_penalty": 0,
+      "mode": "swing",
+      "obi": -0.1321,
+      "adx": 44.44,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 0,
+        "consolidation": 70.0,
+        "momentum": 80.7,
+        "breakout": 70,
+        "smart_money": 0,
+        "orderbook": 50,
+        "total": 34.6,
+        "short": 15
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "量比不足",
         "OBI偏弱",
         "ADX過高非盤整"
       ],
       "orderbook": {
-        "bid_vol_usdt": 2699838.0,
-        "ask_vol_usdt": 2125592.0,
-        "bid_ask_ratio": 1.27,
+        "bid_vol_usdt": 2579913.0,
+        "ask_vol_usdt": 2313831.0,
+        "bid_ask_ratio": 1.11,
         "support_score": 0,
         "resistance_score": 0
       },
@@ -119,195 +515,44 @@
         },
         "volume_divergence": {
           "type": "bearish_divergence",
-          "detail": "價格上漲但量比僅 0.55x",
-          "vol_ratio": 0.55
+          "detail": "價格上漲但量比僅 0.50x",
+          "vol_ratio": 0.5
         }
       },
       "tags": [
         "👀 觀察",
-        "未交易:OBI偏弱/ADX過高非盤整",
-        "💤 盤整4.0天",
+        "未交易:量比不足/OBI偏弱",
         "📊 量爆增",
         "🔄 潛在雙底",
         "🔻 量價背離"
       ],
-      "scanned_at": "2026-05-08T23:09:23.827865+00:00"
-    },
-    {
-      "symbol": "PAXGUSDT",
-      "base": "PAXG",
-      "price": "4706.94000000",
-      "price_change_24h": "0.555",
-      "high_24h": "4741.20000000",
-      "low_24h": "4680.97000000",
-      "volume_24h_usdt": 21799497.0,
-      "volume_short_ratio": 0.04,
-      "volume_long_ratio": 0.04,
-      "consolidation_days": 4.0,
-      "consolidation_range_pct": 1.75,
-      "overbought_penalty": 0,
-      "mode": "swing",
-      "obi": 0.4769,
-      "adx": 9.77,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 0,
-        "consolidation": 70.0,
-        "momentum": 13.0,
-        "breakout": 70,
-        "smart_money": 0,
-        "orderbook": 100,
-        "total": 44.4,
-        "short": 35
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "量比不足"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 76439.0,
-        "ask_vol_usdt": 33747.0,
-        "bid_ask_ratio": 2.27,
-        "support_score": 20,
-        "resistance_score": 0
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_bottom": {
-          "left_low": 4691.25,
-          "right_low": 4695.0,
-          "neckline": 4739.21,
-          "distance_pct": 0.08,
-          "broken": false,
-          "signal": "potential_bullish"
-        },
-        "double_top": {
-          "left_high": 4741.2,
-          "right_high": 4724.98,
-          "neckline": 4700.02,
-          "distance_pct": 0.34,
-          "broken": false,
-          "signal": "potential_bearish"
-        },
-        "bollinger_squeeze": {
-          "bandwidth_pct": 0.71,
-          "sma20": 4710.8485,
-          "upper": 4727.5141,
-          "lower": 4694.1829,
-          "signal": "breakout_imminent"
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:量比不足",
-        "📊 量爆增",
-        "📗 買盤強勁",
-        "🛡️ 有支撐",
-        "🔄 潛在雙底",
-        "⚠️ 潛在雙頂",
-        "📦 壓縮待突破"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.831617+00:00"
-    },
-    {
-      "symbol": "TRUMPUSDT",
-      "base": "TRUMP",
-      "price": "2.46000000",
-      "price_change_24h": "3.841",
-      "high_24h": "2.49300000",
-      "low_24h": "2.34700000",
-      "volume_24h_usdt": 12810364.0,
-      "volume_short_ratio": 0.34,
-      "volume_long_ratio": 0.19,
-      "consolidation_days": 4.0,
-      "consolidation_range_pct": 7.6,
-      "overbought_penalty": 0,
-      "mode": "swing",
-      "obi": 0.1996,
-      "adx": 55.56,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 0,
-        "consolidation": 70.0,
-        "momentum": 81.0,
-        "breakout": 70,
-        "smart_money": 0,
-        "orderbook": 65.6,
-        "total": 41.9,
-        "short": 55
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "量比不足",
-        "ADX過高非盤整"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 303635.0,
-        "ask_vol_usdt": 231479.0,
-        "bid_ask_ratio": 1.31,
-        "support_score": 0,
-        "resistance_score": 0
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_bottom": {
-          "left_low": 2.36,
-          "right_low": 2.38,
-          "neckline": 2.47,
-          "distance_pct": 0.8,
-          "broken": false,
-          "signal": "potential_bullish"
-        },
-        "double_top": {
-          "left_high": 2.49,
-          "right_high": 2.48,
-          "neckline": 2.37,
-          "distance_pct": 0.44,
-          "broken": false,
-          "signal": "potential_bearish"
-        },
-        "volume_divergence": {
-          "type": "bearish_divergence",
-          "detail": "價格上漲但量比僅 0.66x",
-          "vol_ratio": 0.66
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:量比不足/ADX過高非盤整",
-        "📊 量爆增",
-        "🔄 潛在雙底",
-        "⚠️ 潛在雙頂",
-        "🔻 量價背離",
-        "⚠️ 可能做空"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.837304+00:00"
+      "scanned_at": "2026-05-09T00:08:37.287650+00:00"
     },
     {
       "symbol": "UUSDT",
       "base": "U",
-      "price": "1.00000000",
-      "price_change_24h": "0.000",
+      "price": "0.99990000",
+      "price_change_24h": "-0.010",
       "high_24h": "1.00010000",
       "low_24h": "0.99990000",
-      "volume_24h_usdt": 16704189.0,
-      "volume_short_ratio": 0.81,
-      "volume_long_ratio": 0.35,
+      "volume_24h_usdt": 16654224.0,
+      "volume_short_ratio": 0.09,
+      "volume_long_ratio": 0.04,
       "consolidation_days": 4.0,
       "consolidation_range_pct": 0.03,
       "overbought_penalty": 0,
       "mode": "swing",
-      "obi": 0.0129,
+      "obi": 0.0028,
       "adx": 2.55,
       "scores": {
         "volume": 100.0,
-        "volume_ratio": 5,
+        "volume_ratio": 0,
         "consolidation": 70.0,
         "momentum": 20,
         "breakout": 70,
         "smart_money": 0,
-        "orderbook": 71.6,
-        "total": 35.2,
+        "orderbook": 70.8,
+        "total": 33.7,
         "short": 35
       },
       "trade_eligible": false,
@@ -315,9 +560,9 @@
         "量比不足"
       ],
       "orderbook": {
-        "bid_vol_usdt": 15343504.0,
-        "ask_vol_usdt": 10715701.0,
-        "bid_ask_ratio": 1.43,
+        "bid_vol_usdt": 15257821.0,
+        "ask_vol_usdt": 10781157.0,
+        "bid_ask_ratio": 1.42,
         "support_score": 0,
         "resistance_score": 0
       },
@@ -351,38 +596,39 @@
         "👀 觀察",
         "未交易:量比不足",
         "📊 量爆增",
+        "🔄 可能反轉",
         "🔄 潛在雙底",
         "⚠️ 潛在雙頂",
         "📦 壓縮待突破"
       ],
-      "scanned_at": "2026-05-08T23:09:23.834164+00:00"
+      "scanned_at": "2026-05-09T00:08:37.293102+00:00"
     },
     {
       "symbol": "TAOUSDT",
       "base": "TAO",
-      "price": "314.10000000",
-      "price_change_24h": "4.491",
+      "price": "316.00000000",
+      "price_change_24h": "4.187",
       "high_24h": "318.30000000",
       "low_24h": "298.80000000",
-      "volume_24h_usdt": 34765844.0,
-      "volume_short_ratio": 0.71,
-      "volume_long_ratio": 0.45,
+      "volume_24h_usdt": 35034880.0,
+      "volume_short_ratio": 0.47,
+      "volume_long_ratio": 0.34,
       "consolidation_days": 2.3,
       "consolidation_range_pct": 7.35,
       "overbought_penalty": 0,
       "mode": "swing",
-      "obi": -0.0192,
-      "adx": 43.91,
+      "obi": -0.0024,
+      "adx": 40.5,
       "scores": {
         "volume": 100.0,
         "volume_ratio": 0,
-        "consolidation": 49.8,
-        "momentum": 81.8,
+        "consolidation": 50.3,
+        "momentum": 81.4,
         "breakout": 40,
         "smart_money": 0,
-        "orderbook": 70.1,
-        "total": 33.3,
-        "short": 15
+        "orderbook": 68.5,
+        "total": 33.5,
+        "short": 30
       },
       "trade_eligible": false,
       "filter_reasons": [
@@ -392,9 +638,9 @@
         "ADX過高非盤整"
       ],
       "orderbook": {
-        "bid_vol_usdt": 508222.0,
-        "ask_vol_usdt": 362265.0,
-        "bid_ask_ratio": 1.4,
+        "bid_vol_usdt": 489736.0,
+        "ask_vol_usdt": 357701.0,
+        "bid_ask_ratio": 1.37,
         "support_score": 0,
         "resistance_score": 0
       },
@@ -403,7 +649,7 @@
         "double_bottom": {
           "left_low": 299.8,
           "right_low": 305.1,
-          "neckline": 316.4,
+          "neckline": 316.5,
           "distance_pct": 1.74,
           "broken": false,
           "signal": "potential_bullish"
@@ -421,34 +667,34 @@
         "🔄 潛在雙底",
         "🔻 量價背離"
       ],
-      "scanned_at": "2026-05-08T23:09:23.830382+00:00"
+      "scanned_at": "2026-05-09T00:08:37.289086+00:00"
     },
     {
-      "symbol": "ASTERUSDT",
-      "base": "ASTER",
-      "price": "0.69000000",
-      "price_change_24h": "4.387",
-      "high_24h": "0.69900000",
-      "low_24h": "0.65800000",
-      "volume_24h_usdt": 11036632.0,
-      "volume_short_ratio": 0.34,
-      "volume_long_ratio": 0.5,
+      "symbol": "LTCUSDT",
+      "base": "LTC",
+      "price": "58.40000000",
+      "price_change_24h": "3.290",
+      "high_24h": "58.99000000",
+      "low_24h": "56.06000000",
+      "volume_24h_usdt": 19405884.0,
+      "volume_short_ratio": 0.8,
+      "volume_long_ratio": 0.6,
       "consolidation_days": 4.0,
-      "consolidation_range_pct": 6.72,
+      "consolidation_range_pct": 5.25,
       "overbought_penalty": 0,
       "mode": "swing",
-      "obi": -0.0476,
-      "adx": 83.64,
+      "obi": -0.24,
+      "adx": 39.21,
       "scores": {
         "volume": 100.0,
-        "volume_ratio": 0,
+        "volume_ratio": 5,
         "consolidation": 70.0,
-        "momentum": 81.6,
+        "momentum": 80.3,
         "breakout": 70,
         "smart_money": 0,
         "orderbook": 30,
-        "total": 32.9,
-        "short": 15
+        "total": 31.2,
+        "short": 52
       },
       "trade_eligible": false,
       "filter_reasons": [
@@ -457,57 +703,68 @@
         "ADX過高非盤整"
       ],
       "orderbook": {
-        "bid_vol_usdt": 472736.0,
-        "ask_vol_usdt": 548002.0,
-        "bid_ask_ratio": 0.86,
+        "bid_vol_usdt": 204236.0,
+        "ask_vol_usdt": 346270.0,
+        "bid_ask_ratio": 0.59,
         "support_score": 0,
-        "resistance_score": -20
+        "resistance_score": 0
       },
       "smart_money": {},
       "patterns": {
         "double_bottom": {
-          "left_low": 0.66,
-          "right_low": 0.66,
-          "neckline": 0.69,
-          "distance_pct": 0.15,
+          "left_low": 56.2,
+          "right_low": 56.42,
+          "neckline": 58.51,
+          "distance_pct": 0.39,
           "broken": false,
           "signal": "potential_bullish"
+        },
+        "double_top": {
+          "left_high": 58.99,
+          "right_high": 58.57,
+          "neckline": 56.37,
+          "distance_pct": 0.71,
+          "broken": false,
+          "signal": "potential_bearish"
         }
       },
       "tags": [
         "👀 觀察",
         "未交易:量比不足/OBI偏弱",
         "📊 量爆增",
-        "🔄 潛在雙底"
+        "📕 賣壓沉重",
+        "🔄 潛在雙底",
+        "⚠️ 潛在雙頂",
+        "⚠️ 可能做空"
       ],
-      "scanned_at": "2026-05-08T23:09:23.839149+00:00"
+      "scanned_at": "2026-05-09T00:08:37.291914+00:00"
     },
     {
       "symbol": "TIAUSDT",
       "base": "TIA",
-      "price": "0.44150000",
-      "price_change_24h": "14.646",
+      "price": "0.44590000",
+      "price_change_24h": "14.568",
       "high_24h": "0.45490000",
-      "low_24h": "0.38450000",
-      "volume_24h_usdt": 13934219.0,
-      "volume_short_ratio": 1.46,
-      "volume_long_ratio": 0.69,
+      "low_24h": "0.38480000",
+      "volume_24h_usdt": 14125860.0,
+      "volume_short_ratio": 1.59,
+      "volume_long_ratio": 0.56,
       "consolidation_days": 0,
       "consolidation_range_pct": 22.61,
       "overbought_penalty": 0,
       "mode": "swing",
-      "obi": 0.5102,
-      "adx": 45.32,
+      "obi": 0.2165,
+      "adx": 44.98,
       "scores": {
         "volume": 100.0,
-        "volume_ratio": 5,
+        "volume_ratio": 13.7,
         "consolidation": 0,
-        "momentum": 93.7,
-        "breakout": 40,
+        "momentum": 93.6,
+        "breakout": 70,
         "smart_money": 0,
-        "orderbook": 91.0,
-        "total": 31.9,
-        "short": 42
+        "orderbook": 93.7,
+        "total": 30.1,
+        "short": 67
       },
       "trade_eligible": false,
       "filter_reasons": [
@@ -516,9 +773,9 @@
         "ADX過高非盤整"
       ],
       "orderbook": {
-        "bid_vol_usdt": 105995.0,
-        "ask_vol_usdt": 51673.0,
-        "bid_ask_ratio": 2.05,
+        "bid_vol_usdt": 119047.0,
+        "ask_vol_usdt": 54497.0,
+        "bid_ask_ratio": 2.18,
         "support_score": 0,
         "resistance_score": 0
       },
@@ -532,10 +789,18 @@
           "broken": false,
           "signal": "potential_bullish"
         },
+        "double_top": {
+          "left_high": 0.45,
+          "right_high": 0.45,
+          "neckline": 0.4,
+          "distance_pct": 0.18,
+          "broken": false,
+          "signal": "potential_bearish"
+        },
         "volume_divergence": {
           "type": "bearish_divergence",
-          "detail": "價格上漲但量比僅 0.67x",
-          "vol_ratio": 0.67
+          "detail": "價格上漲但量比僅 0.52x",
+          "vol_ratio": 0.52
         }
       },
       "tags": [
@@ -545,37 +810,303 @@
         "📊 量爆增",
         "📗 買盤強勁",
         "🔄 潛在雙底",
+        "⚠️ 潛在雙頂",
         "🔻 量價背離",
-        "⚠️ 可能做空"
+        "📉 做空訊號"
       ],
-      "scanned_at": "2026-05-08T23:09:23.836319+00:00"
+      "scanned_at": "2026-05-09T00:08:37.295302+00:00"
     },
     {
-      "symbol": "LTCUSDT",
-      "base": "LTC",
-      "price": "58.27000000",
-      "price_change_24h": "3.224",
-      "high_24h": "58.99000000",
-      "low_24h": "56.06000000",
-      "volume_24h_usdt": 19423234.0,
-      "volume_short_ratio": 0.68,
-      "volume_long_ratio": 0.56,
-      "consolidation_days": 4.0,
-      "consolidation_range_pct": 5.25,
+      "symbol": "WLDUSDT",
+      "base": "WLD",
+      "price": "0.27300000",
+      "price_change_24h": "7.948",
+      "high_24h": "0.27850000",
+      "low_24h": "0.25060000",
+      "volume_24h_usdt": 14636714.0,
+      "volume_short_ratio": 1.53,
+      "volume_long_ratio": 0.77,
+      "consolidation_days": 0,
+      "consolidation_range_pct": 12.16,
       "overbought_penalty": 0,
       "mode": "swing",
-      "obi": -0.1919,
-      "adx": 50.98,
+      "obi": 0.2955,
+      "adx": 59.56,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 11.3,
+        "consolidation": 0,
+        "momentum": 85.8,
+        "breakout": 70,
+        "smart_money": 0,
+        "orderbook": 84.8,
+        "total": 28.6,
+        "short": 38
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "盤整不足",
+        "量比不足",
+        "ADX過高非盤整"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 242565.0,
+        "ask_vol_usdt": 139389.0,
+        "bid_ask_ratio": 1.74,
+        "support_score": 0,
+        "resistance_score": 0
+      },
+      "smart_money": {},
+      "patterns": {
+        "double_bottom": {
+          "left_low": 0.25,
+          "right_low": 0.25,
+          "neckline": 0.27,
+          "distance_pct": 0.16,
+          "broken": false,
+          "signal": "potential_bullish"
+        },
+        "volume_divergence": {
+          "type": "bearish_divergence",
+          "detail": "價格上漲但量比僅 0.70x",
+          "vol_ratio": 0.7
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:盤整不足/量比不足",
+        "⚡ 上漲中",
+        "📊 量爆增",
+        "📗 買盤強勁",
+        "🔄 潛在雙底",
+        "🔻 量價背離"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.294461+00:00"
+    },
+    {
+      "symbol": "MEGAUSDT",
+      "base": "MEGA",
+      "price": "0.12218000",
+      "price_change_24h": "1.546",
+      "high_24h": "0.13200000",
+      "low_24h": "0.11557000",
+      "volume_24h_usdt": 13251746.0,
+      "volume_short_ratio": 3.14,
+      "volume_long_ratio": 1.11,
+      "consolidation_days": 0,
+      "consolidation_range_pct": 14.22,
+      "overbought_penalty": 0,
+      "mode": "swing",
+      "obi": 0.016,
+      "adx": 6.31,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 62.1,
+        "consolidation": 0,
+        "momentum": 36.1,
+        "breakout": 10,
+        "smart_money": 0,
+        "orderbook": 50,
+        "total": 26.9,
+        "short": 15
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "盤整不足"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 11510.0,
+        "ask_vol_usdt": 12328.0,
+        "bid_ask_ratio": 0.93,
+        "support_score": 0,
+        "resistance_score": 0
+      },
+      "smart_money": {},
+      "patterns": {
+        "bollinger_squeeze": {
+          "bandwidth_pct": 3.46,
+          "sma20": 0.123,
+          "upper": 0.1251,
+          "lower": 0.1208,
+          "signal": "breakout_imminent"
+        },
+        "volume_divergence": {
+          "type": "bearish_divergence",
+          "detail": "價格上漲但量比僅 0.46x",
+          "vol_ratio": 0.46
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:盤整不足",
+        "📊 量增3.14x",
+        "📊 量爆增",
+        "📦 壓縮待突破",
+        "🔻 量價背離"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.295833+00:00"
+    },
+    {
+      "symbol": "IOUSDT",
+      "base": "IO",
+      "price": "0.16440000",
+      "price_change_24h": "-0.182",
+      "high_24h": "0.17600000",
+      "low_24h": "0.15510000",
+      "volume_24h_usdt": 10745937.0,
+      "volume_short_ratio": 1.93,
+      "volume_long_ratio": 0.67,
+      "consolidation_days": 0,
+      "consolidation_range_pct": 21.72,
+      "overbought_penalty": 0,
+      "mode": "swing",
+      "obi": 0.2013,
+      "adx": 55.68,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 27.0,
+        "consolidation": 0,
+        "momentum": 20,
+        "breakout": 10,
+        "smart_money": 0,
+        "orderbook": 100,
+        "total": 26.8,
+        "short": 15
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "盤整不足",
+        "量比不足",
+        "ADX過高非盤整"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 71972.0,
+        "ask_vol_usdt": 28233.0,
+        "bid_ask_ratio": 2.55,
+        "support_score": 0,
+        "resistance_score": 0
+      },
+      "smart_money": {},
+      "patterns": {
+        "double_bottom": {
+          "left_low": 0.16,
+          "right_low": 0.16,
+          "neckline": 0.18,
+          "distance_pct": 0.64,
+          "broken": false,
+          "signal": "potential_bullish"
+        },
+        "volume_divergence": {
+          "type": "bearish_divergence",
+          "detail": "價格上漲但量比僅 0.32x",
+          "vol_ratio": 0.32
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:盤整不足/量比不足",
+        "📊 量爆增",
+        "🔄 可能反轉",
+        "📗 買盤強勁",
+        "🔄 潛在雙底",
+        "🔻 量價背離"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.298032+00:00"
+    },
+    {
+      "symbol": "CHZUSDT",
+      "base": "CHZ",
+      "price": "0.04500000",
+      "price_change_24h": "1.672",
+      "high_24h": "0.04689000",
+      "low_24h": "0.04336000",
+      "volume_24h_usdt": 10662891.0,
+      "volume_short_ratio": 0.92,
+      "volume_long_ratio": 0.66,
+      "consolidation_days": 0,
+      "consolidation_range_pct": 11.64,
+      "overbought_penalty": 0,
+      "mode": "swing",
+      "obi": 0.4149,
+      "adx": 6.15,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 5,
+        "consolidation": 0,
+        "momentum": 39.0,
+        "breakout": 40,
+        "smart_money": 0,
+        "orderbook": 100,
+        "total": 26.4,
+        "short": 25
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "盤整不足",
+        "量比不足"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 91640.0,
+        "ask_vol_usdt": 29210.0,
+        "bid_ask_ratio": 3.14,
+        "support_score": 0,
+        "resistance_score": 0
+      },
+      "smart_money": {},
+      "patterns": {
+        "double_bottom": {
+          "left_low": 0.04,
+          "right_low": 0.04,
+          "neckline": 0.05,
+          "distance_pct": 0.57,
+          "broken": false,
+          "signal": "potential_bullish"
+        },
+        "double_top": {
+          "left_high": 0.05,
+          "right_high": 0.05,
+          "neckline": 0.04,
+          "distance_pct": 2.22,
+          "broken": false,
+          "signal": "potential_bearish"
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:盤整不足/量比不足",
+        "📊 量爆增",
+        "📗 買盤強勁",
+        "🔄 潛在雙底",
+        "⚠️ 潛在雙頂"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.298324+00:00"
+    },
+    {
+      "symbol": "EURUSDT",
+      "base": "EUR",
+      "price": "1.17810000",
+      "price_change_24h": "0.392",
+      "high_24h": "1.17870000",
+      "low_24h": "1.17260000",
+      "volume_24h_usdt": 17211941.0,
+      "volume_short_ratio": 0.74,
+      "volume_long_ratio": 0.35,
+      "consolidation_days": 4.0,
+      "consolidation_range_pct": 0.54,
+      "overbought_penalty": 0,
+      "mode": "swing",
+      "obi": -0.2401,
+      "adx": 68.17,
       "scores": {
         "volume": 100.0,
         "volume_ratio": 0,
         "consolidation": 70.0,
-        "momentum": 80.3,
+        "momentum": 9.1,
         "breakout": 70,
         "smart_money": 0,
-        "orderbook": 30,
-        "total": 30.6,
-        "short": 27
+        "orderbook": 50,
+        "total": 25.8,
+        "short": 55
       },
       "trade_eligible": false,
       "filter_reasons": [
@@ -584,21 +1115,125 @@
         "ADX過高非盤整"
       ],
       "orderbook": {
-        "bid_vol_usdt": 211377.0,
-        "ask_vol_usdt": 361971.0,
-        "bid_ask_ratio": 0.58,
-        "support_score": 0,
-        "resistance_score": 0
+        "bid_vol_usdt": 209607.0,
+        "ask_vol_usdt": 342155.0,
+        "bid_ask_ratio": 0.61,
+        "support_score": 40,
+        "resistance_score": -20
       },
       "smart_money": {},
       "patterns": {
         "double_bottom": {
-          "left_low": 56.2,
-          "right_low": 56.42,
-          "neckline": 58.51,
-          "distance_pct": 0.39,
+          "left_low": 1.17,
+          "right_low": 1.18,
+          "neckline": 1.18,
+          "distance_pct": 0.22,
           "broken": false,
           "signal": "potential_bullish"
+        },
+        "double_top": {
+          "left_high": 1.18,
+          "right_high": 1.18,
+          "neckline": 1.17,
+          "distance_pct": 0.0,
+          "broken": false,
+          "signal": "potential_bearish"
+        },
+        "bollinger_squeeze": {
+          "bandwidth_pct": 0.46,
+          "sma20": 1.177,
+          "upper": 1.1797,
+          "lower": 1.1743,
+          "signal": "breakout_imminent"
+        },
+        "volume_divergence": {
+          "type": "bearish_divergence",
+          "detail": "價格上漲但量比僅 0.47x",
+          "vol_ratio": 0.47
+        }
+      },
+      "tags": [
+        "👀 觀察",
+        "未交易:量比不足/OBI偏弱",
+        "📊 量爆增",
+        "🛡️ 有支撐",
+        "🔄 潛在雙底",
+        "⚠️ 潛在雙頂",
+        "📦 壓縮待突破",
+        "🔻 量價背離",
+        "⚠️ 可能做空"
+      ],
+      "scanned_at": "2026-05-09T00:08:37.292532+00:00"
+    },
+    {
+      "symbol": "TRXUSDT",
+      "base": "TRX",
+      "price": "0.35050000",
+      "price_change_24h": "0.603",
+      "high_24h": "0.35200000",
+      "low_24h": "0.34680000",
+      "volume_24h_usdt": 43230500.0,
+      "volume_short_ratio": 1.82,
+      "volume_long_ratio": 1.41,
+      "consolidation_days": 4.0,
+      "consolidation_range_pct": 2.36,
+      "overbought_penalty": 0,
+      "mode": "swing",
+      "obi": -0.2663,
+      "adx": 40.1,
+      "scores": {
+        "volume": 100.0,
+        "volume_ratio": 22.8,
+        "consolidation": 70.0,
+        "momentum": 14.1,
+        "breakout": 70,
+        "smart_money": 0,
+        "orderbook": 10,
+        "total": 25.6,
+        "short": 67
+      },
+      "trade_eligible": false,
+      "filter_reasons": [
+        "量比不足",
+        "OBI偏弱",
+        "ADX過高非盤整"
+      ],
+      "orderbook": {
+        "bid_vol_usdt": 541778.0,
+        "ask_vol_usdt": 949982.0,
+        "bid_ask_ratio": 0.57,
+        "support_score": 0,
+        "resistance_score": -20
+      },
+      "smart_money": {},
+      "patterns": {
+        "double_bottom": {
+          "left_low": 0.35,
+          "right_low": 0.35,
+          "neckline": 0.35,
+          "distance_pct": 0.09,
+          "broken": false,
+          "signal": "potential_bullish"
+        },
+        "double_top": {
+          "left_high": 0.35,
+          "right_high": 0.35,
+          "neckline": 0.35,
+          "distance_pct": 0.34,
+          "broken": false,
+          "signal": "potential_bearish"
+        },
+        "bollinger_squeeze": {
+          "bandwidth_pct": 1.02,
+          "sma20": 0.3497,
+          "upper": 0.3514,
+          "lower": 0.3479,
+          "signal": "breakout_imminent"
+        },
+        "volume_divergence": {
+          "type": "bearish_divergence",
+          "detail": "價格上漲但量比僅 0.52x",
+          "vol_ratio": 0.52
         }
       },
       "tags": [
@@ -606,97 +1241,39 @@
         "未交易:量比不足/OBI偏弱",
         "📊 量爆增",
         "📕 賣壓沉重",
-        "🔄 潛在雙底"
+        "🔄 潛在雙底",
+        "⚠️ 潛在雙頂",
+        "📦 壓縮待突破",
+        "🔻 量價背離",
+        "📉 做空訊號"
       ],
-      "scanned_at": "2026-05-08T23:09:23.832882+00:00"
-    },
-    {
-      "symbol": "ICPUSDT",
-      "base": "ICP",
-      "price": "3.51000000",
-      "price_change_24h": "16.379",
-      "high_24h": "3.70800000",
-      "low_24h": "2.97000000",
-      "volume_24h_usdt": 44832814.0,
-      "volume_short_ratio": 0.18,
-      "volume_long_ratio": 0.41,
-      "consolidation_days": 0,
-      "consolidation_range_pct": 27.69,
-      "overbought_penalty": 2.8,
-      "mode": "swing",
-      "obi": 0.4706,
-      "adx": 85.66,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 0,
-        "consolidation": 0,
-        "momentum": 95.7,
-        "breakout": 10,
-        "smart_money": 0,
-        "orderbook": 100,
-        "total": 28.9,
-        "short": 30
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "盤整不足",
-        "量比不足",
-        "ADX過高非盤整"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 115336.0,
-        "ask_vol_usdt": 54801.0,
-        "bid_ask_ratio": 2.1,
-        "support_score": 20,
-        "resistance_score": 0
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_bottom": {
-          "left_low": 3.06,
-          "right_low": 3.09,
-          "neckline": 3.55,
-          "distance_pct": 0.91,
-          "broken": false,
-          "signal": "potential_bullish"
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:盤整不足/量比不足",
-        "🔥 強勢",
-        "📊 量爆增",
-        "📗 買盤強勁",
-        "🛡️ 有支撐",
-        "🔄 潛在雙底"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.828187+00:00"
+      "scanned_at": "2026-05-09T00:08:37.287948+00:00"
     },
     {
       "symbol": "ARUSDT",
       "base": "AR",
-      "price": "2.75000000",
-      "price_change_24h": "13.636",
-      "high_24h": "2.79000000",
+      "price": "2.72000000",
+      "price_change_24h": "10.121",
+      "high_24h": "2.80000000",
       "low_24h": "2.39000000",
-      "volume_24h_usdt": 11497134.0,
-      "volume_short_ratio": 0.93,
-      "volume_long_ratio": 1.01,
+      "volume_24h_usdt": 11879311.0,
+      "volume_short_ratio": 0.64,
+      "volume_long_ratio": 0.62,
       "consolidation_days": 0,
-      "consolidation_range_pct": 17.23,
+      "consolidation_range_pct": 17.65,
       "overbought_penalty": 0,
       "mode": "swing",
-      "obi": 0.2589,
-      "adx": 80.8,
+      "obi": 0.212,
+      "adx": 65.17,
       "scores": {
         "volume": 100.0,
-        "volume_ratio": 5,
+        "volume_ratio": 0,
         "consolidation": 0,
-        "momentum": 92.5,
-        "breakout": 70,
+        "momentum": 88.4,
+        "breakout": 40,
         "smart_money": 0,
-        "orderbook": 94.3,
-        "total": 28.5,
+        "orderbook": 90.7,
+        "total": 25.6,
         "short": 27
       },
       "trade_eligible": false,
@@ -706,9 +1283,9 @@
         "ADX過高非盤整"
       ],
       "orderbook": {
-        "bid_vol_usdt": 227562.0,
-        "ask_vol_usdt": 153125.0,
-        "bid_ask_ratio": 1.49,
+        "bid_vol_usdt": 267717.0,
+        "ask_vol_usdt": 189233.0,
+        "bid_ask_ratio": 1.41,
         "support_score": 20,
         "resistance_score": 0
       },
@@ -731,375 +1308,34 @@
         "🛡️ 有支撐",
         "🔄 潛在雙底"
       ],
-      "scanned_at": "2026-05-08T23:09:23.838515+00:00"
+      "scanned_at": "2026-05-09T00:08:37.297228+00:00"
     },
     {
-      "symbol": "TRXUSDT",
-      "base": "TRX",
-      "price": "0.35000000",
-      "price_change_24h": "0.344",
-      "high_24h": "0.35200000",
-      "low_24h": "0.34680000",
-      "volume_24h_usdt": 43094865.0,
-      "volume_short_ratio": 0.85,
-      "volume_long_ratio": 0.68,
-      "consolidation_days": 4.0,
-      "consolidation_range_pct": 2.36,
-      "overbought_penalty": 0,
-      "mode": "swing",
-      "obi": -0.1635,
-      "adx": 34.45,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 5,
-        "consolidation": 70.0,
-        "momentum": 8.0,
-        "breakout": 70,
-        "smart_money": 0,
-        "orderbook": 50,
-        "total": 28.1,
-        "short": 40
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "量比不足",
-        "OBI偏弱",
-        "ADX過高非盤整"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 577483.0,
-        "ask_vol_usdt": 697700.0,
-        "bid_ask_ratio": 0.83,
-        "support_score": 0,
-        "resistance_score": 0
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_bottom": {
-          "left_low": 0.35,
-          "right_low": 0.35,
-          "neckline": 0.35,
-          "distance_pct": 0.09,
-          "broken": false,
-          "signal": "potential_bullish"
-        },
-        "double_top": {
-          "left_high": 0.35,
-          "right_high": 0.35,
-          "neckline": 0.35,
-          "distance_pct": 0.34,
-          "broken": false,
-          "signal": "potential_bearish"
-        },
-        "bollinger_squeeze": {
-          "bandwidth_pct": 1.11,
-          "sma20": 0.3495,
-          "upper": 0.3515,
-          "lower": 0.3476,
-          "signal": "breakout_imminent"
-        },
-        "volume_divergence": {
-          "type": "bearish_divergence",
-          "detail": "價格上漲但量比僅 0.56x",
-          "vol_ratio": 0.56
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:量比不足/OBI偏弱",
-        "📊 量爆增",
-        "🔄 潛在雙底",
-        "⚠️ 潛在雙頂",
-        "📦 壓縮待突破",
-        "🔻 量價背離",
-        "⚠️ 可能做空"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.828511+00:00"
-    },
-    {
-      "symbol": "LUNCUSDT",
-      "base": "LUNC",
-      "price": "0.00009260",
-      "price_change_24h": "3.452",
-      "high_24h": "0.00009876",
-      "low_24h": "0.00008908",
-      "volume_24h_usdt": 20383868.0,
-      "volume_short_ratio": 0.43,
-      "volume_long_ratio": 0.3,
+      "symbol": "GALAUSDT",
+      "base": "GALA",
+      "price": "0.00418000",
+      "price_change_24h": "11.765",
+      "high_24h": "0.00454000",
+      "low_24h": "0.00368000",
+      "volume_24h_usdt": 42266974.0,
+      "volume_short_ratio": 1.25,
+      "volume_long_ratio": 0.39,
       "consolidation_days": 0,
-      "consolidation_range_pct": 16.12,
+      "consolidation_range_pct": 25.41,
       "overbought_penalty": 0,
       "mode": "swing",
-      "obi": 0.2509,
-      "adx": 23.28,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 0,
-        "consolidation": 0,
-        "momentum": 80.5,
-        "breakout": 10,
-        "smart_money": 0,
-        "orderbook": 95.7,
-        "total": 26.2,
-        "short": 35
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "盤整不足",
-        "量比不足"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 22123.0,
-        "ask_vol_usdt": 9680.0,
-        "bid_ask_ratio": 2.29,
-        "support_score": 0,
-        "resistance_score": 0
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_bottom": {
-          "left_low": 0.0,
-          "right_low": 0.0,
-          "neckline": 0.0,
-          "distance_pct": 0.45,
-          "broken": false,
-          "signal": "potential_bullish"
-        },
-        "double_top": {
-          "left_high": 0.0,
-          "right_high": 0.0,
-          "neckline": 0.0,
-          "distance_pct": 1.5,
-          "broken": false,
-          "signal": "potential_bearish"
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:盤整不足/量比不足",
-        "📊 量爆增",
-        "📗 買盤強勁",
-        "🔄 潛在雙底",
-        "⚠️ 潛在雙頂"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.832544+00:00"
-    },
-    {
-      "symbol": "ENAUSDT",
-      "base": "ENA",
-      "price": "0.13110000",
-      "price_change_24h": "9.615",
-      "high_24h": "0.13570000",
-      "low_24h": "0.11730000",
-      "volume_24h_usdt": 33592370.0,
-      "volume_short_ratio": 0.53,
-      "volume_long_ratio": 0.63,
-      "consolidation_days": 0,
-      "consolidation_range_pct": 18.21,
-      "overbought_penalty": 0,
-      "mode": "swing",
-      "obi": 0.2838,
-      "adx": 57.68,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 0,
-        "consolidation": 0,
-        "momentum": 87.8,
-        "breakout": 40,
-        "smart_money": 0,
-        "orderbook": 71.5,
-        "total": 23.8,
-        "short": 23
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "盤整不足",
-        "量比不足",
-        "ADX過高非盤整"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 615130.0,
-        "ask_vol_usdt": 430061.0,
-        "bid_ask_ratio": 1.43,
-        "support_score": 0,
-        "resistance_score": 0
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_bottom": {
-          "left_low": 0.12,
-          "right_low": 0.12,
-          "neckline": 0.13,
-          "distance_pct": 2.65,
-          "broken": false,
-          "signal": "potential_bullish"
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:盤整不足/量比不足",
-        "⚡ 上漲中",
-        "📊 量爆增",
-        "🔄 潛在雙底"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.830677+00:00"
-    },
-    {
-      "symbol": "IOUSDT",
-      "base": "IO",
-      "price": "0.16460000",
-      "price_change_24h": "4.508",
-      "high_24h": "0.17600000",
-      "low_24h": "0.15510000",
-      "volume_24h_usdt": 10905365.0,
-      "volume_short_ratio": 0.25,
-      "volume_long_ratio": 0.1,
-      "consolidation_days": 0,
-      "consolidation_range_pct": 22.31,
-      "overbought_penalty": 0,
-      "mode": "swing",
-      "obi": 0.1466,
-      "adx": 57.88,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 0,
-        "consolidation": 0,
-        "momentum": 81.8,
-        "breakout": 10,
-        "smart_money": 0,
-        "orderbook": 81.7,
-        "total": 22.6,
-        "short": 15
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "盤整不足",
-        "量比不足",
-        "ADX過高非盤整"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 51766.0,
-        "ask_vol_usdt": 32620.0,
-        "bid_ask_ratio": 1.59,
-        "support_score": 0,
-        "resistance_score": 0
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_bottom": {
-          "left_low": 0.16,
-          "right_low": 0.16,
-          "neckline": 0.18,
-          "distance_pct": 0.64,
-          "broken": false,
-          "signal": "potential_bullish"
-        },
-        "volume_divergence": {
-          "type": "bearish_divergence",
-          "detail": "價格上漲但量比僅 0.39x",
-          "vol_ratio": 0.39
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:盤整不足/量比不足",
-        "📊 量爆增",
-        "📗 買盤強勁",
-        "🔄 潛在雙底",
-        "🔻 量價背離"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.839440+00:00"
-    },
-    {
-      "symbol": "XPLUSDT",
-      "base": "XPL",
-      "price": "0.10870000",
-      "price_change_24h": "3.131",
-      "high_24h": "0.11160000",
-      "low_24h": "0.10280000",
-      "volume_24h_usdt": 10836443.0,
-      "volume_short_ratio": 2.01,
-      "volume_long_ratio": 1.6,
-      "consolidation_days": 0,
-      "consolidation_range_pct": 16.13,
-      "overbought_penalty": 0,
-      "mode": "swing",
-      "obi": 0.0532,
-      "adx": 25.5,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 30.3,
-        "consolidation": 0,
-        "momentum": 80.2,
-        "breakout": 40,
-        "smart_money": 0,
-        "orderbook": 40,
-        "total": 22.4,
-        "short": 15
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "盤整不足",
-        "ADX過高非盤整"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 557421.0,
-        "ask_vol_usdt": 518358.0,
-        "bid_ask_ratio": 1.08,
-        "support_score": 0,
-        "resistance_score": -10
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_bottom": {
-          "left_low": 0.1,
-          "right_low": 0.1,
-          "neckline": 0.11,
-          "distance_pct": 0.19,
-          "broken": false,
-          "signal": "potential_bullish"
-        },
-        "volume_divergence": {
-          "type": "bearish_divergence",
-          "detail": "價格上漲但量比僅 0.70x",
-          "vol_ratio": 0.7
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:盤整不足/ADX過高非盤整",
-        "📊 量爆增",
-        "🔄 潛在雙底",
-        "🔻 量價背離"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.840040+00:00"
-    },
-    {
-      "symbol": "DOGSUSDT",
-      "base": "DOGS",
-      "price": "0.00008260",
-      "price_change_24h": "-2.017",
-      "high_24h": "0.00009030",
-      "low_24h": "0.00007680",
-      "volume_24h_usdt": 17777361.0,
-      "volume_short_ratio": 1.02,
-      "volume_long_ratio": 0.85,
-      "consolidation_days": 0,
-      "consolidation_range_pct": 81.1,
-      "overbought_penalty": 0,
-      "mode": "swing",
-      "obi": 0.3358,
-      "adx": 29.64,
+      "obi": 0.1367,
+      "adx": 39.48,
       "scores": {
         "volume": 100.0,
         "volume_ratio": 5,
         "consolidation": 0,
-        "momentum": 20,
+        "momentum": 90.3,
         "breakout": 10,
         "smart_money": 0,
-        "orderbook": 90.2,
-        "total": 21.8,
-        "short": 60
+        "orderbook": 86.0,
+        "total": 25.2,
+        "short": 27
       },
       "trade_eligible": false,
       "filter_reasons": [
@@ -1108,244 +1344,29 @@
         "ADX過高非盤整"
       ],
       "orderbook": {
-        "bid_vol_usdt": 135415.0,
-        "ask_vol_usdt": 67393.0,
-        "bid_ask_ratio": 2.01,
-        "support_score": 0,
-        "resistance_score": 0
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_bottom": {
-          "left_low": 0.0,
-          "right_low": 0.0,
-          "neckline": 0.0,
-          "distance_pct": 2.66,
-          "broken": false,
-          "signal": "potential_bullish"
-        },
-        "double_top": {
-          "left_high": 0.0,
-          "right_high": 0.0,
-          "neckline": 0.0,
-          "distance_pct": 2.37,
-          "broken": false,
-          "signal": "potential_bearish"
-        },
-        "volume_divergence": {
-          "type": "bearish_divergence",
-          "detail": "價格上漲但量比僅 0.47x",
-          "vol_ratio": 0.47
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:盤整不足/量比不足",
-        "📊 量爆增",
-        "🔄 可能反轉",
-        "📗 買盤強勁",
-        "🔄 潛在雙底",
-        "⚠️ 潛在雙頂",
-        "🔻 量價背離",
-        "📉 做空訊號"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.833188+00:00"
-    },
-    {
-      "symbol": "SUIUSDT",
-      "base": "SUI",
-      "price": "1.02040000",
-      "price_change_24h": "5.468",
-      "high_24h": "1.03650000",
-      "low_24h": "0.95750000",
-      "volume_24h_usdt": 39860097.0,
-      "volume_short_ratio": 0.52,
-      "volume_long_ratio": 0.24,
-      "consolidation_days": 0,
-      "consolidation_range_pct": 8.31,
-      "overbought_penalty": 0,
-      "mode": "swing",
-      "obi": 0.3776,
-      "adx": 40.83,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 0,
-        "consolidation": 0,
-        "momentum": 82.9,
-        "breakout": 70,
-        "smart_money": 0,
-        "orderbook": 50,
-        "total": 21.5,
-        "short": 48
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "盤整不足",
-        "量比不足",
-        "ADX過高非盤整"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 135594.0,
-        "ask_vol_usdt": 140757.0,
-        "bid_ask_ratio": 0.96,
-        "support_score": 0,
-        "resistance_score": 0
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_bottom": {
-          "left_low": 0.96,
-          "right_low": 0.97,
-          "neckline": 1.02,
-          "distance_pct": 1.47,
-          "broken": false,
-          "signal": "potential_bullish"
-        },
-        "double_top": {
-          "left_high": 1.04,
-          "right_high": 1.03,
-          "neckline": 0.96,
-          "distance_pct": 0.67,
-          "broken": false,
-          "signal": "potential_bearish"
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:盤整不足/量比不足",
-        "⚡ 上漲中",
-        "📊 量爆增",
-        "🔄 潛在雙底",
-        "⚠️ 潛在雙頂",
-        "⚠️ 可能做空"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.829439+00:00"
-    },
-    {
-      "symbol": "MEGAUSDT",
-      "base": "MEGA",
-      "price": "0.12384000",
-      "price_change_24h": "2.576",
-      "high_24h": "0.13200000",
-      "low_24h": "0.11557000",
-      "volume_24h_usdt": 12974983.0,
-      "volume_short_ratio": 0.81,
-      "volume_long_ratio": 0.29,
-      "consolidation_days": 0,
-      "consolidation_range_pct": 14.22,
-      "overbought_penalty": 0,
-      "mode": "swing",
-      "obi": -0.0501,
-      "adx": 11.51,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 5,
-        "consolidation": 0,
-        "momentum": 60.1,
-        "breakout": 10,
-        "smart_money": 0,
-        "orderbook": 100,
-        "total": 21.5,
-        "short": 0
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "盤整不足",
-        "量比不足",
-        "OBI偏弱"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 25242.0,
-        "ask_vol_usdt": 13633.0,
-        "bid_ask_ratio": 1.85,
+        "bid_vol_usdt": 296597.0,
+        "ask_vol_usdt": 224688.0,
+        "bid_ask_ratio": 1.32,
         "support_score": 20,
         "resistance_score": 0
       },
       "smart_money": {},
       "patterns": {
-        "bollinger_squeeze": {
-          "bandwidth_pct": 3.44,
-          "sma20": 0.1231,
-          "upper": 0.1252,
-          "lower": 0.121,
-          "signal": "breakout_imminent"
-        }
-      },
-      "tags": [
-        "👀 觀察",
-        "未交易:盤整不足/量比不足",
-        "📊 量爆增",
-        "📗 買盤強勁",
-        "🛡️ 有支撐",
-        "📦 壓縮待突破"
-      ],
-      "scanned_at": "2026-05-08T23:09:23.836972+00:00"
-    },
-    {
-      "symbol": "MOVRUSDT",
-      "base": "MOVR",
-      "price": "2.73900000",
-      "price_change_24h": "3.868",
-      "high_24h": "2.84700000",
-      "low_24h": "2.37700000",
-      "volume_24h_usdt": 10848166.0,
-      "volume_short_ratio": 0.46,
-      "volume_long_ratio": 0.2,
-      "consolidation_days": 0,
-      "consolidation_range_pct": 30.12,
-      "overbought_penalty": 0,
-      "mode": "swing",
-      "obi": 0.171,
-      "adx": 58.09,
-      "scores": {
-        "volume": 100.0,
-        "volume_ratio": 0,
-        "consolidation": 0,
-        "momentum": 81.0,
-        "breakout": 40,
-        "smart_money": 0,
-        "orderbook": 72.1,
-        "total": 21.5,
-        "short": 40
-      },
-      "trade_eligible": false,
-      "filter_reasons": [
-        "盤整不足",
-        "量比不足",
-        "ADX過高非盤整"
-      ],
-      "orderbook": {
-        "bid_vol_usdt": 53779.0,
-        "ask_vol_usdt": 37319.0,
-        "bid_ask_ratio": 1.44,
-        "support_score": 0,
-        "resistance_score": 0
-      },
-      "smart_money": {},
-      "patterns": {
-        "double_top": {
-          "left_high": 2.85,
-          "right_high": 2.78,
-          "neckline": 2.4,
-          "distance_pct": 2.35,
-          "broken": false,
-          "signal": "potential_bearish"
-        },
         "volume_divergence": {
           "type": "bearish_divergence",
-          "detail": "價格上漲但量比僅 0.35x",
-          "vol_ratio": 0.35
+          "detail": "價格上漲但量比僅 0.32x",
+          "vol_ratio": 0.32
         }
       },
       "tags": [
         "👀 觀察",
         "未交易:盤整不足/量比不足",
+        "🔥 強勢",
         "📊 量爆增",
-        "⚠️ 潛在雙頂",
-        "🔻 量價背離",
-        "⚠️ 可能做空"
+        "🛡️ 有支撐",
+        "🔻 量價背離"
       ],
-      "scanned_at": "2026-05-08T23:09:23.839739+00:00"
+      "scanned_at": "2026-05-09T00:08:37.288225+00:00"
     }
   ]
 }
