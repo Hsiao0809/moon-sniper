@@ -87,34 +87,77 @@
     color: #fff;
   }
   .btn-primary:hover { opacity: 0.88; }
-  .btn-success {
-    background: transparent;
+  /* Paper trading toggle pill */
+  .pt-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 15px;
+    border-radius: 99px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    letter-spacing: 0.2px;
+  }
+  .pt-toggle:hover { border-color: var(--text-dim); color: var(--text); }
+  .pt-toggle.active {
     border-color: var(--green);
     color: var(--green);
-  }
-  .btn-success:hover {
     background: var(--green-bg);
-    border-color: var(--green);
   }
-  .btn-danger {
+  .pt-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.35;
+    flex-shrink: 0;
+    transition: opacity 0.2s;
+  }
+  .pt-toggle.active .pt-dot {
+    opacity: 1;
+    animation: pt-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pt-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0, 212, 160, 0.5); }
+    50%       { box-shadow: 0 0 0 5px rgba(0, 212, 160, 0); }
+  }
+  /* Reset — ghost text button */
+  .pt-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 11px;
+    border-radius: 99px;
+    border: 1.5px solid transparent;
     background: transparent;
-    border-color: var(--red);
-    color: var(--red);
-  }
-  .btn-danger:hover {
-    background: var(--red-bg);
-    border-color: var(--red);
-  }
-  .btn-reset {
-    background: transparent;
-    border-color: var(--border);
     color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    letter-spacing: 0.2px;
   }
-  .btn-reset:hover {
-    border-color: var(--yellow);
-    color: var(--yellow);
-    background: var(--yellow-bg);
+  .pt-reset:hover { color: var(--red); border-color: var(--red-bg); }
+  /* Refresh — round icon button */
+  .btn-refresh {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 15px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, transform 0.3s;
   }
+  .btn-refresh:hover { color: var(--blue); border-color: var(--blue); transform: rotate(90deg); }
 
   /* Stats bar */
   .stats-bar {
@@ -491,10 +534,12 @@
   </div>
   <div class="header-right">
     <span class="scan-time" id="scanTime">—</span>
-    <button class="btn btn-success" id="btnStartTrading" onclick="toggleTrading(true)">▶️ 啟動紙交易</button>
-    <button class="btn btn-danger" id="btnStopTrading" onclick="toggleTrading(false)" style="display:none">⏸️ 暫停紙交易</button>
-    <button class="btn btn-reset" id="btnResetTrading" onclick="resetTrading()">🔄 重置交易</button>
-    <button class="btn btn-primary" onclick="refreshAll()">🔄 重新整理</button>
+    <button class="pt-toggle" id="btnToggleTrading" onclick="toggleTrading(!ptLoad().enabled)">
+      <span class="pt-dot" id="ptDot"></span>
+      <span id="ptToggleLabel">啟動紙交易</span>
+    </button>
+    <button class="pt-reset" id="btnResetTrading" onclick="resetTrading()" title="重置所有交易紀錄">↺ 重置</button>
+    <button class="btn-refresh" onclick="refreshAll()" title="重新整理">↺</button>
   </div>
 </div>
 
@@ -755,11 +800,11 @@ function renderAll(swingData, scalpData) {
 
 function updateTradingButtons() {
   const isEnabled = ptLoad().enabled;
-  const btnStart = document.getElementById('btnStartTrading');
-  const btnStop  = document.getElementById('btnStopTrading');
-  if (!btnStart || !btnStop) return;
-  btnStart.style.display = isEnabled ? 'none'         : 'inline-block';
-  btnStop.style.display  = isEnabled ? 'inline-block' : 'none';
+  const btn   = document.getElementById('btnToggleTrading');
+  const label = document.getElementById('ptToggleLabel');
+  if (!btn) return;
+  btn.classList.toggle('active', isEnabled);
+  label.textContent = isEnabled ? '暫停紙交易' : '啟動紙交易';
 }
 
 // === Paper Trading Engine (localStorage-backed, no GitHub required) ===
