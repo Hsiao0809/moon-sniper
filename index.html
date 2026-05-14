@@ -84,34 +84,36 @@
   .btn-primary {
     background: var(--blue);
     border-color: var(--blue);
-    color: white;
+    color: #fff;
   }
-  .btn-primary:hover {
-    opacity: 0.9;
-  }
+  .btn-primary:hover { opacity: 0.88; }
   .btn-success {
-    background: var(--green);
+    background: transparent;
     border-color: var(--green);
-    color: white;
+    color: var(--green);
   }
   .btn-success:hover {
-    opacity: 0.9;
+    background: var(--green-bg);
+    border-color: var(--green);
   }
   .btn-danger {
-    background: var(--red);
+    background: transparent;
     border-color: var(--red);
-    color: white;
+    color: var(--red);
   }
   .btn-danger:hover {
-    opacity: 0.9;
+    background: var(--red-bg);
+    border-color: var(--red);
   }
   .btn-reset {
-    background: var(--yellow);
-    border-color: var(--yellow);
-    color: #000;
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-dim);
   }
   .btn-reset:hover {
-    opacity: 0.85;
+    border-color: var(--yellow);
+    color: var(--yellow);
+    background: var(--yellow-bg);
   }
 
   /* Stats bar */
@@ -832,8 +834,6 @@ function updateStatsFromPT() {
 }
 
 function toggleTrading(enable) {
-  const action = enable ? '啟動' : '暫停';
-  if (!confirm(`確定要${action}紙交易嗎？`)) return;
   const state = ptLoad();
   state.enabled = enable;
   ptSave(state);
