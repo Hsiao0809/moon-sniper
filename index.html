@@ -674,6 +674,8 @@
       <div id="microVolChart" class="micro-chart-card"></div>
       <div id="microDepthChart" class="micro-chart-card"></div>
     </div>
+    <div id="microLayers" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-top:10px"></div>
+    <div id="microConclusion" style="margin-top:10px;padding:16px;border-radius:8px;border:1px solid var(--border);background:var(--card);display:none"></div>
   </div>
 </div>
 
@@ -1937,6 +1939,86 @@ async function microstructureScan() {
         <div class="msc-sub">${oiSub}</div>
       </div>
     `;
+
+    // 六層分析方塊
+    const vol24 = Number(ticker.quoteVolume);
+    const chg24Abs = Math.abs(chg24);
+
+    // 訂單簿層
+    const obSig = obRatio > 1.2 ? 'bullish' : obRatio < 0.83 ? 'bearish' : 'neutral';
+    const obDetail = obRatio > 1.2 ? `Bid/Ask ${obRatio.toFixed(2)}，買盤強勁` : obRatio < 0.83 ? `Bid/Ask ${obRatio.toFixed(2)}，賣壓較重` : `Bid/Ask ${obRatio.toFixed(2)}，買賣均衡`;
+
+    // 成交量層
+    let volSig, volDetail;
+    if (chg24 > 3 && volRatio > 1.3) { volSig = 'bullish'; volDetail = `價漲量增（${volRatio.toFixed(2)}x），健康趨勢`; }
+    else if (chg24 > 3 && volRatio < 0.7) { volSig = 'bearish'; volDetail = `價漲量縮（${volRatio.toFixed(2)}x），趨勢衰竭`; }
+    else if (chg24 < -3 && volRatio > 1.3) { volSig = 'bearish'; volDetail = `價跌量增（${volRatio.toFixed(2)}x），恐慌換手`; }
+    else if (chg24 < -3 && volRatio < 0.7) { volSig = 'neutral'; volDetail = `價跌量縮（${volRatio.toFixed(2)}x），正常回檔`; }
+    else { volSig = 'neutral'; volDetail = `量能正常（${volRatio.toFixed(2)}x 均量）`; }
+
+    // CVD 層
+    let cvdSig, cvdDetail;
+    if (obRatio > 1.3 && volRatio > 1.3) { cvdSig = 'bullish'; cvdDetail = '買盤強勁+量增，有人在吸籌'; }
+    else if (obRatio < 0.7 && volRatio > 1.3) { cvdSig = 'bearish'; cvdDetail = '賣壓沉重+量增，有人在出貨'; }
+    else if (cvd48 > 0) { cvdSig = 'bullish'; cvdDetail = `CVD +${(cvd48/1000).toFixed(1)}K，累積買盤`; }
+    else if (cvd48 < 0) { cvdSig = 'bearish'; cvdDetail = `CVD ${(cvd48/1000).toFixed(1)}K，累積賣盤`; }
+    else { cvdSig = 'neutral'; cvdDetail = '買賣量差接近平衡'; }
+
+    // Gamma 層（價格偏離 SMA20 估計）
+    const devPct = (price - sma20) / sma20;
+    let gammaSig, gammaDetail;
+    if (devPct > 0.05) { gammaSig = 'bearish'; gammaDetail = `高於 SMA20 ${(devPct*100).toFixed(1)}%，可能負 gamma，突破會加速`; }
+    else if (devPct > 0.02) { gammaSig = 'neutral'; gammaDetail = '略高於 SMA20，接近 gamma neutral'; }
+    else if (devPct < -0.05) { gammaSig = 'bullish'; gammaDetail = `低於 SMA20 ${Math.abs(devPct*100).toFixed(1)}%，可能正 gamma，有支撐`; }
+    else { gammaSig = 'neutral'; gammaDetail = '在 SMA20 附近，gamma 中性'; }
+
+    // Regime 層
+    let regimeSig = regimeLabel === 'BULLISH' ? 'bullish' : regimeLabel === 'BEARISH' ? 'bearish' : 'neutral';
+    const regimeDetail2 = regimeLabel === 'BULLISH' ? '多頭排列（Price > SMA20 > SMA50）' : regimeLabel === 'BEARISH' ? '空頭排列（Price < SMA20 < SMA50）' : '盤整區間，方向不明';
+
+    // OI 層
+    let oiSig2 = 'neutral', oiDetail2 = oiSub;
+    if (oiHist?.length >= 2) {
+      const ois = oiHist.map(o => Number(o.sumOpenInterest) || 0);
+      const oiChg = ois[0] > 0 ? ((ois[ois.length-1] - ois[0]) / ois[0] * 100) : 0;
+      if (chg24 > 2 && oiChg > 5) { oiSig2 = 'bullish'; oiDetail2 = `OI +${oiChg.toFixed(1)}%，新資金進場做多`; }
+      else if (chg24 > 2 && oiChg < -5) { oiSig2 = 'bearish'; oiDetail2 = `OI ${oiChg.toFixed(1)}%，多頭在平倉`; }
+      else if (chg24 < -2 && oiChg > 5) { oiSig2 = 'bearish'; oiDetail2 = `OI +${oiChg.toFixed(1)}%，新資金進場做空`; }
+      else if (chg24 < -2 && oiChg < -5) { oiSig2 = 'bullish'; oiDetail2 = `OI ${oiChg.toFixed(1)}%，空頭在平倉，底部接近`; }
+      else { oiDetail2 = `OI 變化 ${oiChg.toFixed(1)}%，無異常`; }
+    }
+
+    const layers = [
+      { name: 'Regime',    sig: regimeSig, detail: regimeDetail2 },
+      { name: '① 訂單簿', sig: obSig,     detail: obDetail },
+      { name: '② 成交量', sig: volSig,    detail: volDetail },
+      { name: '③ CVD',    sig: cvdSig,    detail: cvdDetail },
+      { name: '④ Gamma',  sig: gammaSig,  detail: gammaDetail },
+      { name: '⑤ OI',     sig: oiSig2,   detail: oiDetail2 },
+    ];
+    document.getElementById('microLayers').innerHTML = layers.map(l => {
+      const c = l.sig === 'bullish' ? 'var(--green)' : l.sig === 'bearish' ? 'var(--red)' : 'var(--text-dim)';
+      const tag = l.sig === 'bullish' ? '偏多' : l.sig === 'bearish' ? '偏空' : '中性';
+      return `<div class="stat-card" style="text-align:left;padding:12px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text)">${l.name}</div>
+        <div style="font-size:14px;font-weight:700;color:${c};margin-bottom:4px">${tag}</div>
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.4">${l.detail}</div>
+      </div>`;
+    }).join('');
+
+    // 結論
+    const bullCnt = layers.filter(l => l.sig === 'bullish').length;
+    const bearCnt = layers.filter(l => l.sig === 'bearish').length;
+    const conclusionDiv = document.getElementById('microConclusion');
+    let cText, cColor, cBg;
+    if (bullCnt >= 4) { cText = `✅ 結構偏多（${bullCnt}/6 層確認）。可找做多機會。`; cColor = 'var(--green)'; cBg = 'var(--green-bg)'; }
+    else if (bearCnt >= 4) { cText = `🔴 結構偏空（${bearCnt}/6 層確認）。可找做空機會，或空手觀望。`; cColor = 'var(--red)'; cBg = 'var(--red-bg)'; }
+    else if (bullCnt >= 3) { cText = `🟡 微偏多（${bullCnt}/6 層）。謹慎進場，窄停損。`; cColor = 'var(--yellow)'; cBg = 'var(--yellow-bg)'; }
+    else if (bearCnt >= 3) { cText = `🟠 微偏空（${bearCnt}/6 層）。謹慎或等待。`; cColor = 'var(--yellow)'; cBg = 'var(--yellow-bg)'; }
+    else { cText = `⚪ 方向不明（多 ${bullCnt} / 空 ${bearCnt}）。等更多確認。`; cColor = 'var(--text-dim)'; cBg = 'var(--dim-bg)'; }
+    conclusionDiv.style.cssText = `margin-top:10px;padding:16px;border-radius:8px;border:1px solid ${cColor};background:${cBg};display:block`;
+    conclusionDiv.innerHTML = `<div style="font-size:15px;font-weight:700;color:${cColor}">${cText}</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:6px">BTC $${price.toLocaleString()} | ${new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})}</div>`;
 
     loading.style.display = 'none';
     resultDiv.style.display = 'block';
