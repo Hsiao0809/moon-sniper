@@ -162,7 +162,7 @@
   /* Stats bar */
   .stats-bar {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
     gap: 4px;
     margin-bottom: 6px;
     flex-shrink: 0;
@@ -170,18 +170,20 @@
   .stat-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 5px 6px;
+    border-radius: 6px;
+    padding: 5px 6px 4px;
     text-align: center;
   }
   .stat-card .value {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
+    line-height: 1.2;
   }
   .stat-card .label {
-    font-size: 10px;
-    color: var(--text-dim);
-    margin-top: 2px;
+    font-size: 9px;
+    color: #8891b0;
+    margin-top: 1px;
+    line-height: 1.2;
   }
   .stat-card .value.green { color: var(--green); }
   .stat-card .value.red { color: var(--red); }
