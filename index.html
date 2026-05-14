@@ -405,9 +405,9 @@
   </div>
   <div class="header-right">
     <span class="scan-time" id="scanTime">—</span>
-    <button class="btn btn-success" id="btnStartTrading" onclick="toggleTrading(true)" style="display:none">▶️ 啟動紙交易</button>
+    <button class="btn btn-success" id="btnStartTrading" onclick="toggleTrading(true)">▶️ 啟動紙交易</button>
     <button class="btn btn-danger" id="btnStopTrading" onclick="toggleTrading(false)" style="display:none">⏸️ 暫停紙交易</button>
-    <button class="btn btn-reset" id="btnResetTrading" onclick="resetTrading()" style="display:none">🔄 重置交易</button>
+    <button class="btn btn-reset" id="btnResetTrading" onclick="resetTrading()">🔄 重置交易</button>
     <button class="btn btn-primary" onclick="refreshAll()">🔄 重新整理</button>
   </div>
 </div>
@@ -594,7 +594,6 @@
 // ===== 雙軌資料 ====
 let swingSignals = [];
 let scalpSignals = [];
-let tradesCache = null;
 let currentSignalMode = 'swing'; // 'swing' or 'scalp'
 let displayedSignals = [];
 let sortState = { key: 'rank', dir: 'asc' };
@@ -608,18 +607,10 @@ async function refreshData() {
     ]);
     const swingData = await swingResp.json();
     const scalpData = await scalpResp.json();
-    
-    // Load trades
-    let tradesData = null;
-    try {
-      const tresp = await fetch('./paper_trades.json?_=' + Date.now());
-      tradesData = await tresp.json();
-    } catch(e) {}
-    
     swingSignals = swingData.signals || [];
     scalpSignals = scalpData.signals || [];
-    tradesCache = tradesData;
-    renderAll(swingData, scalpData, tradesData);
+    renderAll(swingData, scalpData);
+    ptCheckNewTrades();
   } catch(e) {
     document.getElementById('signalsBodySwing').innerHTML = 
       `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-dim)">
@@ -634,145 +625,229 @@ async function refreshData() {
   }
 }
 
-function renderAll(swingData, scalpData, tradesData) {
+function renderAll(swingData, scalpData) {
   // 更新時間
-  const swingTime = swingData.scanned_at 
+  const swingTime = swingData.scanned_at
     ? 'Swing：' + new Date(swingData.scanned_at).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})
     : '';
-  const scalpTime = scalpData.scanned_at 
+  const scalpTime = scalpData.scanned_at
     ? 'Scalp：' + new Date(scalpData.scanned_at).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'})
     : '';
   let timeStr = [swingTime, scalpTime].filter(Boolean).join(' | ');
-  if (tradesData?.stats?.last_updated) {
-    timeStr += ' | 交易：' + new Date(tradesData.stats.last_updated).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'});
-  }
   timeStr += ' | 即時價格每 30 秒刷新';
   document.getElementById('scanTime').textContent = timeStr || '—';
-  
+
   const swing = swingData.signals || [];
   const scalp = scalpData.signals || [];
-  const trades = tradesData?.trades || [];
-  const stats = tradesData?.stats || {};
-  const pools = stats?.pools || {};
-  
-  // 載入即時價格
-  fetchLivePrices(swing.concat(scalp), trades);
-  
-  // Stats — 使用當前顯示的 signals 數量
-  const totalSignals = swing.length + scalp.length;
-  document.getElementById('statTotal').textContent = totalSignals;
-  
-  // 帳戶總資金：必須包含 reserve，不能只加總 Swing/Scalp 已分配 pool。
-  let totalRealized = 0;
-  let totalUnrealized = 0;
-  const accountBalance = stats.account_balance || 300;
-  const swingInitial = pools.swing ? (pools.swing.pool_initial || 0) : 0;
-  const scalpInitial = pools.scalp ? (pools.scalp.pool_initial || 0) : 0;
-  const allocatedInitial = swingInitial + scalpInitial;
-  const reserveEquity = Math.max(accountBalance - allocatedInitial, 0);
-  const totalAccountEquity = stats.total_equity || accountBalance;
-  document.getElementById('statBalance').textContent = totalAccountEquity.toFixed(2);
-  
-  document.getElementById('statOpenTrades').textContent = stats.open_count || 0;
-  document.getElementById('statWinRate').textContent = (stats.win_rate || 0) + '%';
-  document.getElementById('statWinRate').className = 'value ' + ((stats.win_rate || 0) >= 50 ? 'green' : 'red');
-  totalRealized = stats.total_realized_pnl_usdt || 0;
-  totalUnrealized = stats.total_unrealized_pnl_usdt || 0;
-  document.getElementById('statTotalPnl').textContent = (totalRealized >= 0 ? '+' : '') + totalRealized.toFixed(2);
-  document.getElementById('statTotalPnl').className = 'value ' + (totalRealized >= 0 ? 'green' : 'red');
-  document.getElementById('statUnrealizedPnl').textContent = (totalUnrealized >= 0 ? '+' : '') + totalUnrealized.toFixed(2);
-  document.getElementById('statUnrealizedPnl').className = 'value ' + (totalUnrealized >= 0 ? 'green' : 'red');
-  const wins = stats.wins || 0;
-  const losses = stats.losses || 0;
-  const closed = stats.closed_count || 0;
-  document.getElementById('statWinRate').textContent = closed > 0 ? `✅ ${wins} / ❌ ${losses}（${(stats.win_rate || 0)}%）` : '—';
-  document.getElementById('statWinRate').className = 'value ' + ((stats.win_rate || 0) >= 50 ? 'green' : 'red');
-  document.getElementById('statTotalTrades').textContent = stats.total_trades || 0;
-  
-  // Pool equity stats
-  const swingPool = pools.swing;
-  const scalpPool = pools.scalp;
-  if (swingPool) {
-    const marginUsed = swingPool.used_margin || 0;
-    const equity = swingPool.pool_equity || swingPool.pool_initial || 0;
-    document.getElementById('statSwingEquity').textContent = `${equity.toFixed(1)} / ${marginUsed.toFixed(1)}`;
-    document.getElementById('statSwingEquity').className = 'value green';
-  } else {
-    document.getElementById('statSwingEquity').textContent = '—';
-  }
-  if (scalpPool) {
-    const marginUsed = scalpPool.used_margin || 0;
-    const equity = scalpPool.pool_equity || scalpPool.pool_initial || 0;
-    document.getElementById('statScalpEquity').textContent = `${equity.toFixed(1)} / ${marginUsed.toFixed(1)}`;
-    document.getElementById('statScalpEquity').className = 'value blue';
-  } else {
-    document.getElementById('statScalpEquity').textContent = '—';
-  }
-  const reserveEl = document.getElementById('statReserveEquity');
-  if (reserveEl) {
-    reserveEl.textContent = reserveEquity.toFixed(1);
-    reserveEl.className = 'value';
-  }
-  
+
+  // 即時價格（訊號 + PT 持倉）
+  const ptOpen = ptLoad().trades.filter(t => t.status === 'open');
+  fetchLivePrices(swing.concat(scalp), ptOpen);
+
+  // Stats：僅更新訊號數，其餘從 PT 計算
+  document.getElementById('statTotal').textContent = swing.length + scalp.length;
+  updateStatsFromPT();
+
   // Render signals for both modes
   const swingSorted = getSortedSignals(swing);
   const scalpSorted = getSortedSignals(scalp);
-  
-  // 根據當前 tab 決定哪個 signal sets 用於排序指示器
   if (currentSignalMode === 'swing') {
     displayedSignals = swingSorted;
   } else {
     displayedSignals = scalpSorted;
   }
   updateSortIndicators();
-  
-  // 渲染兩個表格
   renderSignals(swingSorted, 'swing');
   renderSignals(scalpSorted, 'scalp');
-  
-  // Trades
-  renderTrades(trades, pools);
-  
-  // 交易啟動/重置按鈕顯示
-  updateTradingButtons(stats);
+
+  // Trades（從 localStorage）
+  renderTrades();
 }
 
-function updateTradingButtons(stats) {
-  const isEnabled = stats.paper_trading_enabled !== false;
+function updateTradingButtons() {
+  const isEnabled = ptLoad().enabled;
   const btnStart = document.getElementById('btnStartTrading');
-  const btnStop = document.getElementById('btnStopTrading');
-  const btnReset = document.getElementById('btnResetTrading');
-  if (!btnStart || !btnStop || !btnReset) return;
-  
-  if (isEnabled) {
-    btnStart.style.display = 'none';
-    btnStop.style.display = 'inline-block';
-  } else {
-    btnStart.style.display = 'inline-block';
-    btnStop.style.display = 'none';
-  }
-  // 重置按鈕始終顯示（只有有交易時才亮，但先顯示）
-  btnReset.style.display = 'inline-block';
+  const btnStop  = document.getElementById('btnStopTrading');
+  if (!btnStart || !btnStop) return;
+  btnStart.style.display = isEnabled ? 'none'         : 'inline-block';
+  btnStop.style.display  = isEnabled ? 'inline-block' : 'none';
 }
 
-async function toggleTrading(enable) {
+// === Paper Trading Engine (localStorage-backed, no GitHub required) ===
+const PT_KEY = 'moon_pt_v1';
+const PT_CFG = {
+  swing: { initial: 180, maxOpen: 4, leverage: 2, minScore: 65, tp1: 0.15, tp2: 0.30, sl: 0.05, tp1Ratio: 0.33, maxHoldH: 240 },
+  scalp: { initial: 90,  maxOpen: 4, leverage: 2, minScore: 70, tp1: 0.05, tp2: 0.08, sl: 0.03, tp1Ratio: 0.50, maxHoldH: 4 }
+};
+
+function ptLoad() {
+  try { const r = localStorage.getItem(PT_KEY); if (r) return JSON.parse(r); } catch(e) {}
+  return { enabled: false, trades: [], pools: { swing: { equity: 180, realized: 0 }, scalp: { equity: 90, realized: 0 } } };
+}
+function ptSave(s) { try { localStorage.setItem(PT_KEY, JSON.stringify(s)); } catch(e) {} }
+
+function ptCheckNewTrades() {
+  const state = ptLoad();
+  if (!state.enabled) return;
+  const now = new Date();
+  let changed = false;
+  ['swing', 'scalp'].forEach(pool => {
+    const cfg = PT_CFG[pool];
+    const sigs = pool === 'swing' ? swingSignals : scalpSignals;
+    if (!sigs?.length) return;
+    const open = state.trades.filter(t => t.pool === pool && t.status === 'open');
+    const slots = cfg.maxOpen - open.length;
+    if (slots <= 0) return;
+    const usedMargin = open.reduce((s, t) => s + (t.margin || 0), 0);
+    const avail = state.pools[pool].equity - usedMargin;
+    const margin = avail / slots;
+    if (margin < 5) return;
+    const openSyms = new Set(open.map(t => t.symbol));
+    sigs
+      .filter(s => s.trade_eligible && (s.total_score || s.scores?.total || 0) >= cfg.minScore && !openSyms.has(s.symbol))
+      .slice(0, slots)
+      .forEach(sig => {
+        const ep = livePrices[sig.symbol] || parseFloat(sig.price);
+        if (!ep) return;
+        const posVal = margin * cfg.leverage;
+        state.trades.push({
+          id: `${pool.toUpperCase()}-${now.toISOString().slice(0,10).replace(/-/g,'')}-${sig.symbol}-${Date.now()}`,
+          symbol: sig.symbol, base: sig.base || sig.symbol.replace('USDT',''),
+          pool, direction: 'long', entry_price: ep,
+          entry_time: now.toISOString(), status: 'open',
+          score: sig.total_score || sig.scores?.total || 0,
+          leverage: cfg.leverage, margin, position_value: posVal,
+          stop_loss_price: ep * (1 - cfg.sl), tp1_price: ep * (1 + cfg.tp1), tp2_price: ep * (1 + cfg.tp2),
+          max_hold_until: new Date(now.getTime() + cfg.maxHoldH * 3600000).toISOString(),
+          take_profit_1_hit: false, take_profit_2_hit: false,
+          exit_price: null, exit_time: null, exit_reason: null,
+          realized_pnl_usdt: 0, realized_pnl_pct: 0,
+          max_unrealized_pnl_pct: 0, min_unrealized_pnl_pct: 0
+        });
+        changed = true;
+      });
+  });
+  if (changed) { ptSave(state); renderTrades(); updateStatsFromPT(); }
+}
+
+function ptUpdateTrades() {
+  const state = ptLoad();
+  const now = new Date();
+  let changed = false;
+  state.trades.forEach(t => {
+    if (t.status !== 'open') return;
+    const live = livePrices[t.symbol];
+    if (!live) return;
+    const isLong = t.direction !== 'short';
+    const slHit  = isLong ? live <= t.stop_loss_price : live >= t.stop_loss_price;
+    const tp2Hit = isLong ? live >= t.tp2_price       : live <= t.tp2_price;
+    const timeout = new Date(t.max_hold_until) <= now;
+    if (!slHit && !tp2Hit && !timeout) return;
+    const gross  = (isLong ? (live - t.entry_price) : (t.entry_price - live)) / t.entry_price * (t.position_value || 0);
+    const netPnl = gross - (t.position_value || 0) * 0.0004 * 2;
+    t.status = 'closed'; t.exit_price = live; t.exit_time = now.toISOString();
+    t.exit_reason = slHit ? 'stop_loss' : tp2Hit ? 'tp2' : 'timeout';
+    t.realized_pnl_usdt = netPnl; t.realized_pnl_pct = (netPnl / (t.margin || 1)) * 100;
+    state.pools[t.pool].equity  += netPnl;
+    state.pools[t.pool].realized = (state.pools[t.pool].realized || 0) + netPnl;
+    changed = true;
+  });
+  if (changed) { ptSave(state); renderTrades(); updateStatsFromPT(); }
+}
+
+function ptCloseTrade(tradeId) {
+  if (!confirm('確定要手動平倉這筆交易？')) return;
+  const state = ptLoad();
+  const t = state.trades.find(t => t.id === tradeId);
+  if (!t || t.status !== 'open') return;
+  const live = livePrices[t.symbol] || t.entry_price;
+  const isLong = t.direction !== 'short';
+  const gross  = (isLong ? (live - t.entry_price) : (t.entry_price - live)) / t.entry_price * (t.position_value || 0);
+  const netPnl = gross - (t.position_value || 0) * 0.0004 * 2;
+  t.status = 'closed'; t.exit_price = live; t.exit_time = new Date().toISOString();
+  t.exit_reason = 'manual'; t.realized_pnl_usdt = netPnl; t.realized_pnl_pct = (netPnl / (t.margin || 1)) * 100;
+  state.pools[t.pool].equity  += netPnl;
+  state.pools[t.pool].realized = (state.pools[t.pool].realized || 0) + netPnl;
+  ptSave(state); renderTrades(); updateStatsFromPT();
+}
+
+function ptCalculateStats() {
+  const state = ptLoad();
+  const trades = state.trades || [];
+  const pools  = state.pools  || {};
+  const closed = trades.filter(t => t.status === 'closed');
+  const open   = trades.filter(t => t.status === 'open');
+  const wins   = closed.filter(t => (t.realized_pnl_usdt || 0) > 0).length;
+  const totalRealized = closed.reduce((s, t) => s + (t.realized_pnl_usdt || 0), 0);
+  let totalUnrealized = 0;
+  open.forEach(t => {
+    const live = livePrices[t.symbol]; if (!live) return;
+    const isLong = t.direction !== 'short';
+    const gross  = (isLong ? (live - t.entry_price) : (t.entry_price - live)) / t.entry_price * (t.position_value || 0);
+    totalUnrealized += gross - (t.position_value || 0) * 0.0004 * 2;
+  });
+  const winRate  = closed.length > 0 ? Math.round(wins / closed.length * 100) : 0;
+  const swingEq  = pools.swing?.equity ?? 180;
+  const scalpEq  = pools.scalp?.equity ?? 90;
+  const swingUsed = open.filter(t => t.pool === 'swing').reduce((s, t) => s + (t.margin || 0), 0);
+  const scalpUsed = open.filter(t => t.pool === 'scalp').reduce((s, t) => s + (t.margin || 0), 0);
+  return {
+    enabled: state.enabled, trades, pools: state.pools,
+    stats: {
+      total_trades: trades.length, open_count: open.length, closed_count: closed.length,
+      wins, losses: closed.length - wins, win_rate: winRate,
+      total_realized_pnl_usdt: totalRealized, total_unrealized_pnl_usdt: totalUnrealized,
+      total_equity: swingEq + scalpEq + 30,
+      pools: {
+        swing: { pool_equity: swingEq, pool_initial: 180, used_margin: swingUsed, open_count: open.filter(t => t.pool === 'swing').length },
+        scalp: { pool_equity: scalpEq, pool_initial: 90,  used_margin: scalpUsed, open_count: open.filter(t => t.pool === 'scalp').length }
+      }
+    }
+  };
+}
+
+function updateStatsFromPT() {
+  const { stats } = ptCalculateStats();
+  document.getElementById('statOpenTrades').textContent = stats.open_count;
+  const rPnl = stats.total_realized_pnl_usdt;
+  document.getElementById('statTotalPnl').textContent = (rPnl >= 0 ? '+' : '') + rPnl.toFixed(2);
+  document.getElementById('statTotalPnl').className = 'value ' + (rPnl >= 0 ? 'green' : 'red');
+  const uPnl = stats.total_unrealized_pnl_usdt;
+  document.getElementById('statUnrealizedPnl').textContent = (uPnl >= 0 ? '+' : '') + uPnl.toFixed(2);
+  document.getElementById('statUnrealizedPnl').className = 'value ' + (uPnl >= 0 ? 'green' : 'red');
+  const cl = stats.closed_count;
+  document.getElementById('statWinRate').textContent = cl > 0 ? `✅ ${stats.wins} / ❌ ${stats.losses}（${stats.win_rate}%）` : '—';
+  document.getElementById('statWinRate').className = 'value ' + (stats.win_rate >= 50 ? 'green' : 'red');
+  document.getElementById('statTotalTrades').textContent = stats.total_trades;
+  document.getElementById('statBalance').textContent = (stats.total_equity + uPnl).toFixed(2);
+  const sp = stats.pools.swing;
+  document.getElementById('statSwingEquity').textContent = `${sp.pool_equity.toFixed(1)} / ${sp.used_margin.toFixed(1)}`;
+  document.getElementById('statSwingEquity').className = 'value green';
+  const cp = stats.pools.scalp;
+  document.getElementById('statScalpEquity').textContent = `${cp.pool_equity.toFixed(1)} / ${cp.used_margin.toFixed(1)}`;
+  document.getElementById('statScalpEquity').className = 'value blue';
+  const reserveEl = document.getElementById('statReserveEquity');
+  if (reserveEl) { reserveEl.textContent = '30.0'; reserveEl.className = 'value'; }
+  updateTradingButtons();
+}
+
+function toggleTrading(enable) {
   const action = enable ? '啟動' : '暫停';
   if (!confirm(`確定要${action}紙交易嗎？`)) return;
-  
-  // 直接開啟 GitHub Actions workflow_dispatch 頁面
-  const url = `https://github.com/Hsiao0809/moon-sniper/actions/workflows/trading-control.yml`;
-  window.open(url, '_blank');
-  alert(`請在開啟的頁面中：\n1. 選擇「${enable ? 'enable' : 'disable'}」\n2. 點擊「Run workflow」\n\n完成後約 1 分鐘生效，點擊重新整理查看。`);
+  const state = ptLoad();
+  state.enabled = enable;
+  ptSave(state);
+  updateTradingButtons();
+  if (enable) ptCheckNewTrades();
 }
 
-async function resetTrading() {
-  if (!confirm('⚠️ 確定要重置所有交易紀錄？\n這會清空 paper_trades.json，不可復原。')) return;
+function resetTrading() {
+  if (!confirm('⚠️ 確定要重置所有模擬交易紀錄？\n這會清空本機所有交易資料，不可復原。')) return;
   if (!confirm('再次確認：所有交易資料將被清空。確定？')) return;
-  
-  // 直接開啟 GitHub Actions workflow_dispatch 頁面
-  const url = `https://github.com/Hsiao0809/moon-sniper/actions/workflows/trading-control.yml`;
-  window.open(url, '_blank');
-  alert('請在開啟的頁面中：\n1. 選擇「reset」\n2. 點擊「Run workflow」\n\n完成後約 1 分鐘生效，點擊重新整理查看。');
+  ptSave({ enabled: false, trades: [], pools: { swing: { equity: 180, realized: 0 }, scalp: { equity: 90, realized: 0 } } });
+  updateTradingButtons();
+  renderTrades();
+  updateStatsFromPT();
 }
 
 // 渲染單一 signals 表格
@@ -991,8 +1066,8 @@ async function fetchLivePrices(signals, trades) {
       data.forEach(d => { livePrices[d.symbol] = parseFloat(d.price); });
     }
     
+    ptUpdateTrades();
     if (['livePrice', 'fromScan'].includes(sortState.key)) {
-      // Re-render both tables fully
       const swingSorted = getSortedSignals(swingSignals);
       const scalpSorted = getSortedSignals(scalpSignals);
       if (currentSignalMode === 'swing') {
@@ -1002,19 +1077,17 @@ async function fetchLivePrices(signals, trades) {
       }
       renderSignals(swingSorted, 'swing');
       renderSignals(scalpSorted, 'scalp');
-      const pooledTrades = tradesCache?.trades || trades || [];
-      const poolStats = tradesCache?.stats?.pools || {};
-      renderTrades(pooledTrades, poolStats);
+      renderTrades();
     } else {
-      updateLiveDisplay(signals, trades);
+      updateLiveDisplay(signals);
     }
+    updateStatsFromPT();
   } catch(e) {
     console.log('即時價格取得失敗，使用訊號價格');
   }
 }
 
-function updateLiveDisplay(signals, trades) {
-  // 記住 scroll 位置
+function updateLiveDisplay(signals) {
   const scrollY = window.scrollY;
   
   // 更新 Swing 表
@@ -1041,13 +1114,7 @@ function updateLiveDisplay(signals, trades) {
     });
   }
   
-  // 更新紙交易列表
-  const pooledTrades = tradesCache?.trades || trades || [];
-  const poolStats = tradesCache?.stats?.pools || {};
-  renderTrades(pooledTrades, poolStats);
-  
-  // 更新 stats bar 未實現損益
-  updateUnrealizedStats(trades);
+  renderTrades();
   
   // 恢復 scroll 位置
   window.scrollTo(0, scrollY);
@@ -1072,42 +1139,34 @@ function updateSignalRowPrice(row, s) {
 }
 
 // 獨立渲染紙交易，讓即時更新可以重複呼叫
-function renderTrades(trades, pools) {
-  if (!trades) return;
-  pools = pools || {};
-  
+function renderTrades() {
+  const { trades, stats: { pools } } = ptCalculateStats();
+
   const swingTrades = trades.filter(t => t.pool === 'swing' || !t.pool);
   const scalpTrades = trades.filter(t => t.pool === 'scalp');
-  
-  const swingOpen = swingTrades.filter(t => t.status === 'open');
-  const scalpOpen = scalpTrades.filter(t => t.status === 'open');
+
+  const swingOpen   = swingTrades.filter(t => t.status === 'open');
+  const scalpOpen   = scalpTrades.filter(t => t.status === 'open');
   const swingClosed = swingTrades.filter(t => t.status === 'closed');
   const scalpClosed = scalpTrades.filter(t => t.status === 'closed');
-  
-  const allOpen = swingOpen.concat(scalpOpen);
+
+  const allOpen   = swingOpen.concat(scalpOpen);
   const allClosed = swingClosed.concat(scalpClosed);
-  
-  // Swing pool equity info
+
   const swingPool = pools.swing;
   const scalpPool = pools.scalp;
-  let swingEquityHtml = '';
-  let scalpEquityHtml = '';
-  if (swingPool) {
-    swingEquityHtml = `<div style="display:flex;gap:8px;margin-bottom:6px;font-size:12px;color:var(--green)">
-      <span>🟢 Swing Pool</span>
-      <span>權益: ${(swingPool.pool_equity || 0).toFixed(1)}U</span>
-      <span>Margin: ${(swingPool.used_margin || 0).toFixed(1)}U</span>
-      <span>持倉: ${swingPool.open_count || 0}</span>
-    </div>`;
-  }
-  if (scalpPool) {
-    scalpEquityHtml = `<div style="display:flex;gap:8px;margin-bottom:6px;font-size:12px;color:var(--blue)">
-      <span>🔵 Scalp Pool</span>
-      <span>權益: ${(scalpPool.pool_equity || 0).toFixed(1)}U</span>
-      <span>Margin: ${(scalpPool.used_margin || 0).toFixed(1)}U</span>
-      <span>持倉: ${scalpPool.open_count || 0}</span>
-    </div>`;
-  }
+  const swingEquityHtml = `<div style="display:flex;gap:8px;margin-bottom:6px;font-size:12px;color:var(--green)">
+    <span>🟢 Swing Pool</span>
+    <span>權益: ${swingPool.pool_equity.toFixed(1)}U</span>
+    <span>Margin: ${swingPool.used_margin.toFixed(1)}U</span>
+    <span>持倉: ${swingPool.open_count}</span>
+  </div>`;
+  const scalpEquityHtml = `<div style="display:flex;gap:8px;margin-bottom:6px;font-size:12px;color:var(--blue)">
+    <span>🔵 Scalp Pool</span>
+    <span>權益: ${scalpPool.pool_equity.toFixed(1)}U</span>
+    <span>Margin: ${scalpPool.used_margin.toFixed(1)}U</span>
+    <span>持倉: ${scalpPool.open_count}</span>
+  </div>`;
   
   // 持倉中 — 分 Swing / Scalp 區
   const openBody = document.getElementById('openTradesBody');
@@ -1212,6 +1271,10 @@ function renderTradeItem(t) {
     : t.exit_reason === 'stop_loss' ? 'sl'
     : 'closed';
   
+  const closeBtn = t.status === 'open'
+    ? `<button class="btn" style="margin-top:4px;padding:3px 8px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="ptCloseTrade('${t.id}')">平倉</button>`
+    : '';
+
   return `<div class="trade-item">
     <div>
       <a class="symbol-link" href="https://www.tradingview.com/chart/?symbol=BINANCE:${t.base}USDT" target="_blank" rel="noopener"><span class="trade-symbol">${t.direction === 'short' ? '🔴' : '🟢'} ${t.base}</span> 🔗</a>
@@ -1231,47 +1294,18 @@ function renderTradeItem(t) {
       ${t.status === 'open' ? `<div style="font-size:10px;color:var(--text-dim);margin-top:2px">
         高 ${maxPnlPct > 0 ? '+' : ''}${maxPnlPct.toFixed(1)}% / 低 ${minPnlPct > 0 ? '+' : ''}${minPnlPct.toFixed(1)}%
       </div>` : ''}
+      ${closeBtn}
     </div>
   </div>`;
 }
 
-// 即時更新 stats bar 的未實現損益
-function updateUnrealizedStats(trades) {
-  if (!trades) return;
-  const tradeList = Array.isArray(trades) ? trades : (trades.trades || []);
-  const FEE_RATE = 0.0004;
-  let totalUnrealized = 0;
-  let totalEquity = 300;
-  for (const t of tradeList) {
-    if (t.status === 'open') {
-      const live = livePrices[t.symbol];
-      if (live) {
-        const posVal = t.position_value || 600;
-        const grossPnl = ((live - t.entry_price) / t.entry_price) * posVal;
-        const fees = posVal * FEE_RATE * 2;
-        totalUnrealized += grossPnl - fees;
-      }
-    }
-  }
-  // 讀取帳戶總資金：必須包含 Reserve，不能只用 Swing+Scalp pool 覆蓋。
-  const accountEquity = tradesCache?.stats?.total_equity || tradesCache?.stats?.account_balance || 300;
-  totalEquity = accountEquity;
-  const el = document.getElementById('statUnrealizedPnl');
-  if (el) {
-    el.textContent = (totalUnrealized >= 0 ? '+' : '') + totalUnrealized.toFixed(2);
-    el.className = 'value ' + (totalUnrealized >= 0 ? 'green' : 'red');
-  }
-  // 同步更新帳戶餘額
-  const balanceEl = document.getElementById('statBalance');
-  if (balanceEl) {
-    balanceEl.textContent = (totalEquity + totalUnrealized).toFixed(2);
-  }
-}
-
 // 每 30 秒刷新即時價格
-function startLiveUpdates(signals, trades) {
+function startLiveUpdates(signals) {
   if (liveInterval) clearInterval(liveInterval);
-  liveInterval = setInterval(() => fetchLivePrices(signals, trades), 30000);
+  liveInterval = setInterval(() => {
+    const ptOpen = ptLoad().trades.filter(t => t.status === 'open');
+    fetchLivePrices(signals, ptOpen);
+  }, 30000);
 }
 
 function switchTab(tab) {
@@ -1301,18 +1335,18 @@ function switchSubTab(subtab) {
 }
 
 // Auto refresh on load
-let cachedTrades = [];
 let currentTab = 'signals-swing';
 
 async function refreshAll() {
   currentTab = localStorage.getItem('hermes_tab') || 'signals-swing';
+  updateTradingButtons();
+  renderTrades();
+  updateStatsFromPT();
   await refreshData();
-  // 如果有資料，啟動即時更新
   const allSignals = swingSignals.concat(scalpSignals);
   if (allSignals.length > 0) {
-    startLiveUpdates(allSignals, cachedTrades);
+    startLiveUpdates(allSignals);
   }
-  // 恢復 tab
   switchTab(currentTab);
 }
 
