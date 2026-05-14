@@ -120,11 +120,11 @@
   }
   .pt-toggle.active .pt-dot {
     opacity: 1;
-    animation: pt-pulse 1.6s ease-in-out infinite;
+    animation: pt-breathe 2.4s ease-in-out infinite;
   }
-  @keyframes pt-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(0, 212, 160, 0.5); }
-    50%       { box-shadow: 0 0 0 5px rgba(0, 212, 160, 0); }
+  @keyframes pt-breathe {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.2; }
   }
   /* Reset — ghost text button */
   .pt-reset {
