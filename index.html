@@ -6,19 +6,23 @@
 <title>Moon Sniper — 暴漲潛力幣種偵測 + 紙交易</title>
 <style>
   :root {
-    --bg: #0a0e17;
-    --card: #131a2b;
-    --card-hover: #1a2440;
-    --border: #1e2d4a;
-    --text: #e0e6f0;
-    --text-dim: #6b7fa0;
-    --green: #22c55e;
-    --green-bg: rgba(34,197,94,0.1);
-    --red: #ef4444;
-    --red-bg: rgba(239,68,68,0.1);
-    --blue: #3b82f6;
-    --yellow: #f59e0b;
-    --purple: #8b5cf6;
+    --bg: #0b0c11;
+    --card: #13141c;
+    --card-hover: #1a1c27;
+    --border: #252738;
+    --text: #dde2f2;
+    --text-dim: #5c637e;
+    --green: #00d4a0;
+    --green-bg: rgba(0, 212, 160, 0.10);
+    --red: #ff4e6a;
+    --red-bg: rgba(255, 78, 106, 0.10);
+    --blue: #6b8eff;
+    --blue-bg: rgba(107, 142, 255, 0.12);
+    --yellow: #f5a623;
+    --yellow-bg: rgba(245, 166, 35, 0.12);
+    --purple: #a78bfa;
+    --purple-bg: rgba(167, 139, 250, 0.12);
+    --dim-bg: rgba(92, 99, 126, 0.15);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; }
@@ -194,7 +198,7 @@
     user-select: none;
   }
   th.sortable { cursor: pointer; }
-  th.sortable:hover { color: var(--text); background: #22304f; }
+  th.sortable:hover { color: var(--text); background: var(--card-hover); }
   th.sortable .sort-indicator { color: var(--blue); margin-left: 3px; }
   .sticky-symbol {
     position: sticky;
@@ -275,12 +279,12 @@
     font-weight: 500;
     white-space: nowrap;
   }
-  .tag-breakout { background: rgba(59,130,246,0.2); color: var(--blue); }
-  .tag-strong { background: rgba(239,68,68,0.2); color: var(--red); }
-  .tag-rising { background: rgba(34,197,94,0.2); color: var(--green); }
-  .tag-volume { background: rgba(245,158,11,0.2); color: var(--yellow); }
-  .tag-reversal { background: rgba(139,92,246,0.2); color: var(--purple); }
-  .tag-default { background: rgba(107,127,160,0.2); color: var(--text-dim); }
+  .tag-breakout { background: var(--blue-bg); color: var(--blue); }
+  .tag-strong { background: var(--red-bg); color: var(--red); }
+  .tag-rising { background: var(--green-bg); color: var(--green); }
+  .tag-volume { background: var(--yellow-bg); color: var(--yellow); }
+  .tag-reversal { background: var(--purple-bg); color: var(--purple); }
+  .tag-default { background: var(--dim-bg); color: var(--text-dim); }
 
   /* Trade list */
   .trade-list {
@@ -324,10 +328,10 @@
     font-size: 10px;
     font-weight: 500;
   }
-  .trade-status.open { background: rgba(59,130,246,0.2); color: var(--blue); }
-  .trade-status.closed { background: rgba(107,127,160,0.2); color: var(--text-dim); }
-  .trade-status.tp2 { background: rgba(34,197,94,0.2); color: var(--green); }
-  .trade-status.sl { background: rgba(239,68,68,0.2); color: var(--red); }
+  .trade-status.open { background: var(--blue-bg); color: var(--blue); }
+  .trade-status.closed { background: var(--dim-bg); color: var(--text-dim); }
+  .trade-status.tp2 { background: var(--green-bg); color: var(--green); }
+  .trade-status.sl { background: var(--red-bg); color: var(--red); }
 
   .empty-state {
     text-align: center;
@@ -1819,11 +1823,11 @@ async function microstructureScan() {
     const totalCount = layers.length; // 6 層
 
     let conclusionText, conclusionColor, conclusionBg;
-    if (bullishCount >= 4) { conclusionText = `✅ 結構偏多（${bullishCount}/${totalCount} 層確認）。可找做多機會，順勢交易。`; conclusionColor = 'var(--green)'; conclusionBg = 'rgba(34,197,94,0.1)'; }
-    else if (bearishCount >= 4) { conclusionText = `🔴 結構偏空（${bearishCount}/${totalCount} 層確認）。可找做空機會，或空手觀望。`; conclusionColor = 'var(--red)'; conclusionBg = 'rgba(239,68,68,0.1)'; }
-    else if (bullishCount >= 3) { conclusionText = `🟡 微偏多（${bullishCount}/${totalCount} 層）。謹慎進場，窄停損。`; conclusionColor = 'var(--yellow)'; conclusionBg = 'rgba(245,158,11,0.1)'; }
-    else if (bearishCount >= 3) { conclusionText = `🟠 微偏空（${bearishCount}/${totalCount} 層）。謹慎或等待。`; conclusionColor = 'var(--yellow)'; conclusionBg = 'rgba(245,158,11,0.1)'; }
-    else { conclusionText = `⚪ 方向不明確（多${bullishCount} / 空${bearishCount}）。不交易，等更多確認。`; conclusionColor = 'var(--text-dim)'; conclusionBg = 'rgba(107,127,160,0.1)'; }
+    if (bullishCount >= 4) { conclusionText = `✅ 結構偏多（${bullishCount}/${totalCount} 層確認）。可找做多機會，順勢交易。`; conclusionColor = 'var(--green)'; conclusionBg = 'var(--green-bg)'; }
+    else if (bearishCount >= 4) { conclusionText = `🔴 結構偏空（${bearishCount}/${totalCount} 層確認）。可找做空機會，或空手觀望。`; conclusionColor = 'var(--red)'; conclusionBg = 'var(--red-bg)'; }
+    else if (bullishCount >= 3) { conclusionText = `🟡 微偏多（${bullishCount}/${totalCount} 層）。謹慎進場，窄停損。`; conclusionColor = 'var(--yellow)'; conclusionBg = 'var(--yellow-bg)'; }
+    else if (bearishCount >= 3) { conclusionText = `🟠 微偏空（${bearishCount}/${totalCount} 層）。謹慎或等待。`; conclusionColor = 'var(--yellow)'; conclusionBg = 'var(--yellow-bg)'; }
+    else { conclusionText = `⚪ 方向不明確（多${bullishCount} / 空${bearishCount}）。不交易，等更多確認。`; conclusionColor = 'var(--text-dim)'; conclusionBg = 'var(--dim-bg)'; }
 
     conclusionDiv.style.display = 'block';
     conclusionDiv.style.border = `1px solid ${conclusionColor}`;
