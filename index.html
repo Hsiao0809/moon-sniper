@@ -585,6 +585,10 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-top:8px" id="microLayers"></div>
     <!-- 結論 -->
     <div id="microConclusion" style="margin-top:12px;padding:16px;border-radius:8px;border:1px solid var(--border);background:var(--card);display:none"></div>
+    <!-- 成交量圖 -->
+    <div id="microVolChart" style="margin-top:10px;display:none"></div>
+    <!-- 訂單簿深度圖 -->
+    <div id="microDepthChart" style="margin-top:8px;display:none"></div>
   </div>
   <div id="microEmpty" class="empty-state">
     <div class="emoji">🔬</div>
@@ -1324,6 +1328,10 @@ function switchTab(tab) {
     currentSignalMode = 'scalp';
     displayedSignals = getSortedSignals(scalpSignals);
     updateSortIndicators();
+  } else if (tab === 'microstructure') {
+    if (document.getElementById('microResult').style.display === 'none') {
+      microstructureScan();
+    }
   }
 }
 
@@ -1873,6 +1881,8 @@ async function microstructureScan() {
     emptyDiv.style.display = 'none';
     statusDiv.style.display = 'none';
     btn.textContent = '🔄 重新掃描';
+    renderMicroVolume(klines1h);
+    renderMicroDepth(depth, price);
   } catch(e) {
     statusText.textContent = `❌ 分析失敗：${e.message}`;
     statusDiv.style.display = 'none';
@@ -1882,6 +1892,116 @@ async function microstructureScan() {
     btn.disabled = false;
     btn.textContent = '🔬 重新掃描';
   }
+}
+
+function renderMicroVolume(klines1h) {
+  const container = document.getElementById('microVolChart');
+  if (!container || !klines1h?.length) return;
+
+  const candles = klines1h.map(k => ({
+    vol: parseFloat(k[5]),
+    open: parseFloat(k[1]),
+    close: parseFloat(k[4]),
+    time: parseInt(k[0])
+  }));
+
+  const maxVol = Math.max(...candles.map(c => c.vol));
+  const avgVol = candles.slice(0, -1).reduce((s, c) => s + c.vol, 0) / Math.max(candles.length - 1, 1);
+  const avgPct = (avgVol / maxVol * 100).toFixed(1);
+
+  const bars = candles.map((c, i) => {
+    const h = Math.max((c.vol / maxVol * 100), 1).toFixed(1);
+    const bull = c.close >= c.open;
+    const isLast = i === candles.length - 1;
+    const color = bull ? 'var(--green)' : 'var(--red)';
+    const opacity = isLast ? 0.45 : 0.7;
+    const label = new Date(c.time).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Taipei' });
+    return `<div style="flex:1;min-width:0;height:${h}%;background:${color};opacity:${opacity};border-radius:1px 1px 0 0" title="${label}  ${(c.vol / 1e6).toFixed(2)}M  ${bull ? '▲' : '▼'}"></div>`;
+  }).join('');
+
+  container.style.display = 'block';
+  container.innerHTML = `
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:600;color:var(--text)">📊 成交量  <span style="font-weight:400;color:var(--text-dim)">1h × 48</span></span>
+      <span>均量 ${(avgVol / 1e6).toFixed(1)}M <span style="color:var(--yellow)">━</span></span>
+    </div>
+    <div style="position:relative;height:72px;background:var(--card);border:1px solid var(--border);border-radius:6px;overflow:hidden;padding:2px 4px 0">
+      <div style="position:absolute;bottom:${avgPct}%;left:0;right:0;border-top:1px dashed var(--yellow);opacity:0.55;pointer-events:none;z-index:1"></div>
+      <div style="display:flex;align-items:flex-end;height:100%;gap:1px">${bars}</div>
+    </div>`;
+}
+
+function renderMicroDepth(depth, price) {
+  const container = document.getElementById('microDepthChart');
+  if (!container || !depth?.bids?.length || !depth?.asks?.length) return;
+
+  const W = 600, H = 130;
+  const range = price * 0.015;
+  const minP = price - range, maxP = price + range;
+
+  const bids = depth.bids
+    .map(([p, q]) => ({ p: parseFloat(p), q: parseFloat(q) }))
+    .filter(b => b.p >= minP)
+    .sort((a, b) => b.p - a.p);
+
+  const asks = depth.asks
+    .map(([p, q]) => ({ p: parseFloat(p), q: parseFloat(q) }))
+    .filter(a => a.p <= maxP)
+    .sort((a, b) => a.p - b.p);
+
+  let cumBids = [], s = 0;
+  bids.forEach(b => { s += b.q; cumBids.push({ p: b.p, c: s }); });
+
+  let cumAsks = [], as = 0;
+  asks.forEach(a => { as += a.q; cumAsks.push({ p: a.p, c: as }); });
+
+  const maxC = Math.max(...cumBids.map(b => b.c), ...cumAsks.map(a => a.c), 1);
+  const px = p => ((p - minP) / (maxP - minP)) * W;
+  const py = c => H - 4 - (c / maxC * (H - 16));
+  const midX = px(price);
+
+  let bidPath = `M ${midX} ${H}`;
+  cumBids.forEach(b => { bidPath += ` L ${px(b.p).toFixed(1)} ${py(b.c).toFixed(1)}`; });
+  if (cumBids.length) bidPath += ` L ${px(cumBids[cumBids.length - 1].p).toFixed(1)} ${H}`;
+
+  let askPath = `M ${midX} ${H}`;
+  cumAsks.forEach(a => { askPath += ` L ${px(a.p).toFixed(1)} ${py(a.c).toFixed(1)}`; });
+  if (cumAsks.length) askPath += ` L ${px(cumAsks[cumAsks.length - 1].p).toFixed(1)} ${H}`;
+
+  const totalBid = cumBids.length ? cumBids[cumBids.length - 1].c : 0;
+  const totalAsk = cumAsks.length ? cumAsks[cumAsks.length - 1].c : 0;
+  const ratio = totalAsk > 0 ? totalBid / totalAsk : 1;
+  const ratioColor = ratio > 1.2 ? 'var(--green)' : ratio < 0.83 ? 'var(--red)' : 'var(--text-dim)';
+
+  const loPrice = `$${(price - range).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const hiPrice = `$${(price + range).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+  container.style.display = 'block';
+  container.innerHTML = `
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:600;color:var(--text)">📉 訂單簿深度  <span style="font-weight:400;color:var(--text-dim)">±1.5%</span></span>
+      <span>買 ${totalBid.toFixed(1)} BTC <span style="color:${ratioColor};font-weight:700">${ratio.toFixed(2)}x</span> 賣 ${totalAsk.toFixed(1)} BTC</span>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;overflow:hidden;position:relative">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px;display:block">
+        <defs>
+          <linearGradient id="dBidG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--green)" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="var(--green)" stop-opacity="0.05"/>
+          </linearGradient>
+          <linearGradient id="dAskG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--red)" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="var(--red)" stop-opacity="0.05"/>
+          </linearGradient>
+        </defs>
+        <path d="${bidPath} Z" fill="url(#dBidG)" stroke="var(--green)" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="${askPath} Z" fill="url(#dAskG)" stroke="var(--red)" stroke-width="1.5" stroke-linejoin="round"/>
+        <line x1="${midX.toFixed(1)}" y1="0" x2="${midX.toFixed(1)}" y2="${H}" stroke="var(--text-dim)" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
+        <text x="${midX.toFixed(1)}" y="11" text-anchor="middle" fill="var(--text)" font-size="9" font-family="monospace">$${price.toLocaleString()}</text>
+        <text x="4" y="${H - 4}" fill="var(--text-dim)" font-size="8" font-family="monospace">${loPrice}</text>
+        <text x="${W - 4}" y="${H - 4}" text-anchor="end" fill="var(--text-dim)" font-size="8" font-family="monospace">${hiPrice}</text>
+      </svg>
+    </div>`;
 }
 </script>
 
