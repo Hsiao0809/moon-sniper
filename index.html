@@ -2133,9 +2133,9 @@ function renderOBLadder(depth) {
   const askRows = [...asks].reverse().map(a => {
     const pct = (a.q / maxQ * 100).toFixed(1);
     return `<div class="ob-row">
-      <span class="ob-qty" style="color:var(--text-dim)">${fmtQ(a.q)}</span>
-      <span class="ob-track"><span class="ob-fill-ask" style="width:${pct}%"></span></span>
       <span class="ob-price" style="color:var(--red)">${fmtP(a.p)}</span>
+      <span class="ob-track"><span class="ob-fill-ask" style="width:${pct}%"></span></span>
+      <span class="ob-qty" style="color:var(--text-dim)">${fmtQ(a.q)}</span>
     </div>`;
   }).join('');
 
@@ -2160,7 +2160,7 @@ function renderOBLadder(depth) {
     </div>
     <div class="ob-section">
       <div style="font-size:10px;color:var(--text-dim);display:flex;justify-content:space-between;margin-bottom:2px;padding:0 2px">
-        <span>數量</span><span>賣出 ASK</span>
+        <span>賣出 ASK</span><span>數量</span>
       </div>
       ${askRows}
     </div>
