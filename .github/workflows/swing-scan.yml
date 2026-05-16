@@ -1,0 +1,64 @@
+name: Moon Sniper Swing Scan
+on:
+  schedule:
+    - cron: '5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: moon-sniper-swing
+  cancel-in-progress: false
+
+jobs:
+  swing-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run scanner (swing mode)
+        run: |
+          set -o pipefail
+          python scanner.py --mode swing 2>&1 | tee scanner_swing_debug.log
+          echo "=== swing_signals.json ==="
+          python3 -c "import json; d=json.load(open('swing_signals.json')); print(f'訊號數: {len(d.get(\"signals\",[]))}')" 2>/dev/null || echo "swing_signals.json not found"
+        env:
+          BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
+          BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
+
+      - name: Verify swing freshness
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+          from datetime import datetime, timezone, timedelta
+          d = json.load(open('swing_signals.json'))
+          scanned_at = datetime.fromisoformat(d['scanned_at'])
+          age = datetime.now(timezone.utc) - scanned_at
+          if age > timedelta(hours=2):
+              print(f"FAIL: swing_signals.json 已 {age} 未更新", file=sys.stderr)
+              sys.exit(1)
+          print(f"OK: swing 新鮮度 {age} ({len(d.get('signals',[]))} 訊號)")
+          EOF
+
+      - name: Commit results
+        run: |
+          git config user.name "moon-sniper-bot"
+          git config user.email "bot@moon-sniper"
+          git add swing_signals.json
+          if git diff --staged --quiet; then
+            echo "No data changes to commit."
+          else
+            git commit -m "swing: update $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
+
+      - name: Send Telegram notification
+        run: python notify.py
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
