@@ -623,7 +623,7 @@
       <tbody id="signalsBodyScalp">
       </tbody>
     </table>
-    <div id="signalsEmptyScalp" style="display:none; padding:16px; color:var(--text-dim); text-align:center;">還沒有 Scalp 訊號，等待自動掃描或<button class="btn" onclick="fetchData()">手動刷新</button></div>
+    <div id="signalsEmptyScalp" style="display:none; padding:16px; color:var(--text-dim); text-align:center;">還沒有 Scalp 訊號，等待自動掃描或<button class="btn" onclick="refreshAll()">手動刷新</button></div>
   </div>
 </div>
 
@@ -730,6 +730,8 @@
 // ===== 雙軌資料 ====
 let swingSignals = [];
 let scalpSignals = [];
+let configData = null;
+let paperTradesData = { trades: [], stats: {} };
 let currentSignalMode = 'swing'; // 'swing' or 'scalp'
 let displayedSignals = [];
 let sortState = { key: 'rank', dir: 'asc' };
@@ -737,16 +739,19 @@ let sortState = { key: 'rank', dir: 'asc' };
 async function refreshData() {
   try {
     // 同時載入兩個 signals 來源
-    const [swingResp, scalpResp] = await Promise.all([
+    const [swingResp, scalpResp, tradesResp, configResp] = await Promise.all([
       fetch('./swing_signals.json?_=' + Date.now()),
-      fetch('./scalp_signals.json?_=' + Date.now())
+      fetch('./scalp_signals.json?_=' + Date.now()),
+      fetch('./paper_trades.json?_=' + Date.now()),
+      fetch('./config.json?_=' + Date.now())
     ]);
     const swingData = await swingResp.json();
     const scalpData = await scalpResp.json();
+    paperTradesData = await tradesResp.json();
+    configData = await configResp.json();
     swingSignals = swingData.signals || [];
     scalpSignals = scalpData.signals || [];
     renderAll(swingData, scalpData);
-    ptCheckNewTrades();
   } catch(e) {
     document.getElementById('signalsBodySwing').innerHTML = 
       `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-dim)">
@@ -816,13 +821,13 @@ const PT_CFG = {
   scalp: { initial: 90,  maxOpen: 4, leverage: 2, minScore: 70, tp1: 0.05, tp2: 0.08, sl: 0.03, tp1Ratio: 0.50, maxHoldH: 4 }
 };
 
-function ptLoad() {
+function legacyLocalPtLoad() {
   try { const r = localStorage.getItem(PT_KEY); if (r) return JSON.parse(r); } catch(e) {}
   return { enabled: false, trades: [], pools: { swing: { equity: 180, realized: 0 }, scalp: { equity: 90, realized: 0 } } };
 }
 function ptSave(s) { try { localStorage.setItem(PT_KEY, JSON.stringify(s)); } catch(e) {} }
 
-function ptCheckNewTrades() {
+function legacyLocalPtCheckNewTrades() {
   const state = ptLoad();
   if (!state.enabled) return;
   const now = new Date();
@@ -866,7 +871,7 @@ function ptCheckNewTrades() {
   if (changed) { ptSave(state); renderTrades(); updateStatsFromPT(); }
 }
 
-function ptUpdateTrades() {
+function legacyLocalPtUpdateTrades() {
   const state = ptLoad();
   const now = new Date();
   let changed = false;
@@ -891,7 +896,7 @@ function ptUpdateTrades() {
   if (changed) { ptSave(state); renderTrades(); updateStatsFromPT(); }
 }
 
-function ptCloseTrade(tradeId) {
+function legacyLocalPtCloseTrade(tradeId) {
   if (!confirm('確定要手動平倉這筆交易？')) return;
   const state = ptLoad();
   const t = state.trades.find(t => t.id === tradeId);
@@ -967,7 +972,7 @@ function updateStatsFromPT() {
   updateTradingButtons();
 }
 
-function toggleTrading(enable) {
+function legacyLocalToggleTrading(enable) {
   const state = ptLoad();
   state.enabled = enable;
   ptSave(state);
@@ -985,6 +990,154 @@ function resetTrading() {
 }
 
 // 渲染單一 signals 表格
+// === GitHub JSON-backed paper trading overrides ===
+function openTradingControl() {
+  window.open('https://github.com/Hsiao0809/moon-sniper/actions/workflows/trading-control.yml', '_blank', 'noopener');
+}
+
+function ptLoad() {
+  const tradesCache = paperTradesData || {};
+  const tradingCfg = configData?.paper_trading || {};
+  return {
+    enabled: tradingCfg.enabled === true,
+    reason: tradingCfg.reason || '',
+    trades: Array.isArray(tradesCache.trades) ? tradesCache.trades : [],
+    stats: tradesCache.stats || {}
+  };
+}
+
+function ptCheckNewTrades() {
+  // New trades are created by GitHub Actions/paper_trader.py, not by the browser.
+}
+
+function ptUpdateTrades() {
+  // Live prices update dashboard-only unrealized PnL; persisted state stays in paper_trades.json.
+}
+
+function ptCloseTrade() {
+  openTradingControl();
+}
+
+function getPoolInitial(pool, accountBalance, serverPool) {
+  const traderCfg = pool === 'swing' ? configData?.swing_trader : configData?.scalp_trader;
+  if (Number.isFinite(Number(serverPool?.pool_initial))) return Number(serverPool.pool_initial);
+  return accountBalance * Number(traderCfg?.pool_allocation ?? (pool === 'swing' ? 0.6 : 0.3));
+}
+
+function calculateLiveTradePnl(t) {
+  const entry = Number(t.entry_price) || 0;
+  const positionValue = Number(t.position_value) || 0;
+  const live = livePrices[t.symbol];
+  if (!entry || !positionValue || !live) {
+    return { pnl: Number(t.unrealized_pnl_usdt || 0), pct: Number(t.unrealized_pnl_pct || 0) };
+  }
+  const isLong = t.direction !== 'short';
+  const grossPct = isLong ? (live - entry) / entry : (entry - live) / entry;
+  const fees = positionValue * 0.0004 * 2;
+  const pnl = grossPct * positionValue - fees;
+  return { pnl, pct: (pnl / positionValue) * 100 };
+}
+
+function legacyLocalPtCalculateStats() {
+  const tradesCache = ptLoad();
+  const trades = tradesCache.trades || [];
+  const serverStats = tradesCache.stats || {};
+  const serverPools = serverStats.pools || {};
+  const closed = trades.filter(t => t.status === 'closed');
+  const open = trades.filter(t => t.status === 'open');
+  const wins = closed.filter(t => Number(t.realized_pnl_usdt || 0) > 0).length;
+  const accountBalance = Number(serverStats.account_balance || configData?.swing_trader?.account_balance || configData?.scalp_trader?.account_balance || 300);
+  const swingInitial = getPoolInitial('swing', accountBalance, serverPools.swing);
+  const scalpInitial = getPoolInitial('scalp', accountBalance, serverPools.scalp);
+  const allocatedInitial = swingInitial + scalpInitial;
+  const reserveEquity = Math.max(accountBalance - allocatedInitial, 0);
+  const accountEquity = tradesCache?.stats?.total_equity || tradesCache?.stats?.account_balance || 300;
+  const totalRealized = Number(serverStats.total_realized_pnl_usdt ?? closed.reduce((s, t) => s + Number(t.realized_pnl_usdt || 0), 0));
+  const liveUnrealized = open.reduce((s, t) => s + calculateLiveTradePnl(t).pnl, 0);
+  const totalUnrealized = open.length ? liveUnrealized : Number(serverStats.total_unrealized_pnl_usdt || 0);
+  const winRate = Number(serverStats.win_rate ?? (closed.length ? wins / closed.length * 100 : 0));
+  const swingOpen = open.filter(t => (t.pool || 'swing') === 'swing');
+  const scalpOpen = open.filter(t => t.pool === 'scalp');
+  const swingPool = serverPools.swing || {};
+  const scalpPool = serverPools.scalp || {};
+  return {
+    enabled: tradesCache.enabled,
+    reason: tradesCache.reason,
+    trades,
+    stats: {
+      total_trades: Number(serverStats.total_trades ?? trades.length),
+      open_count: Number(serverStats.open_count ?? open.length),
+      closed_count: Number(serverStats.closed_count ?? closed.length),
+      wins: Number(serverStats.wins ?? wins),
+      losses: Number(serverStats.losses ?? (closed.length - wins)),
+      win_rate: winRate,
+      total_realized_pnl_usdt: totalRealized,
+      total_unrealized_pnl_usdt: totalUnrealized,
+      total_equity: Number(accountEquity),
+      account_balance: accountBalance,
+      reserve_equity: reserveEquity,
+      pools: {
+        swing: {
+          pool_equity: Number(swingPool.pool_equity ?? (swingInitial + Number(swingPool.total_realized_pnl_usdt || 0))),
+          pool_initial: swingInitial,
+          used_margin: Number(swingPool.used_margin ?? swingOpen.reduce((s, t) => s + Number(t.margin || 0), 0)),
+          open_count: Number(swingPool.open_count ?? swingOpen.length)
+        },
+        scalp: {
+          pool_equity: Number(scalpPool.pool_equity ?? (scalpInitial + Number(scalpPool.total_realized_pnl_usdt || 0))),
+          pool_initial: scalpInitial,
+          used_margin: Number(scalpPool.used_margin ?? scalpOpen.reduce((s, t) => s + Number(t.margin || 0), 0)),
+          open_count: Number(scalpPool.open_count ?? scalpOpen.length)
+        }
+      }
+    }
+  };
+}
+
+function updateTradingButtons() {
+  const state = ptLoad();
+  const btn = document.getElementById('btnToggleTrading');
+  const resetBtn = document.getElementById('btnResetTrading');
+  const label = document.getElementById('ptToggleLabel');
+  if (!btn) return;
+  btn.classList.toggle('active', state.enabled);
+  btn.title = state.reason || 'Managed by GitHub Actions';
+  if (label) label.textContent = state.enabled ? '紙交易已啟用' : '紙交易已暫停';
+  if (resetBtn) resetBtn.title = '到 GitHub Actions 執行 reset';
+}
+
+function legacyLocalUpdateStatsFromPT() {
+  const { stats } = ptCalculateStats();
+  document.getElementById('statOpenTrades').textContent = stats.open_count;
+  const rPnl = stats.total_realized_pnl_usdt;
+  document.getElementById('statTotalPnl').textContent = (rPnl >= 0 ? '+' : '') + rPnl.toFixed(2);
+  document.getElementById('statTotalPnl').className = 'value ' + (rPnl >= 0 ? 'green' : 'red');
+  const uPnl = stats.total_unrealized_pnl_usdt;
+  document.getElementById('statUnrealizedPnl').textContent = (uPnl >= 0 ? '+' : '') + uPnl.toFixed(2);
+  document.getElementById('statUnrealizedPnl').className = 'value ' + (uPnl >= 0 ? 'green' : 'red');
+  document.getElementById('statWinRate').textContent = stats.closed_count > 0 ? `${stats.wins} / ${stats.losses} (${stats.win_rate}%)` : '-';
+  document.getElementById('statWinRate').className = 'value ' + (stats.win_rate >= 50 ? 'green' : 'red');
+  document.getElementById('statTotalTrades').textContent = stats.total_trades;
+  document.getElementById('statBalance').textContent = (stats.total_equity + uPnl).toFixed(2);
+  const sp = stats.pools.swing;
+  document.getElementById('statSwingEquity').textContent = `${sp.pool_equity.toFixed(1)} / ${sp.used_margin.toFixed(1)}`;
+  document.getElementById('statSwingEquity').className = 'value green';
+  const cp = stats.pools.scalp;
+  document.getElementById('statScalpEquity').textContent = `${cp.pool_equity.toFixed(1)} / ${cp.used_margin.toFixed(1)}`;
+  document.getElementById('statScalpEquity').className = 'value blue';
+  const reserveEl = document.getElementById('statReserveEquity');
+  if (reserveEl) { reserveEl.textContent = stats.reserve_equity.toFixed(1); reserveEl.className = 'value'; }
+  updateTradingButtons();
+}
+
+function toggleTrading() {
+  openTradingControl();
+}
+
+function legacyLocalResetTrading() {
+  openTradingControl();
+}
+
 function renderSignals(signals, mode) {
   const isSwing = mode === 'swing';
   const tbodyId = isSwing ? 'signalsBodySwing' : 'signalsBodyScalp';
@@ -1406,7 +1559,7 @@ function renderTradeItem(t) {
     : 'closed';
   
   const closeBtn = t.status === 'open'
-    ? `<button class="btn" style="margin-top:4px;padding:3px 8px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="ptCloseTrade('${t.id}')">平倉</button>`
+    ? `<button class="btn" style="margin-top:4px;padding:3px 8px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="ptCloseTrade('${t.id}')">Actions 管理</button>`
     : '';
 
   return `<div class="trade-item">

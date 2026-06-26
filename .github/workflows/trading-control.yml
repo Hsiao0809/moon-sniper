@@ -17,6 +17,10 @@ on:
         default: ''
         type: string
 
+concurrency:
+  group: moon-sniper-data
+  cancel-in-progress: false
+
 jobs:
   trading-control:
     runs-on: ubuntu-latest
@@ -27,20 +31,28 @@ jobs:
 
       - name: Enable / Disable paper trading
         if: inputs.action == 'enable' || inputs.action == 'disable'
+        env:
+          ACTION: ${{ inputs.action }}
+          REASON_INPUT: ${{ inputs.reason }}
         run: |
-          ENABLED=${{ inputs.action == 'enable' && 'true' || 'false' }}
-          REASON="${{ inputs.reason || (inputs.action == 'enable' && 'Activated via dashboard' || 'Paused via dashboard') }}"
-          python3 -c "
+          python3 - <<'EOF'
 import json
+import os
+
+action = os.environ["ACTION"]
+enabled = action == "enable"
+reason = os.environ.get("REASON_INPUT") or ("Activated via dashboard" if enabled else "Paused via dashboard")
+
 with open('config.json') as f:
     cfg = json.load(f)
-cfg['paper_trading']['enabled'] = $ENABLED
-cfg['paper_trading']['reason'] = '$REASON'
+cfg.setdefault('paper_trading', {})
+cfg['paper_trading']['enabled'] = enabled
+cfg['paper_trading']['reason'] = reason
 with open('config.json', 'w') as f:
     json.dump(cfg, f, indent=2, ensure_ascii=False)
-print(f'paper_trading.enabled = $ENABLED')
-print(f'reason = $REASON')
-"
+print(f'paper_trading.enabled = {enabled}')
+print(f'reason = {reason}')
+EOF
           git config user.name "moon-sniper-bot"
           git config user.email "bot@moon-sniper.local"
           git add config.json

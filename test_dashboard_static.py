@@ -129,11 +129,20 @@ def test_scanner_separates_display_candidates_from_trade_eligibility():
 
 
 def test_paper_trading_can_be_paused_and_requires_trade_eligible():
-    config = json.loads(Path('config.json').read_text(encoding='utf-8'))
     trader = Path('paper_trader.py').read_text(encoding='utf-8')
-    assert config.get('paper_trading', {}).get('enabled') is False, 'paper trading should be paused until project review completes'
+    assert "trading_enabled = trading_cfg.get(\"enabled\", True)" in trader, 'paper trader should read the paper_trading enabled flag'
     assert 'paper_trading_enabled' in trader, 'paper trader should persist pause status in stats'
+    assert 'Always manage existing positions' in trader, 'paper trader should keep managing open trades while new entries are paused'
     assert 's.get("trade_eligible", False)' in trader, 'paper trader must only trade explicitly eligible signals'
+
+
+def test_dashboard_uses_github_json_for_paper_trading():
+    assert_contains(HTML, "fetch('./paper_trades.json?_=' + Date.now())", 'dashboard should load persisted paper trades from GitHub Pages')
+    assert_contains(HTML, "fetch('./config.json?_=' + Date.now())", 'dashboard should load paper trading enabled/paused state from config.json')
+    assert_contains(HTML, 'GitHub JSON-backed paper trading overrides', 'dashboard should use the JSON-backed paper trading path')
+    assert_not_contains(HTML, 'renderAll(swingData, scalpData);\n    ptCheckNewTrades();', 'dashboard must not open trades just because a browser loaded the page')
+    assert HTML.count('function ptLoad()') == 1, 'dashboard should expose only one active ptLoad function'
+    assert HTML.count('function toggleTrading(') == 1, 'dashboard should expose only one active toggleTrading function'
 
 
 def test_dashboard_shows_total_account_and_reserve():

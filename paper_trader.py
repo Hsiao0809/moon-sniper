@@ -9,14 +9,23 @@ moon-sniper paper_trader.py
 
 import json
 import os
+import urllib.request
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from urllib.parse import urlencode
 
 BASE_DIR = Path(__file__).parent
 CONFIG_PATH = BASE_DIR / "config.json"
 SWING_SIGNALS_PATH = BASE_DIR / "swing_signals.json"
 SCALP_SIGNALS_PATH = BASE_DIR / "scalp_signals.json"
 TRADES_PATH = BASE_DIR / "paper_trades.json"
+BINANCE_HOSTS = [
+    "https://api.binance.com",
+    "https://data-api.binance.vision",
+    "https://api1.binance.com",
+    "https://api2.binance.com",
+    "https://api3.binance.com",
+]
 
 
 def load_config():
@@ -45,6 +54,28 @@ def save_trades(data):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+def get_account_balance(config):
+    swing_balance = config.get("swing_trader", {}).get("account_balance")
+    scalp_balance = config.get("scalp_trader", {}).get("account_balance")
+    return float(swing_balance or scalp_balance or 300)
+
+
+def get_pool_initial(config, pool):
+    pool_cfg = get_pool_config(config, pool)
+    return get_account_balance(config) * float(pool_cfg.get("pool_allocation", 0))
+
+
+def get_live_ticker(symbol):
+    query = urlencode({"symbol": symbol})
+    for host in BINANCE_HOSTS:
+        try:
+            resp = urllib.request.urlopen(f"{host}/api/v3/ticker/24hr?{query}", timeout=15)
+            return json.loads(resp.read())
+        except Exception:
+            continue
+    return None
+
+
 def get_pool_config(config, pool):
     """根據 pool 回傳對應的 config 區塊"""
     if pool == "swing":
@@ -59,13 +90,12 @@ def get_position_value(config, trades, pool):
     各 pool 資金獨立管理
     """
     pool_cfg = get_pool_config(config, pool)
-    total_equity = pool_cfg["account_balance"]
+    total_equity = get_account_balance(config)
     leverage = pool_cfg.get("default_leverage", 2)
     max_open = pool_cfg["max_open_trades"]
-    pool_allocation = pool_cfg["pool_allocation"]
 
     # pool 初始資金
-    pool_initial = total_equity * pool_allocation
+    pool_initial = get_pool_initial(config, pool)
 
     # 計算該 pool 已佔用保證金
     used_margin = 0
@@ -268,6 +298,7 @@ def update_open_trades(trades, config):
     signal_map = {}
     for s in all_signals:
         signal_map[s["symbol"]] = s
+    live_ticker_cache = {}
 
     now = datetime.now(timezone.utc)
     updated = 0
@@ -291,13 +322,33 @@ def update_open_trades(trades, config):
             current_price = float(signal_map[symbol]["price"])
             high_24h = float(signal_map[symbol].get("high_24h", current_price))
             low_24h = float(signal_map[symbol].get("low_24h", current_price))
+        else:
+            if symbol not in live_ticker_cache:
+                live_ticker_cache[symbol] = get_live_ticker(symbol)
+            ticker = live_ticker_cache.get(symbol) or {}
+            if ticker:
+                current_price = float(ticker.get("lastPrice", entry))
+                high_24h = float(ticker.get("highPrice", current_price))
+                low_24h = float(ticker.get("lowPrice", current_price))
 
         if current_price is None:
+            max_hold = datetime.fromisoformat(trade["max_hold_until"])
+            if now >= max_hold:
+                trade["status"] = "closed"
+                trade["exit_price"] = entry
+                trade["exit_time"] = now.isoformat()
+                trade["realized_pnl_usdt"] = 0.0
+                trade["realized_pnl_pct"] = 0.0
+                trade["unrealized_pnl_usdt"] = 0.0
+                trade["unrealized_pnl_pct"] = 0.0
+                trade["exit_reason"] = "timeout_no_price"
+                updated += 1
             continue
 
         # 更新 OBI / ADX
-        trade["obi"] = signal_map[symbol].get("obi", trade.get("obi", 0))
-        trade["adx"] = signal_map[symbol].get("adx", trade.get("adx", 0))
+        if symbol in signal_map:
+            trade["obi"] = signal_map[symbol].get("obi", trade.get("obi", 0))
+            trade["adx"] = signal_map[symbol].get("adx", trade.get("adx", 0))
 
         # 浮動損益
         unrealized_u, unrealized_pct = calc_pnl(current_price, entry, pos_value, direction)
@@ -398,8 +449,7 @@ def calculate_stats(trades, config):
         pool_realized = sum(t["realized_pnl_usdt"] for t in pool_closed)
         pool_unrealized = sum(t["unrealized_pnl_usdt"] for t in pool_open)
 
-        pool_cfg = get_pool_config(config, pool)
-        pool_initial = pool_cfg["account_balance"] * pool_cfg["pool_allocation"]
+        pool_initial = get_pool_initial(config, pool)
 
         pivot[pool] = {
             "pool_initial": round(pool_initial, 2),
@@ -427,7 +477,8 @@ def calculate_stats(trades, config):
             max_drawdown = drawdown
 
     # 帳戶總權益
-    total_equity = 300 + total_realized_pnl  # 起始 300U
+    account_balance = get_account_balance(config)
+    total_equity = account_balance + total_realized_pnl
 
     stats = {
         "total_trades": total_trades,
@@ -442,7 +493,7 @@ def calculate_stats(trades, config):
         "avg_loss_usdt": round(avg_loss, 2),
         "max_drawdown_usdt": round(max_drawdown, 2),
         "total_equity": round(total_equity, 2),
-        "account_balance": 300,
+        "account_balance": round(account_balance, 2),
         "last_updated": datetime.now(timezone.utc).isoformat(),
         "pools": pivot,
     }
@@ -457,6 +508,11 @@ def run():
     scalp_signals = load_signals("scalp").get("signals", [])
     trades = load_trades()
 
+    # Always manage existing positions. "Paused" means no new entries, not stale open trades.
+    updated = update_open_trades(trades, config)
+    if updated:
+        print(f"更新了 {updated} 筆紙交易")
+
     trading_cfg = config.get("paper_trading", {})
     trading_enabled = trading_cfg.get("enabled", True)
     if not trading_enabled:
@@ -467,11 +523,6 @@ def run():
         save_trades(trades)
         print(f"紙交易狀態：{trades['stats']['total_trades']} 筆總計，{trades['stats']['open_count']} 筆進行中")
         return
-
-    # 更新既有持倉（不分 pool，用訊號價格更新）
-    updated = update_open_trades(trades, config)
-    if updated:
-        print(f"更新了 {updated} 筆紙交易")
 
     # Swing 新訊號
     new_swing = check_new_trades({"signals": swing_signals}, trades, config, "swing")

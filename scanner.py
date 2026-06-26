@@ -31,6 +31,17 @@ def load_config():
     with open(CONFIG_PATH, encoding="utf-8") as f:
         return json.load(f)
 
+
+def load_existing_signal_output(mode):
+    path = BASE_DIR / f"{mode}_signals.json"
+    if not path.exists():
+        return {}
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
 def run_binance_cli(args):
     """執行 binance-cli 或直接 HTTP 呼叫 Binance API"""
     # 方法 1: 本地 binance-cli
@@ -768,8 +779,18 @@ def scan(config, mode="swing"):
     halt, halt_reason = should_halt_trading(config, tickers)
     if halt:
         print(f"⚠️  市場暫停：{halt_reason}")
-        print(f"回傳空 signals，保留上次資料。原因：{halt_reason}")
-        return {"signals": [], "halt": True, "halt_reason": halt_reason, "total_scanned": 0, "mode": mode, "scanned_at": datetime.now(timezone.utc).isoformat()}
+        previous = load_existing_signal_output(mode)
+        previous_signals = previous.get("signals", [])
+        print(f"保留上一輪 signals（{len(previous_signals)} 筆）。原因：{halt_reason}")
+        return {
+            "signals": previous_signals,
+            "halt": True,
+            "halt_reason": halt_reason,
+            "total_scanned": len(previous_signals),
+            "mode": mode,
+            "scanned_at": datetime.now(timezone.utc).isoformat(),
+            "last_successful_scanned_at": previous.get("scanned_at"),
+        }
 
     # 根據 mode 選擇不同的 config 區塊和權重
     trader_key = "swing_trader" if mode == "swing" else "scalp_trader"
@@ -1161,6 +1182,9 @@ def save_signals(signals, mode="swing", halt_reason=None):
     fname = f"{mode}_signals.json"
     with open(BASE_DIR / fname, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
+    if mode == "swing":
+        with open(SIGNALS_PATH, "w", encoding="utf-8") as f:
+            json.dump(output, f, indent=2, ensure_ascii=False)
     print(f"已寫入 {fname}（{len(signals)} 筆）")
 
 if __name__ == "__main__":
@@ -1177,6 +1201,9 @@ if __name__ == "__main__":
         fname = f"{args.mode}_signals.json"
         with open(BASE_DIR / fname, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
+        if args.mode == "swing":
+            with open(SIGNALS_PATH, "w", encoding="utf-8") as f:
+                json.dump(result, f, indent=2, ensure_ascii=False)
         print(f"已寫入 {fname}（暫停狀態：{result.get('halt_reason', '')}）")
     else:
         save_signals(result, mode=args.mode)
